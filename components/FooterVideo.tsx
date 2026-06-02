@@ -87,6 +87,12 @@ export default function FooterVideo() {
           className="mt-5 h-px w-[clamp(60px,12vw,140px)]"
           style={{ background: "var(--color-accent)" }}
         />
+        <p
+          className="mt-4 font-semibold uppercase text-white/75"
+          style={{ fontSize: "clamp(0.6rem,1.2vw,0.72rem)", letterSpacing: "0.28em" }}
+        >
+          advantagemarine.com.my
+        </p>
       </div>
     </div>
   );
