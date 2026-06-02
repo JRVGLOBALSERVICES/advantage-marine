@@ -12,7 +12,7 @@ import ScrollCue from "./ScrollCue";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const VesselScene = dynamic(() => import("./VesselScene"), {
+const PlatformHeroScene = dynamic(() => import("./PlatformHeroScene"), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 grid place-items-center">
@@ -268,7 +268,7 @@ export default function PropellerHero() {
         {/* 3D layer — exploded parts fly together into the vessel.
             onContextLost → swap to the static poster so it can never go blank. */}
         <div className="absolute inset-0">
-          {mounted && <VesselScene onContextLost={() => setCanvasFailed(true)} />}
+          {mounted && <PlatformHeroScene onContextLost={() => setCanvasFailed(true)} />}
         </div>
 
         {/* readability wash — cream, anchored bottom-left for the copy */}
