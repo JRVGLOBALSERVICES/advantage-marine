@@ -2,6 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import { gsap } from "gsap";
+import { MorphSVGPlugin } from "gsap/MorphSVGPlugin";
+
+gsap.registerPlugin(MorphSVGPlugin);
+
+/* Four 8-point telemetry waveforms the loader sonar-line morphs between while
+   the vessel hydrates (flat carrier → swell → telemetry spike → sonar hump).
+   Same point count across all four so MorphSVG maps them 1:1, no kinks. */
+const WAVE_FLAT = "M4,30 L32,30 L60,30 L88,30 L116,30 L144,30 L172,30 L196,30";
+const WAVE_SWELL = "M4,30 L32,14 L60,30 L88,46 L116,30 L144,14 L172,30 L196,46";
+const WAVE_SPIKE = "M4,30 L40,30 L52,30 L60,7 L72,53 L88,30 L150,30 L196,30";
+const WAVE_SONAR = "M4,46 L32,40 L60,30 L88,21 L116,15 L144,21 L172,30 L196,46";
 
 /* Branded scene-build loader — holds the frame while the WebGL vessel hydrates.
    Plays the glitch marine footage muted behind the Advantage Marine wordmark +
@@ -23,6 +34,7 @@ export default function SceneBuildLoader() {
   const countRef = useRef<HTMLDivElement>(null);
   const logoRef = useRef<HTMLImageElement>(null);
   const markRef = useRef<HTMLDivElement>(null);
+  const waveRef = useRef<SVGPathElement>(null);
 
   const [mounted, setMounted] = useState(false);
   const [dismissed, setDismissed] = useState(false);
@@ -39,6 +51,7 @@ export default function SceneBuildLoader() {
     const count = countRef.current;
     const logo = logoRef.current;
     const mark = markRef.current;
+    const wave = waveRef.current;
     if (!overlay) return;
 
     const startedAt = Date.now();
@@ -115,6 +128,15 @@ export default function SceneBuildLoader() {
           yoyo: true,
           repeat: -1,
         });
+      }
+      // morphing sonar telemetry line — cycles the four waveforms on a loop
+      if (!reduced && wave) {
+        gsap
+          .timeline({ repeat: -1, defaults: { duration: 1.1, ease: "sine.inOut" } })
+          .to(wave, { morphSVG: WAVE_SWELL })
+          .to(wave, { morphSVG: WAVE_SPIKE })
+          .to(wave, { morphSVG: WAVE_SONAR })
+          .to(wave, { morphSVG: WAVE_FLAT });
       }
       // progress rule + countdown driven by one timeline; `finish` snaps to ready
       if (bar) gsap.set(bar, { scaleX: reduced ? 0.92 : 0.05, transformOrigin: "left center" });
@@ -249,8 +271,23 @@ export default function SceneBuildLoader() {
         </p>
       </div>
 
-      {/* progress rule */}
+      {/* progress rule + morphing sonar telemetry line */}
       <div className="absolute bottom-12 left-1/2 z-10 w-[min(300px,64vw)] -translate-x-1/2">
+        <svg
+          viewBox="0 0 200 60"
+          className="mb-3 h-9 w-full overflow-visible"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            ref={waveRef}
+            d="M4,30 L32,30 L60,30 L88,30 L116,30 L144,30 L172,30 L196,30"
+            stroke="var(--color-accent-2)"
+            strokeWidth={2.5}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
         <div className="h-px w-full bg-[color:var(--color-accent-ink)]/15">
           <div ref={barRef} className="h-px w-full bg-[color:var(--color-accent-2)]" />
         </div>

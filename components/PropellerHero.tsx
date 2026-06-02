@@ -214,11 +214,13 @@ export default function PropellerHero() {
       },
     });
 
-    // copy beats — beat 0 lands as the vessel locks together (~0.6), then narrative
+    // copy beats aligned to the scene's acts: beat 0 over ACT 1 (rig right +
+    // thrust), beat 1 over the recentre/lift, beat 2 over ACT 2 (pedestal +
+    // rising tiles + sonar) before the GlobalReach handoff.
     const windows: [number, number, number, number][] = [
-      [-0.02, 0.12, 0.5, 0.62],
-      [0.62, 0.69, 0.82, 0.9],
-      [0.9, 0.95, 1.04, 1.1],
+      [-0.02, 0.1, 0.42, 0.52],
+      [0.5, 0.58, 0.68, 0.76],
+      [0.78, 0.84, 0.97, 1.04],
     ];
     const tick = () => {
       const p = scrollState.progress;

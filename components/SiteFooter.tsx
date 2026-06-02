@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FooterJrvLogoReveal } from "@/components/FooterJrvLogoReveal";
 import FooterVideo from "@/components/FooterVideo";
+import FooterWaveMorph from "@/components/FooterWaveMorph";
 import servicesData from "@/lib/content/services.json";
 
 // Caliber footer (cream system, no dark surface): editorial statement + HQ
@@ -144,8 +145,11 @@ export default function SiteFooter() {
         </div>
       </div>
 
-      {/* === C — mega-wordmark sign-off === */}
-      <div className="mx-auto max-w-[min(1200px,92vw)] overflow-hidden px-[clamp(1.5rem,4vw,4rem)] pt-[var(--space-lg)]">
+      {/* === C — morphing horizon line + mega-wordmark sign-off === */}
+      <div className="mx-auto max-w-[min(1200px,92vw)] px-[clamp(1.5rem,4vw,4rem)] pt-[var(--space-lg)]">
+        <FooterWaveMorph />
+      </div>
+      <div className="mx-auto max-w-[min(1200px,92vw)] overflow-hidden px-[clamp(1.5rem,4vw,4rem)] pt-[var(--space-md)]">
         <p
           aria-hidden
           className="select-none font-display font-bold leading-[0.9] tracking-[-0.03em]"
