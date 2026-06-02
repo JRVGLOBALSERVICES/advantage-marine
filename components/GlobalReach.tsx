@@ -22,7 +22,7 @@ const ROUTES = [
   { start: JOHOR, end: { lat: 25.276, lng: 55.2962, label: "Gulf" } },
 ];
 
-const SOCIETIES = ["ABS", "DNV", "BV", "LR", "NKK", "ClassNK", "IRS"];
+const SOCIETIES = ["ABS", "DNV", "BV", "LR", "ClassNK", "KR", "IRS", "CCS", "RINA"];
 
 export default function GlobalReach() {
   return (
@@ -57,14 +57,14 @@ export default function GlobalReach() {
 
         {/* animated great-circle arcs from Johor */}
         <div className="mt-[var(--space-xl)]">
-          <WorldMap dots={ROUTES} lineColor="#8B5CF6" />
+          <WorldMap dots={ROUTES} lineColor="#30837b" />
         </div>
 
         {/* count-up stats */}
         <div className="mt-[var(--space-xl)] grid grid-cols-2 sm:grid-cols-3 gap-[var(--space-lg)]">
           {[
             { value: 10, suffix: "+", label: "Years afloat · IMCA / OGP" },
-            { value: 5, suffix: "", label: "Class societies accepted" },
+            { value: 9, suffix: "", label: "Class societies accepted" },
             { value: 4630, suffix: " m²", label: "Johor facility footprint" },
           ].map((s) => (
             <div key={s.label}>

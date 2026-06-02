@@ -260,10 +260,10 @@ function Currents({ count = 150 }: { count?: number }) {
   const mat = useMemo(
     () =>
       new THREE.MeshBasicMaterial({
-        color: new THREE.Color("#37c6f0"),
+        color: new THREE.Color("#30837b"),
         transparent: true,
         opacity: 0,
-        blending: THREE.AdditiveBlending,
+        blending: THREE.NormalBlending,
         depthWrite: false,
       }),
     []
@@ -302,10 +302,10 @@ function Sonar({ count = 4 }: { count?: number }) {
         { length: count },
         () =>
           new THREE.MeshBasicMaterial({
-            color: new THREE.Color("#f5b018"),
+            color: new THREE.Color("#30837b"),
             transparent: true,
             opacity: 0,
-            blending: THREE.AdditiveBlending,
+            blending: THREE.NormalBlending,
             depthWrite: false,
             side: THREE.DoubleSide,
           })
@@ -358,7 +358,7 @@ function ChartFloor() {
       mm.opacity = v * 0.55;
     });
   });
-  return <gridHelper ref={ref} args={[64, 64, "#0799d1", "#0a3a55"]} position={[0, -2.7, -4]} />;
+  return <gridHelper ref={ref} args={[64, 64, "#30837b", "#9ad9cd"]} position={[0, -2.7, -4]} />;
 }
 
 /* ---------- scroll-driven camera rig ---------- */
@@ -413,17 +413,17 @@ export default function PropellerScene() {
         gl.outputColorSpace = THREE.SRGBColorSpace;
       }}
     >
-      <color attach="background" args={["#04161f"]} />
-      <fog attach="fog" args={["#04161f", 10, 26]} />
+      <color attach="background" args={["#f6efe1"]} />
+      <fog attach="fog" args={["#f6efe1", 13, 30]} />
 
-      <ambientLight intensity={0.25} />
-      <directionalLight position={[4, 6, 5]} intensity={2.2} color="#bfe9ff" />
-      <directionalLight position={[-5, -2, -3]} intensity={0.8} color="#f5b018" />
+      <ambientLight intensity={0.55} />
+      <directionalLight position={[4, 6, 5]} intensity={2.4} color="#ffffff" />
+      <directionalLight position={[-5, -2, -3]} intensity={0.7} color="#aefff7" />
 
       <Environment resolution={256}>
-        <Lightformer form="rect" intensity={3} position={[3, 3, 4]} scale={6} color="#9fdcff" />
-        <Lightformer form="rect" intensity={1.6} position={[-4, 1, -3]} scale={5} color="#ffd27a" />
-        <Lightformer form="ring" intensity={2} position={[0, 2, 6]} scale={3} color="#ffffff" />
+        <Lightformer form="rect" intensity={3} position={[3, 3, 4]} scale={6} color="#d6fffb" />
+        <Lightformer form="rect" intensity={1.6} position={[-4, 1, -3]} scale={5} color="#aefff7" />
+        <Lightformer form="ring" intensity={2.2} position={[0, 2, 6]} scale={3} color="#ffffff" />
       </Environment>
 
       <PropAssembly />

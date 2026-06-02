@@ -1,0 +1,127 @@
+{
+  "buckets": [
+    {
+      "slug": "marine-diving",
+      "title": "Marine / Diving",
+      "summary": "Commercial air diving, underwater inspection and ship maintenance backed by IMCA-standard equipment.",
+      "body": "AMS has more than 10 years experience in the commercial diving industry. Our excellent track records allow us to expand significantly in a short period. In terms of facilities, our warehouse facility in Johor has 4630 sqm. We are well equipped with all the necessary diving equipments to get the job done: brushkarts for UW hull cleaning, power pack, dive control, offshore IMCA standards depressurized chamber, control panel, high quality UW CCTV camera and much more.",
+      "capabilities": [
+        "Hull cleaning and propeller polishing using hydraulic power-pack and brush-kart",
+        "Class In-water surveys/UWILDs, rudder pintle clearances, tail shaft wear-down measurements",
+        "Full range of other underwater maintenance services",
+        "Underwater hull repairs using cofferdams",
+        "Salvage works",
+        "Rudder pintle clearance and tail shaft wear-down measurements",
+        "SBM (Single Buoy Mooring) inspection and maintenance"
+      ]
+    },
+    {
+      "slug": "ndt",
+      "title": "NDT",
+      "summary": "Comprehensive Non-Destructive Testing and inspection to verify the integrity of welds, materials and fabricated components.",
+      "body": "Advantage Marine Services (AMS) offers a comprehensive range of Non-Destructive Testing (NDT) and inspection services designed to assess the integrity and reliability of critical components without causing damage. The scope of work covers the provision of NDT inspection services to verify the quality and integrity of welds, materials, and fabricated components. Services include Visual Inspection, Advanced NDT, Conventional NDT, and Material Specification, or other methods as required by the project specifications. AMS employs advanced techniques such as dye penetrant, magnetic particle, eddy current, and ultrasonic testing to detect defects, prevent failures, and ensure compliance with industry standards. All inspections are performed by qualified and certified personnel in accordance with applicable codes, standards, and client requirements, with complete documentation including inspection reports, weld maps, and records of personnel and equipment certifications. These solutions are essential for maintaining safety, performance, and regulatory compliance across marine, offshore, and industrial environments.",
+      "capabilities": [
+        "Tubular & Heat Exchanger Inspection: IRIS, Remote Field Testing (RFT), Magnetic Flux Leakage Testing (MFLT), Near Field Testing (NFT), Advanced Eddy Current Testing (ECT), Video/Remote Visual Inspection (RVI/Borescope)",
+        "Material Characterization: Positive Material Identification (PMI) XRF/Optical Emission, Hardness Testing, Ferrite Testing, Corrosion Mapping (PAUT), Replica Metallography, Coating Thickness Measurement (DFT)",
+        "Leak & Pressure Testing: Vacuum Box Testing (VBT), Helium Leak Testing (HLT), Bubble Leak Testing (BLT), Pressure Drop/Decay Testing",
+        "Conventional NDT: Visual Testing (VT), Radiographic Testing (RT), Ultrasonic Testing (UT), Magnetic Particle Testing (MT/MPI), Liquid/Dye Penetrant Testing (PT/DPI), Eddy Current Testing (ECT)",
+        "Advanced NDT: Phased Array Ultrasonic Testing (PAUT), Time of Flight Diffraction (TOFD), Digital Radiography (CR, DDA), Guided Wave Testing (GWT/LRUT), Shear Wave Ultrasonics (SWUT), Acoustic Emission Testing (AET), Infrared Thermography (IRT), Computed Tomography (CT), Electromagnetic Acoustic Transducer (EMAT)",
+        "Radiographic Inspection: Conventional and advanced, Ir-192/X-ray, competence person with JPK & AELB, qualified for ASME U-Stamp"
+      ]
+    },
+    {
+      "slug": "engineering-steelwork",
+      "title": "Engineering & Steelwork",
+      "summary": "Engineering design, analysis, structure and pipe fabrication, and repair works for marine, offshore and industrial projects.",
+      "body": "Advantage Marine Services (AMS) offers a comprehensive range of engineering and steelwork solutions designed to meet diverse project requirements across the marine, offshore, and industrial sectors. Our Engineering & Steelwork team promotes company services to a wider client base and provides the expertise and quality of works to meet client expectation and satisfaction. Our scope covers Engineering Design, Analysis, Structure and Pipe fabrication, Structure and Pipe Repair Works, Blasting and Painting Works, and Mechanical and Electrical Works. Engineering and steelwork frequently collaborate with other departments in full-range scopes such as Special Periodical Survey (SPS) and Engineering Procurement and Construction (EPC). For the last few years, we have successfully completed various kinds of steelwork jobs both inshore and offshore.",
+      "capabilities": [
+        "Complete Project Management Team (PMT) for wide-scope projects such as SPS and EPC",
+        "Engineering Design, Fabrication Design, Engineering Analysis and FEA for marine and offshore structures",
+        "Marine and Offshore Special Periodic Survey Services",
+        "Aluminium boat and small craft fabrication",
+        "Shop fabrication and site installation for major & minor structure, hull fitting, piping and instrumentation",
+        "Marine & offshore repair and maintenance",
+        "Mechanical & electrical repair & service"
+      ]
+    },
+    {
+      "slug": "trading-others",
+      "title": "Trading & Others",
+      "summary": "Supply-chain trading, hydrographic survey services and a broad range of supporting marine and industrial works.",
+      "body": "Involved in all stages of the supply chain from development and purchasing of raw materials to delivery. Processing, distribution, and sale, providing services with high added-value. AMS also provides a range of supporting services across marine and industrial environments.",
+      "capabilities": [
+        "Hydrography Survey",
+        "Multibeam Survey",
+        "Side Scan Sonar Survey",
+        "Sub Bottom Profiling Survey",
+        "Rental of fenders",
+        "Accommodation upgrading / Carpentry work",
+        "High Pressure Water Blasting and painting (Rope Access and Ground work) HVAC",
+        "Control Solution / Automation (calibration for all sensors and gauges such as fire, gas, wind speed, humidity, pressure)",
+        "Testing and commissioning of machinery and newly installed facilities such as lifeboats and HVAC",
+        "Jetty construction activities by diver",
+        "Tank Cleaning",
+        "Duct Cleaning"
+      ]
+    }
+  ],
+  "specialty": [
+    {
+      "slug": "rope-access",
+      "title": "Rope Access",
+      "body": "Advantage Marine Services (AMS) is an IRATA Member Company specializing in safe and efficient rope access operations for inspection, repair, mechanical, rigging, and maintenance scopes across both onshore and offshore environments. Our certified rope access technicians are trained to perform complex tasks at height and in difficult-to-reach locations, ensuring minimal disruption and maximum safety. Whether for routine surveys, structural inspections, or precision maintenance work, AMS delivers cost-effective and reliable access solutions that meet stringent industry standards and client expectations.",
+      "capabilities": [
+        "NDT Inspection",
+        "Annual survey (DROPS, Derrick API 4G, LGI, Drilling tools)",
+        "Rigging & Lifting Support",
+        "Blasting & Painting",
+        "Maintenance & Repair",
+        "Confined Space & High-Level Cleaning",
+        "Installation Work"
+      ]
+    },
+    {
+      "slug": "salvage-works",
+      "title": "Salvage Works",
+      "body": "Advantage Marine Services (AMS) provides professional marine salvage solutions encompassing the rescue, recovery, repair, and refloating of vessels, cargo, crew, and associated properties from unforeseen or imminent peril. Our Salvage Works team combines technical expertise, rapid response capability, and specialized marine engineering knowledge to manage complex and high-risk operations effectively. Salvage operations are often time-sensitive and demanding, requiring immediate mobilization and the use of advanced equipment, proven methodologies, and precise coordination to minimize environmental impact and financial loss. AMS is equipped to handle a wide range of salvage scenarios, from partial recoveries to full-scale refloating and restoration efforts, ensuring safety, efficiency, and compliance with maritime regulations.",
+      "capabilities": [
+        "Ensuring the safety of maritime navigation",
+        "Minimizing environmental impact caused by sunken vessels or underwater obstructions"
+      ]
+    },
+    {
+      "slug": "iccp",
+      "title": "Impressed Current Cathodic Protection (ICCP)",
+      "body": "Advantage Marine Services (AMS) delivers reliable Impressed Current Cathodic Protection (ICCP) and Sacrificial Anode Systems designed to prevent corrosion and extend the service life of marine and offshore structures. These systems provide essential protection for hulls, subsea pipelines, platforms and other submerged assets exposed to harsh marine environments. Through the use of controlled electrical currents or sacrificial anodes, AMS ensures effective corrosion mitigation by reducing the electrochemical reactions that cause metal deterioration. Our team offers complete solutions from design, installation, and commissioning to inspection, maintenance and system performance monitoring, ensuring long-term asset integrity and compliance with international standards.",
+      "capabilities": [
+        "ICCP system installation for rigs, ships, FSOs, and FSUs",
+        "Sacrificial anode installation for rigs and FSOs",
+        "Jetty sacrificial anode installation",
+        "Design, supply, and retrofitting",
+        "Underwater and topside installation",
+        "Compliant with DNV, ABS and industry standards"
+      ]
+    },
+    {
+      "slug": "ovolifts",
+      "title": "Ovolifts",
+      "body": "Advantage Marine Services (AMS) is the Authorized Distributor for Ovolifts in Southeast Asia, representing a unique and patented technology engineered to provide safe, multi-point access for in-service pipeline inspection and maintenance. The Ovolifts system offers a revolutionary approach to pipeline operations, allowing inspection, maintenance, and intervention activities to be performed efficiently without interrupting service or compromising safety. Designed with robust engineering and precision control, it enhances productivity and minimizes operational downtime across marine, offshore, and industrial environments. Our distributorship ensures full regional support, including technical consultation, equipment supply, and after-sales service.",
+      "capabilities": [
+        "Real-time asset integrity assessment",
+        "Minimized operational disruption",
+        "Extended asset life",
+        "Deferral of costly replacements and shutdowns"
+      ]
+    },
+    {
+      "slug": "chasing-m2-rov",
+      "title": "Chasing M2 ROV",
+      "body": "We are the Authorized Distributor of the Chasing M2 ROV and its compatible attachments and accessories in Southeast Asia. The Chasing M2 is a compact, professional-grade underwater remotely operated vehicle (ROV) designed for inspection, monitoring, and light intervention tasks in harsh environments. This support ensures faster turnaround, reduced downtime, and complete after-sales service for our clients in marine, offshore, infrastructure, and energy sectors.",
+      "capabilities": [
+        "Supply genuine OEM spare parts for maintenance and repair",
+        "Provide in-house repair services for all Chasing ROV units",
+        "Offer technical support and product consultation across the region"
+      ]
+    }
+  ]
+}

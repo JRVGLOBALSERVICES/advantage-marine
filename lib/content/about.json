@@ -1,0 +1,94 @@
+{
+  "_meta": {
+    "source": "Scraped from advantagemarine.com.my + Company-Profile-Final-2024_Rev-001-compressed.pdf. Strictly no fabrication.",
+    "notes": [
+      "Homepage repeats '10+' as a placeholder across multiple stat labels (Industry Expertise, Project Ongoing, Project Completed, CSR, Global Reach, Engineering Services). Only '10+ years experience' / 'over a decade' is supported by real prose; the other '10+' figures are UNCONFIRMED placeholders and are excluded from stats.",
+      "Founding year discrepancy: the live website (about-us, awards, homepage) states 2014 ('established in March, 2014', 'Since 2014', 'Since our establishment in 2014'); the 2024 PDF company profile says 'established in 2015'. Company registration number 201401033925 reflects a 2014 registration. Primary value taken from the current website prose (2014); PDF discrepancy noted here.",
+      "Andrew Teow experience figure differs by source: website management-team page says 'over 15 years'; 2024 PDF says 'over 25 years'. Website value used in the bio below (it is the current site copy).",
+      "em_team_* slug pages (maruf-zarvin, metton-alex, patrick-griffin, rayhan-khan) are THEME-DEMO slugs. Their rendered content titles are inconsistent: rayhan-khan->Mr. Andrew Teow, maruf-zarvin->Mr. Victor Wong (real names, no real bio body), while metton-alex->Cameliya Anderson and patrick-griffin->Bappy Bin Hossain (theme-demo lorem). Not used as staff sources. Real leadership taken only from the management-team page.",
+      "em_team.json and em_testimonial.json REST endpoints returned HTTP 404 (no data).",
+      "Testimonials on the Our Clients page are theme-demo placeholders (David Markers, Chicana males, Aayeena Aayat, Khondokar Hasib, with lorem 'solar energy' text) — excluded.",
+      "AMS-Company-Profile-2026.pdf is image-only/scanned (0 extractable text, no OCR available) — not used.",
+      "Class society and ISO/OHSAS pages are empty WordPress post stubs; their existence as named entries plus the about-us 'Our Businesses' line confirm the class-society names, but no body prose exists for them."
+    ]
+  },
+  "company": {
+    "legalName": "Advantage Marine Services (Malaysia) Sdn Bhd",
+    "registrationNo": "201401033925 (1110016-U)",
+    "since": "2014",
+    "sinceNote": "Website states established March 2014; 2024 PDF profile states 2015.",
+    "facility": "Warehouse facility in Johor of 4,630 sqm",
+    "headquarters": "No.18 Jalan Laman Setia 7/4, Taman Laman Setia (Setia Business Park), 81550 Gelang Patah, Johor, Malaysia",
+    "standards": ["IMCA", "OGP"],
+    "vision": "To be a trusted global partner delivering integrated solutions with excellence and confidence.",
+    "mission": "Global Partner – Build and sustain global partnership through collaboration and long-term value creation. Trusted – Empower clients by providing innovative solutions that enhance their operational performance. Excellence – Consistently delivering operational excellence through safety, reliability, integrity and continuous improvement. Integrated Solutions – Deliver integrated solutions that simplify complexity with professional engineering and project management. Environment – Commit to the highest standards of health, safety and environmental stewardship in all operations.",
+    "commitment": "To provide best-in-class diving equipment combined with OGP/IMCA standard, practices and procedures.",
+    "intro": "Advantage Marine Services (Malaysia) Sdn Bhd was established in March, 2014 to provide top notch/high quality in water services for marine/shipping and offshore. We are committed to provide services that are identified with best-in-class safety, quality and cost effectiveness. Our expertise encompassed a wide range of services that include full air/mixed gas commercial diving, Special and Intermediate surveys on ships and rigs, Class IWS, real time CCTV inspections, U/W ship maintenance includes hull cleaning, propeller polishing/repairing, underwater repairs. Over the years, AMS has diversified into steel fabrication, accommodation upgrading, industrial rope access, engineering control and instrumentation to support the client's needs/operations.",
+    "directorQuote": {
+      "quote": "Behind every successful project is a dedicated team. We are proud to empower our people, build lasting client relationships, and deliver services that make a real difference.",
+      "attribution": "Mr Andrew Teow, Director"
+    },
+    "businesses": [
+      "CLASS Survey (ABS, DNV/GL, BV, LRS, NKK, etc)",
+      "Ship Husbandry Services – Hull Cleaning, Propeller Polishing, etc",
+      "Afloat Repair Services – Underwater Hull Repairs",
+      "NDT Works",
+      "Fabrication, Piping & Steel Renewal",
+      "Accommodation Upgrading (Carpentry / Architectural work)",
+      "Electric Repairs (Air Conditioning, Motor Rewinding)",
+      "HVAC, Control Solution"
+    ]
+  },
+  "stats": [
+    { "label": "Years Experience", "value": "10+", "confirmed": true, "source": "Supported by 'over a decade of experience' / 'more than 10 years experience' prose." }
+  ],
+  "leadership": [
+    {
+      "name": "Mr. Andrew Teow",
+      "role": "Managing Director",
+      "real": true,
+      "bio": "Mr Andrew Teow joined AMS in April 2016. He graduated with Bachelor Degree (Honours) and Master Degree in Petroleum Engineering from University of Technology Malaysia, Johor Bahru, Malaysia. He has over 15 years of experiences in oil and gas encompassing the drilling operations, solids control and waste management, sales and marketing and business development with different International Service Companies. In addition, he also has 5 years experiences working with manufacturing/automotive industry working as the Technical Support Engineer overseeing manufacturing processes, quality of various products, meeting production yield and deadlines as set by clients. Before joining AMS, he was formerly with a leading international drilling company for 12 years with his last designation as Drilling Superintendent to look after an ultra-deep water drilling rig with excellent safety record/achievements. In addition, he has had work experiences across the SEA region where he was involved in managing various sizable projects with up to RM 100 million in value. With his leadership, experiences and networking, AMS has diversified and expanded into steel fabrication, accommodation upgrading, engineering controls and solutions to support clients' needs and operations.",
+      "yearsExperience": "15+"
+    },
+    {
+      "name": "Mr. Victor Wong",
+      "role": "Director",
+      "real": true,
+      "bio": "Mr Victor Wong graduated in 1985 with a Degree in Business Administration and has worked in the financial industry in Singapore for 10 years before entering the marine industry in 2002. He has been in a management role in a leading marine company helping grow the business from start up to a company with excess of 100 permanent staff. He has also been involved in starting up new businesses in Malaysia and Singapore.",
+      "yearsExperience": "10+"
+    },
+    {
+      "name": "Mr. Dean Chapman",
+      "role": "Operation Director",
+      "real": true,
+      "bio": "Mr. Chapman, a seasoned oil and gas professional with over 40 years of experience since 1983, has progressed from operational roles to Rig Management and, since 2007, has held key supervisory and leadership positions including Site/Construction Manager, Project Manager, Operations Manager, COO, and CTO—bringing a strong international background in drilling operations, brownfield and greenfield projects, subsea engineering, hazardous materials handling, system design, and fabrication, with a proven track record from FEED and detailed design through to offshore construction and commissioning.",
+      "yearsExperience": "40+"
+    }
+  ],
+  "classSocieties": [
+    "ABS",
+    "DNV GL",
+    "Bureau Veritas",
+    "Lloyd's Register",
+    "Class NK",
+    "KR Register",
+    "IR Class",
+    "China Register",
+    "RINA"
+  ],
+  "certifications": [
+    "ISO 9001",
+    "ISO 14001",
+    "OHSAS"
+  ],
+  "awards": [
+    { "title": "Master Entrepreneur Award", "year": null },
+    { "title": "Fast Enterprise Award", "year": null },
+    { "title": "Super Golden Bull Award", "year": null },
+    { "title": "Inspirational Entrepreneur Award", "year": null },
+    { "title": "Outstanding Entrepreneur of The Year", "year": null },
+    { "title": "Signature Outstanding Business", "year": null }
+  ],
+  "csr": "At Advantage Marine Services (AMS), we believe that responsible business practices extend beyond operational excellence. Our commitment to Corporate Social Responsibility (CSR) reflects our dedication to making a positive impact on the communities and environments in which we operate. We uphold the highest standards of safety, integrity, and environmental stewardship in every aspect of our business. Through our CSR initiatives, AMS actively supports community development programs, promotes marine conservation, and engages in educational and welfare projects aimed at improving lives and fostering sustainable growth. As part of the marine and offshore industry, we recognize the importance of balancing industrial progress with environmental responsibility. Our ongoing efforts include minimizing ecological footprints, adhering to green operation standards, and contributing to awareness programs that encourage environmental care among our employees, partners, and local communities. At AMS, CSR is not just an obligation, it is a core value that defines who we are. We remain committed to building a sustainable future by integrating ethical practices, social awareness, and environmental care into the foundation of our operations.",
+  "clients": []
+}

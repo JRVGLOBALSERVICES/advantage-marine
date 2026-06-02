@@ -1,14 +1,14 @@
+import Link from "next/link";
 import PropellerHero from "@/components/PropellerHero";
 import GlobalReach from "@/components/GlobalReach";
-
-const SERVICES = [
-  ["Marine / Diving", "Air & mixed-gas commercial diving, Class IWS, real-time CCTV inspection, hull cleaning and propeller polishing."],
-  ["Robotic NDT", "UT-CS crawlers, MFL inline inspection, Time-of-Flight Diffraction, MPI, eddy current and lifting-gear inspection."],
-  ["Steel Fabrication", "Piping and steel renewal, structural fabrication and afloat repairs, inshore and offshore."],
-  ["Rope Access & HVAC", "Industrial rope-access maintenance, accommodation upgrading, HVAC, automation and calibration."],
-];
+import Reveal from "@/components/Reveal";
+import servicesData from "@/lib/content/services.json";
+import aboutData from "@/lib/content/about.json";
 
 export default function Home() {
+  const buckets = servicesData.buckets;
+  const company = aboutData.company;
+
   return (
     <main>
       {/* one crawlable H1 — the page promise */}
@@ -19,71 +19,74 @@ export default function Home() {
 
       <PropellerHero />
 
-      {/* ---- beat 3: Global Reach (registry components) ---- */}
+      {/* ---- class-approved reach (registry components) ---- */}
       <GlobalReach />
 
-      {/* ---- grounding content below the hero ---- */}
+      {/* ---- what we do — real 4 disciplines ---- */}
       <section
         id="services"
         className="px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)] max-w-[min(1200px,92vw)] mx-auto"
       >
-        <p className="eyebrow mb-[var(--space-md)]">What we do</p>
-        <h2
-          className="font-display font-bold leading-[1.08] tracking-[-0.02em] mb-[var(--space-xl)] max-w-[20ch]"
-          style={{ fontSize: "var(--text-h2)", overflowWrap: "anywhere" }}
-        >
-          End-to-end marine &amp; offshore engineering.
-        </h2>
-        <div className="grid gap-px bg-[color:color-mix(in_oklch,var(--color-cyan)_16%,transparent)] sm:grid-cols-2 rounded-2xl overflow-hidden border border-[color:color-mix(in_oklch,var(--color-cyan)_16%,transparent)]">
-          {SERVICES.map(([t, d]) => (
-            <div key={t} className="bg-[color:var(--color-abyss)] p-[var(--space-lg)]">
-              <h3 className="font-display font-medium mb-[var(--space-sm)]" style={{ fontSize: "var(--text-card)" }}>{t}</h3>
-              <p className="text-[color:var(--color-mute)] leading-[1.55]">{d}</p>
-            </div>
+        <Reveal>
+          <p className="eyebrow mb-[var(--space-md)]">What we do</p>
+          <h2
+            className="font-display font-bold leading-[1.08] tracking-[-0.02em] mb-[var(--space-md)] max-w-[20ch]"
+            style={{ fontSize: "var(--text-h2)", overflowWrap: "anywhere" }}
+          >
+            End-to-end marine &amp; offshore engineering.
+          </h2>
+          <p className="measure leading-[1.6] mb-[var(--space-xl)]" style={{ color: "color-mix(in oklch, var(--color-ink) 66%, transparent)" }}>
+            Four accountable disciplines, mobilised from our Johor facility — diving,
+            NDT, engineering and a broad supporting trade. Surveyed afloat, never
+            dry-docked.
+          </p>
+        </Reveal>
+
+        <div className="grid gap-px bg-[color:var(--color-rule)] sm:grid-cols-2 rounded-[var(--radius-card)] overflow-hidden border border-[color:var(--color-rule)]">
+          {buckets.map((b, i) => (
+            <Reveal key={b.slug} delay={i * 0.05}>
+              <Link
+                href={`/services#${b.slug}`}
+                className="group block bg-[color:var(--color-paper)] p-[var(--space-lg)] h-full transition-colors hover:bg-[color:var(--color-aqua)]"
+              >
+                <div className="flex items-baseline justify-between gap-3 mb-[var(--space-sm)]">
+                  <h3 className="font-display font-medium" style={{ fontSize: "var(--text-card)" }}>{b.title}</h3>
+                  <span className="text-[color:var(--color-accent)] opacity-0 group-hover:opacity-100 transition-opacity" aria-hidden>→</span>
+                </div>
+                <p className="leading-[1.55]" style={{ color: "color-mix(in oklch, var(--color-ink) 64%, transparent)" }}>
+                  {b.summary}
+                </p>
+              </Link>
+            </Reveal>
           ))}
         </div>
+
+        <Reveal className="mt-[var(--space-lg)]">
+          <Link href="/services" className="cta-secondary">Explore all services</Link>
+        </Reveal>
       </section>
 
+      {/* ---- about teaser — real prose ---- */}
       <section
         id="about"
-        className="px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)] max-w-[min(900px,92vw)] mx-auto border-t border-[color:color-mix(in_oklch,var(--color-cyan)_14%,transparent)]"
+        className="px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)] max-w-[min(1000px,92vw)] mx-auto border-t border-[color:var(--color-rule)]"
       >
-        <p className="eyebrow mb-[var(--space-md)]">About AMS</p>
-        <p
-          className="font-display leading-[1.3] tracking-[-0.01em]"
-          style={{ fontSize: "var(--text-h2)" }}
-        >
-          Advantage Marine Services (Malaysia) Sdn Bhd has delivered
-          best-in-class in-water services for marine, shipping and offshore
-          since 2014 — to OGP / IMCA standard, from a 4,630&nbsp;m² facility in
-          Johor.
-        </p>
-      </section>
-
-      <footer
-        id="contact"
-        className="px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-xl)] border-t border-[color:color-mix(in_oklch,var(--color-cyan)_14%,transparent)]"
-      >
-        <div className="max-w-[min(1200px,92vw)] mx-auto flex flex-wrap items-end justify-between gap-[var(--space-lg)]">
-          <div>
-            <p className="font-display font-bold" style={{ fontSize: "var(--text-card)" }}>
-              ADVANTAGE<span className="text-[color:var(--color-cyan-hi)]"> MARINE</span>
-            </p>
-            <p className="text-[color:var(--color-mute)] text-sm mt-2">
-              Johor, Malaysia · Class-approved · IMCA / OGP standard
-            </p>
-          </div>
-          <a
-            href="https://www.advantagemarine.com.my/"
-            className="text-sm font-medium rounded-full px-5 py-2.5 bg-[color:var(--color-amber)] text-[color:var(--color-navy-2)] hover:opacity-90 transition-opacity"
+        <Reveal>
+          <p className="eyebrow mb-[var(--space-md)]">About AMS</p>
+          <p
+            className="font-display leading-[1.3] tracking-[-0.01em] measure"
+            style={{ fontSize: "var(--text-h3)" }}
           >
-            Talk to AMS
-          </a>
-        </div>
-        <p className="max-w-[min(1200px,92vw)] mx-auto mt-[var(--space-xl)] text-xs text-[color:var(--color-mute)]">
-          Site by JRV
-        </p>
-      </footer>
+            {company.legalName} has delivered best-in-class in-water services for
+            marine, shipping and offshore since {company.since} — to OGP / IMCA
+            standard, from a 4,630&nbsp;m² facility in Johor.
+          </p>
+          <div className="mt-[var(--space-lg)] flex flex-wrap gap-3">
+            <Link href="/about" className="cta-secondary">More about AMS</Link>
+            <Link href="/contact" className="cta-primary">Talk to AMS</Link>
+          </div>
+        </Reveal>
+      </section>
     </main>
   );
 }

@@ -124,36 +124,6 @@ function BeatBlock({
   );
 }
 
-function Nav() {
-  return (
-    <nav className="fixed top-0 inset-x-0 z-50 pointer-events-none">
-      <div
-        className="mx-auto mt-[var(--space-md)] max-w-[min(1200px,92vw)] flex items-center justify-between
-                   rounded-full pointer-events-auto backdrop-blur-md
-                   bg-[color:color-mix(in_oklch,var(--color-abyss)_60%,transparent)]
-                   border border-[color:color-mix(in_oklch,var(--color-cyan)_18%,transparent)]
-                   px-[var(--space-md)] py-[0.6rem]"
-      >
-        <a href="#top" className="font-display font-bold tracking-[0.04em] text-sm sm:text-base">
-          ADVANTAGE<span className="text-[color:var(--color-cyan-hi)]"> MARINE</span>
-        </a>
-        <div className="hidden sm:flex items-center gap-[var(--space-lg)] text-sm text-[color:var(--color-mute)]">
-          <a href="#services" className="hover:text-[color:var(--color-paper)] transition-colors">Services</a>
-          <a href="#reach" className="hover:text-[color:var(--color-paper)] transition-colors">Reach</a>
-          <a href="#about" className="hover:text-[color:var(--color-paper)] transition-colors">About</a>
-        </div>
-        <a
-          href="#contact"
-          className="text-sm font-medium rounded-full px-4 py-2 bg-[color:var(--color-cyan)] text-[color:var(--color-abyss)]
-                     hover:bg-[color:var(--color-cyan-hi)] transition-colors"
-        >
-          Talk to us
-        </a>
-      </div>
-    </nav>
-  );
-}
-
 export default function PropellerHero() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const beatRefs = useRef<(HTMLDivElement | null)[]>([]);
@@ -218,7 +188,6 @@ export default function PropellerHero() {
   if (mounted && reduced) {
     return (
       <>
-        <Nav />
         <header id="top" className="relative h-[100lvh] overflow-hidden">
           <div className="absolute inset-0">
             <PropellerScene />
@@ -242,7 +211,6 @@ export default function PropellerHero() {
   /* ---------- default: pinned scroll narrative ---------- */
   return (
     <>
-      <Nav />
       <section
         id="top"
         ref={sectionRef}

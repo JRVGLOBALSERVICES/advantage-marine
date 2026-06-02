@@ -1,0 +1,124 @@
+{
+  "projects": [
+    {
+      "title": "Jack-Up Rig UWILD",
+      "client": null,
+      "category": "UWILD/Inspection",
+      "summary": "Underwater inspection in lieu of drydocking (UWILD) of a jack-up rig at West Wharf, KSB Kemaman, September 2016.",
+      "summaryFromFilenameOnly": false,
+      "pdf": "Jack-Up-Rig-UWILD.pdf"
+    },
+    {
+      "title": "Jack-Up Rig UWILD & Special Periodic Survey #8",
+      "client": null,
+      "category": "UWILD/Inspection",
+      "summary": "UWILD combined with Special Periodic Survey #8 on a jack-up rig at Johor Port Wharf 10, Johor, August 2016.",
+      "summaryFromFilenameOnly": false,
+      "pdf": "Jack-Up-Rig-UWILD-and-SPS-8.pdf"
+    },
+    {
+      "title": "Jack-Up Rig UWILD - Top Side Inspection",
+      "client": null,
+      "category": "UWILD/Inspection",
+      "summary": "Top-side inspection of a jack-up rig at Tanjung Langsat Anchorage, Johor, December 2016.",
+      "summaryFromFilenameOnly": false,
+      "pdf": "Jack-Up-Rig-UWILD-TOP-Side.pdf"
+    },
+    {
+      "title": "Jack-Up Rig Structural Steel Repair",
+      "client": null,
+      "category": "Structural Steel Repair",
+      "summary": "Structural steel repair works on a jack-up rig at West Wharf, KSB Kemaman.",
+      "summaryFromFilenameOnly": false,
+      "pdf": "Jack-Up-Rig-Structural-Steel-Repair.pdf"
+    },
+    {
+      "title": "Jack-Up Rig Structural Steel Repair (II)",
+      "client": null,
+      "category": "Structural Steel Repair",
+      "summary": "Structural steel repair works on a jack-up rig at West Wharf, KSB Kemaman.",
+      "summaryFromFilenameOnly": false,
+      "pdf": "Jack-Up-Rig-Structural-Steel-Repair1.pdf"
+    },
+    {
+      "title": "Jack-Up Rig Steel Work Repair",
+      "client": null,
+      "category": "Structural Steel Repair",
+      "summary": "Crack repair, gusset plate replacement, brace removal at leg, and leg well bulkhead renewal on a jack-up rig at Johor Port Wharf 10, Johor, September to December 2016.",
+      "summaryFromFilenameOnly": false,
+      "pdf": "Jack-Up-Rig-Steel-Work-Repair.pdf"
+    },
+    {
+      "title": "ENSCO 67 Jack-Up Rig - Various Maintenance Jobs",
+      "client": null,
+      "category": "Piping/Mechanical",
+      "summary": "Various maintenance scopes on the ENSCO 67 jack-up rig including side shell cleaning and painting, jetting line clamp installation by rope access, and aircraft warning light replacement at Johor Port Wharf 10, Johor, October to December 2016.",
+      "summaryFromFilenameOnly": false,
+      "pdf": "Jack-Up-Rig-Various-Maintenance-Job.pdf"
+    },
+    {
+      "title": "Borr Drilling Borr Idun - LGI, Drop Survey & PRV",
+      "client": "Borr Drilling",
+      "category": "NDT/Survey",
+      "summary": "Inspection campaign on the Borr Idun rig at Anchorage Kemaman covering lifting gear inspection, drop survey and derrick bolt check, crane inspection, PRV and gauge calibration, and UTTM on LP and HP mud pumps; 18 January to 14 March 2021.",
+      "summaryFromFilenameOnly": false,
+      "pdf": "Borr-Drilling-Borr-Idun-LGI-Drop-Survey-and-PRV.pdf"
+    },
+    {
+      "title": "Perisai Pacific 101 - Seawater Piping Changeout",
+      "client": "Perisai / Icon Offshore",
+      "category": "Piping/Mechanical",
+      "summary": "Five-yearly maintenance on the Perisai PP101 jack-up rig at Kemaman Anchorage, replacing seawater piping across 33 scopes of work at 13 locations; 9 January to 13 February 2021, 35 days, 23 personnel.",
+      "summaryFromFilenameOnly": false,
+      "pdf": "PERISAI-PACIFIC-101-SEAWATER-PIPING-CHANGEOUT-CASE-STUDY.pdf"
+    },
+    {
+      "title": "Span Breaker Repair",
+      "client": null,
+      "category": "Structural Steel Repair",
+      "summary": "Turnkey project at West Wharf, KSB to replace the 6-inch span breaker across all 3 legs (Bays 1, 2 and 3) with 27 lengths of 8-inch pipe per the rig builder PPL Shipyard's recommendation; 24 September to 6 October 2017, 63 personnel, 10,128 manhours with no HSE issues.",
+      "summaryFromFilenameOnly": false,
+      "pdf": "Span-Breaker-Repair.pdf"
+    },
+    {
+      "title": "Sewage Treatment Plant - Pump / Valve Replacement",
+      "client": null,
+      "category": "Piping/Mechanical",
+      "summary": "Pump and valve replacement at a sewage treatment plant in Kuala Lumpur, Malaysia, August 2016.",
+      "summaryFromFilenameOnly": false,
+      "pdf": "Sewage-Treatment-Plant-–-Pump.pdf"
+    },
+    {
+      "title": "Gangway Structure (TOC-11013-DWG-002 Rev D)",
+      "client": null,
+      "category": "Fabrication/Gangway",
+      "summary": null,
+      "summaryFromFilenameOnly": true,
+      "pdf": "TOC-11013-DWG-002-Rev-D-Gangeway-Structure.pdf"
+    },
+    {
+      "title": "Floatel Gangway - Scaffolding Draft Plan",
+      "client": null,
+      "category": "Fabrication/Gangway",
+      "summary": null,
+      "summaryFromFilenameOnly": true,
+      "pdf": "Scaffolding-Draft-Plan-for-Floatel-Gangway-1.pdf"
+    },
+    {
+      "title": "Perisai Pacific 101 - Tank Cleaning",
+      "client": "Icon Offshore / Perisai",
+      "category": "Piping/Mechanical",
+      "summary": "Tank cleaning on the Icon Offshore Perisai Pacific 101 jack-up rig at Kemaman Anchorage, covering sludge demucking, scrapping, wiping, disposal and potable water analysis; 9 to 30 January 2021, 1,644 manhours.",
+      "summaryFromFilenameOnly": false,
+      "pdf": "O-20121973-PP101-TANK-CLEANING-Presentation-Slide-rev0-1.pdf"
+    },
+    {
+      "title": "Hengyuan Refinery - Pipe & Beam Composite Repair",
+      "client": "Hengyuan Refining Company (HRC)",
+      "category": "Piping/Mechanical",
+      "summary": "Composite repair of 3 pipes and 1 set of I-beam at the HRC Jetty, Port Dickson, including surface grinding, Resimac 101 application and wrapping; 15 May to 1 June 2020, 6 personnel, 1,584 manhours with no HSE issues.",
+      "summaryFromFilenameOnly": false,
+      "pdf": "Hengyuan-Refinery-HRC-Pipe-Beam-Composite-Repair-Project.pdf"
+    }
+  ]
+}

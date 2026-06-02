@@ -1,31 +1,40 @@
-/* Hallmark · macrostructure: Pinned Scroll-Narrative (3D-first) · tone: technical/industrial-marine · anchor hue: cyan 230 + amber 75
- * pre-emit critique: P5 H4 E5 S4 R4 V4
- * Advantage Marine Services — design tokens (OKLCH, brand-derived) */
+/* Hallmark · genre: modern-minimal · macrostructure: family (design.md) · design-system: design.md · designed-as-app
+ * pre-emit critique: P5 H4 E5 S4 R5 V4
+ * Advantage Marine Services — design tokens (OKLCH, warm sailcloth cream + marine teal) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  /* ---- Brand palette (derived from advantagemarine.com.my) → OKLCH ---- */
-  --color-abyss:    oklch(0.17 0.035 240);   /* deep underwater */
-  --color-navy:     oklch(0.33 0.072 238);   /* #003b5c */
-  --color-navy-2:   oklch(0.30 0.115 264);   /* #002e70 */
-  --color-cyan:     oklch(0.67 0.132 232);   /* #0799d1 */
-  --color-cyan-hi:  oklch(0.80 0.115 215);
-  --color-amber:    oklch(0.79 0.155 76);    /* #f5b018 */
-  --color-paper:    oklch(0.98 0.004 240);
-  --color-ink:      oklch(0.22 0.03 245);
-  --color-mute:     oklch(0.72 0.02 240);
+  /* ---- Warm sailcloth-cream base + marine teal accent (NO dark surfaces) ----
+     Cream #F4EBD9 chosen distinct from other JRV creams (#EFEAE0, #FAF6EE):
+     sandier + a touch deeper so Advantage Marine reads as its own brand. */
+  --color-paper:      oklch(0.943 0.024 82);   /* #F4EBD9 — warm sand cream, page base */
+  --color-paper-2:    oklch(0.966 0.017 84);   /* #FAF4E8 — lighter lift / panel */
+  --color-paper-3:    oklch(0.908 0.030 80);   /* #ECDFC7 — card alt / hover wash (deeper cream) */
+  --color-ink:        oklch(0.20 0.025 215);   /* deep teal-black — text (strong on cream) */
+  --color-rule:       oklch(0.862 0.022 80);   /* #DDD2BC — warm hairline divider */
+  --color-accent:     oklch(0.53 0.072 188);   /* #30837b — links/structure/fills */
+  --color-accent-2:   oklch(0.72 0.100 174);   /* #44BBA4 — hover / highlight */
+  --color-accent-ink: oklch(0.985 0.010 85);   /* warm white on teal fills */
+  --color-aqua:       oklch(0.930 0.030 178);  /* soft seafoam wash (warmed for cream) */
+  --color-aqua-2:     oklch(0.900 0.045 176);  /* deeper seafoam */
+  --color-focus:      oklch(0.55 0.110 186);
 
-  /* ---- Type ---- */
+  /* shadcn-compat (kept for any registry component) */
+  --background: var(--color-paper);
+  --foreground: var(--color-ink);
+
+  /* ---- Type (held: Space Grotesk display + Inter body) ---- */
   --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
   --font-body:    var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
   /* ---- Fluid type scale (width + height adaptive) ---- */
-  --text-display: clamp(2.6rem, min(8.5vw, 13.6vh), 7.5rem);
+  --text-display: clamp(2.6rem, min(8.5vw, 13.6vh), 7rem);
   --text-h2:      clamp(1.9rem, min(4.6vw, 7.4vh), 3.4rem);
-  --text-stat:    clamp(3rem, min(11vw, 17.6vh), 9rem);
-  --text-eyebrow: clamp(0.72rem, 1.1vw, 0.84rem);
+  --text-h3:      clamp(1.3rem, min(2.6vw, 4.2vh), 1.7rem);
+  --text-stat:    clamp(2.6rem, min(9vw, 14.4vh), 5.5rem);
+  --text-eyebrow: clamp(0.72rem, 1.1vw, 0.82rem);
   --text-lead:    clamp(1rem, 1.4vw, 1.18rem);
   --text-card:    clamp(1.1rem, 1.6vw, 1.25rem);
 
@@ -39,7 +48,17 @@
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
   --dur-fast: 160ms; --dur-mid: 320ms;
 
-  --rule: 1px solid color-mix(in oklch, var(--color-cyan) 22%, transparent);
+  --rule: 1px solid var(--color-rule);
+  --radius-pill: 999px; --radius-card: 14px;
+
+  /* ---- Back-compat aliases (legacy dark-build token names → light values) ---- */
+  --color-abyss:   var(--color-paper);    /* was deep dark bg → now paper */
+  --color-navy:    var(--color-ink);
+  --color-navy-2:  var(--color-ink);
+  --color-cyan:    var(--color-accent);
+  --color-cyan-hi: var(--color-accent);   /* light headline accent line */
+  --color-amber:   var(--color-accent);   /* stat highlight → teal */
+  --color-mute:    color-mix(in oklch, var(--color-ink) 62%, transparent);
 }
 
 * { box-sizing: border-box; }
@@ -48,33 +67,57 @@ html { scroll-behavior: auto; } /* Lenis owns scroll */
 
 body {
   margin: 0;
-  background: var(--color-abyss);
-  color: var(--color-paper);
+  background: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-body);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
-::selection { background: var(--color-amber); color: var(--color-navy-2); }
+::selection { background: var(--color-accent-2); color: var(--color-ink); }
 
 .font-display { font-family: var(--font-display); }
 
 .eyebrow {
   font-family: var(--font-body);
   font-size: var(--text-eyebrow);
-  letter-spacing: 0.32em;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
-  font-weight: 500;
-  color: var(--color-cyan-hi);
+  font-weight: 600;
+  color: var(--color-accent);
 }
 
+/* link underline that reads as engineered, not default blue */
+a { color: inherit; }
+
+/* shared pill CTAs */
+.cta-primary {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-family: var(--font-body); font-weight: 600; font-size: 0.95rem;
+  border-radius: var(--radius-pill); padding: 0.7rem 1.4rem;
+  background: var(--color-accent); color: var(--color-accent-ink);
+  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+}
+.cta-primary:hover { background: var(--color-accent-2); color: var(--color-ink); }
+.cta-primary:active { transform: translateY(1px); }
+
+.cta-secondary {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  font-family: var(--font-body); font-weight: 600; font-size: 0.95rem;
+  border-radius: var(--radius-pill); padding: 0.7rem 1.4rem;
+  border: 1px solid var(--color-rule); color: var(--color-ink);
+  transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
+}
+.cta-secondary:hover { border-color: var(--color-accent); background: var(--color-aqua); }
+
 :focus-visible {
-  outline: 2px solid var(--color-cyan-hi);
+  outline: 2px solid var(--color-focus);
   outline-offset: 3px;
 }
 
 @layer utilities {
   .text-balance { text-wrap: balance; }
+  .measure { max-width: 65ch; }
 }
 
 @media (prefers-reduced-motion: reduce) {

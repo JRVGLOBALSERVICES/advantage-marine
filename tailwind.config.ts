@@ -9,8 +9,28 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
+        background: "var(--color-paper)",
+        foreground: "var(--color-ink)",
+        paper: {
+          DEFAULT: "var(--color-paper)",
+          2: "var(--color-paper-2)",
+          3: "var(--color-paper-3)",
+        },
+        ink: "var(--color-ink)",
+        rule: "var(--color-rule)",
+        accent: {
+          DEFAULT: "var(--color-accent)",
+          2: "var(--color-accent-2)",
+          ink: "var(--color-accent-ink)",
+        },
+        aqua: {
+          DEFAULT: "var(--color-aqua)",
+          2: "var(--color-aqua-2)",
+        },
+      },
+      fontFamily: {
+        display: ["var(--font-space-grotesk)", "ui-sans-serif", "system-ui", "sans-serif"],
+        body: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       animation: {
         marquee: "marquee var(--duration, 40s) linear infinite",
