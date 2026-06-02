@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FooterJrvLogoReveal } from "@/components/FooterJrvLogoReveal";
+import FooterWordmark from "@/components/FooterWordmark";
 import FooterVideo from "@/components/FooterVideo";
 import FooterWaveMorph from "@/components/FooterWaveMorph";
 import servicesData from "@/lib/content/services.json";
@@ -150,16 +151,7 @@ export default function SiteFooter() {
         <FooterWaveMorph />
       </div>
       <div className="mx-auto max-w-[min(1200px,92vw)] overflow-hidden px-[clamp(1.5rem,4vw,4rem)] pt-[var(--space-md)]">
-        <p
-          aria-hidden
-          className="select-none font-display font-bold leading-[0.9] tracking-[-0.03em]"
-          style={{
-            fontSize: "clamp(3rem, 13vw, 11rem)",
-            color: "color-mix(in oklch, var(--color-ink) 9%, transparent)",
-          }}
-        >
-          ADVANTAGE
-        </p>
+        <FooterWordmark />
       </div>
 
       {/* === D — microbar === */}

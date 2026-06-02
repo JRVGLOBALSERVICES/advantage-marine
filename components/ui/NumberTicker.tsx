@@ -1,12 +1,14 @@
 "use client";
 
-// Source: Magic UI — number-ticker, MIT.
-// Adapted: added optional `start` override so the count-up can be triggered by
-// an external scroll signal inside the pinned hero (where useInView always reads
-// true). Omit `start` and it falls back to the original useInView(once) trigger.
+// GSAP count-up. Replays every time the number re-enters the viewport
+// (once:false) — per the site rule that entry animations retrigger. The
+// optional `start` override lets a pinned scene drive the trigger externally
+// (inside a sticky hero useInView always reads true); omit it and the ticker
+// uses its own IntersectionObserver.
 
 import { useEffect, useRef, type ComponentPropsWithoutRef } from "react";
-import { useInView, useMotionValue, useSpring } from "motion/react";
+import { useInView } from "motion/react";
+import { gsap } from "gsap";
 
 import { cn } from "@/lib/utils";
 
@@ -30,35 +32,42 @@ export function NumberTicker({
   ...props
 }: NumberTickerProps) {
   const ref = useRef<HTMLSpanElement>(null);
-  const motionValue = useMotionValue(direction === "down" ? value : startValue);
-  const springValue = useSpring(motionValue, { damping: 60, stiffness: 100 });
-  const ioInView = useInView(ref, { once: true, margin: "0px" });
+  // positive margin → fires predictively as it enters (the negative-margin
+  // variant fires late on iOS Safari). once:false → replays on re-entry.
+  const ioInView = useInView(ref, { once: false, margin: "0px 0px 120px 0px" });
   const isInView = start ?? ioInView;
 
-  useEffect(() => {
-    let timer: ReturnType<typeof setTimeout> | null = null;
-    if (isInView) {
-      timer = setTimeout(() => {
-        motionValue.set(direction === "down" ? startValue : value);
-      }, delay * 1000);
-    }
-    return () => {
-      if (timer !== null) clearTimeout(timer);
-    };
-  }, [motionValue, isInView, delay, value, direction, startValue]);
+  const fmt = (n: number) =>
+    Intl.NumberFormat("en-US", {
+      minimumFractionDigits: decimalPlaces,
+      maximumFractionDigits: decimalPlaces,
+    }).format(Number(n.toFixed(decimalPlaces)));
 
-  useEffect(
-    () =>
-      springValue.on("change", (latest) => {
-        if (ref.current) {
-          ref.current.textContent = Intl.NumberFormat("en-US", {
-            minimumFractionDigits: decimalPlaces,
-            maximumFractionDigits: decimalPlaces,
-          }).format(Number(latest.toFixed(decimalPlaces)));
-        }
-      }),
-    [springValue, decimalPlaces]
-  );
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const from = direction === "down" ? value : startValue;
+    const to = direction === "down" ? startValue : value;
+    if (!isInView) {
+      el.textContent = fmt(from);
+      return;
+    }
+    const obj = { v: from };
+    el.textContent = fmt(from);
+    const tween = gsap.to(obj, {
+      v: to,
+      duration: 1.6,
+      ease: "power2.out",
+      delay,
+      onUpdate: () => {
+        el.textContent = fmt(obj.v);
+      },
+    });
+    return () => {
+      tween.kill();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isInView, value, startValue, direction, delay, decimalPlaces]);
 
   return (
     <span
@@ -66,7 +75,7 @@ export function NumberTicker({
       className={cn("inline-block tabular-nums", className)}
       {...props}
     >
-      {startValue}
+      {fmt(direction === "down" ? value : startValue)}
     </span>
   );
 }
