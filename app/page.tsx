@@ -1,5 +1,5 @@
 import Link from "next/link";
-import PropellerHero from "@/components/PropellerHero";
+import RigHero from "@/components/RigHero";
 import SceneBuildLoader from "@/components/SceneBuildLoader";
 import GlobalReach from "@/components/GlobalReach";
 import Reveal from "@/components/Reveal";
@@ -103,8 +103,8 @@ export default function Home() {
         engineering for shipping and offshore, Johor, Malaysia.
       </h1>
 
-      {/* (1) ── vessel hero, 100lvh ─────────────────────────────────────── */}
-      <PropellerHero />
+      {/* (1) ── rig assembly hero, 100lvh ───────────────────────────────── */}
+      <RigHero />
 
       {/* (2) ── class-approved reach (kept) ─────────────────────────────── */}
       <GlobalReach />
