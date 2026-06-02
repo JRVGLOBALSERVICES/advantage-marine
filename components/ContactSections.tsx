@@ -8,6 +8,7 @@ import SpotlightCard from "@/components/ui/reactbits/SpotlightCard";
 import { RevealIconButton } from "@/components/ui/uiverse/RevealIconButton";
 import { ScrollVelocityContainer, ScrollVelocityRow } from "@/components/ui/magic/ScrollBasedVelocity";
 import { WordReveal } from "@/components/ui/WordReveal";
+import PlatformShowcase from "@/components/PlatformShowcase";
 
 /* ---------- real content (from about.json / live site) ---------- */
 
@@ -174,6 +175,9 @@ export default function ContactSections() {
           </ScrollVelocityRow>
         </ScrollVelocityContainer>
       </div>
+
+      {/* ===================== offshore platform — dark 3D band ===================== */}
+      <PlatformShowcase />
 
       {/* ===================== enquiry + key contacts ===================== */}
       <section
