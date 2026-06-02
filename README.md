@@ -5,11 +5,17 @@
 **Live (Vercel):** https://advantage-marine.vercel.app
 **Content source (client's production site):** https://www.advantagemarine.com.my/ (WordPress + Elementor — scraped, real copy/images only)
 
-The site's signature is a pinned scroll-narrative hero: a ducted azimuth
-thruster begins **exploded** on load, then its parts fly in and lock into one
-whole across the first stretch of scroll ("every system, brought together"),
-before the narrative continues into the capability beats. The whole site runs a
-**warm sailcloth-cream light theme — no dark surfaces anywhere.**
+The site's signature is a pinned scroll-narrative hero: a **Blender-authored
+jack-up rig** assembles part-by-part on scroll — hull drops and settles, four
+legs seat, spud-cans drive into the seabed, the derrick tops out — then a
+showcase tail fires aqua sonar rings + a teal waterline glow (HDR-emissive,
+Bloom-lit) while the camera settles to a hero 3/4. The narrative continues into
+the capability beats. The whole site runs a **warm sailcloth-cream light theme —
+no dark surfaces anywhere**; the rig reads as a dark gunmetal model on the cream.
+
+> The earlier ducted-azimuth-thruster hero (`PropellerHero` / `PlatformHeroScene`)
+> is retained in the repo, unused, for history — the rig hero replaced it
+> 2026-06-02.
 
 ## Stack
 
@@ -90,9 +96,9 @@ Services · Projects · News · Contact), verified against `wp-sitemap.xml` + re
 header — not a guess.
 
 Patterns implemented:
-- **Extract → assemble 3D mechanic** — thruster explodes on load, parts stagger-lock into one whole on scroll (procedural multi-part meshes — the only clean path to a labelled explode)
-- **Pinned scroll-narrative hero** — sticky `100lvh` canvas, copy beats driven off scroll progress (`PropellerHero.tsx`)
-- **Material contrast** — bronze rotor vs cool stainless duct/shaft (kills the flat mono-metal AI look)
+- **Scroll-scrubbed assembly 3D mechanic** — `jackup-rig.glb` (Blender-authored, Draco-compressed 131KB, 14 baked clips) mounts via `useGLTF` + DRACOLoader; scroll scrubs the baked hull→legs→spud-cans→derrick timeline (0→58%), then the showcase tail (58→100%) drives the sonar-ring + waterline FX. Clips stay paused and we set each action's absolute `.time` per frame (three.js won't advance a paused action via `setTime`).
+- **Pinned scroll-narrative hero** — sticky `100lvh` canvas, copy beats driven off scroll progress (`RigHero.tsx`), keyframed camera replacing the scene-only Blender orbit, portrait pull-back so the tall rig fits
+- **Material + FX contrast** — cool gunmetal steel (`#586068`) so the rig reads on cream + `ContactShadows` grounding; `@react-three/postprocessing` Bloom catches only the raw-HDR emissive FX (`luminanceThreshold 1.0`), `ToneMapping` last in the chain
 - **Registry components, not hand-rolled**: `BlurText` (reactbits) · `NumberTicker` + `Marquee` (magicui) · `WorldMap` + `BackgroundBeams` (aceternity, recolored to brand teal) · `ScrollCue` (uiverse)
 - **N5 floating-pill nav** with the real AMS logo **image** (not a text wordmark)
 - **iOS-safe choices**: a single R3F canvas; SVG dotted `WorldMap` + `BackgroundBeams` instead of a 2nd WebGL globe (a 2nd context on top of R3F is the iOS-scroll-stuck pattern)
@@ -113,8 +119,10 @@ components/
   SiteNav.tsx           N5 floating-pill nav, AMS logo image
   SiteFooter.tsx        Footer — "Site by JRV"
   PageHeader.tsx        Inner-page header band
-  PropellerHero.tsx     Pinned scroll narrative + copy beats
-  PropellerScene.tsx    R3F scene — ducted azimuth thruster, explode→assemble
+  RigHero.tsx           Pinned scroll narrative + copy beats (current hero)
+  RigHeroScene.tsx      R3F scene — jack-up rig, scroll-scrubbed baked assembly + Bloom FX
+  PropellerHero.tsx     (retained, unused) prior thruster hero shell
+  PropellerScene.tsx    (retained, unused) prior R3F ducted-azimuth-thruster scene
   GlobalReach.tsx       WorldMap arcs + BackgroundBeams + class-society Marquee
   ContactForm.tsx       Contact form
   Reveal.tsx            Predictive whileInView reveal wrapper
