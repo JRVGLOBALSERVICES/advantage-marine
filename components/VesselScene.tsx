@@ -234,7 +234,11 @@ function Rig() {
   return null;
 }
 
-export default function VesselScene() {
+export default function VesselScene({
+  onContextLost,
+}: {
+  onContextLost?: () => void;
+}) {
   return (
     <Canvas
       dpr={[1, 1.8]}
@@ -246,6 +250,17 @@ export default function VesselScene() {
         gl.outputColorSpace = THREE.SRGBColorSpace;
         // bridge: GSAP ScrollTrigger onUpdate calls this to re-render on scroll
         sceneState.invalidate = invalidate;
+        // Hardening: if the GPU drops the WebGL context (driver reset, OOM,
+        // shader-program failure) the canvas would otherwise stay a blank void.
+        // Surface it so the host can swap in the static poster hero instead.
+        gl.domElement.addEventListener(
+          "webglcontextlost",
+          (e) => {
+            e.preventDefault();
+            onContextLost?.();
+          },
+          { once: true }
+        );
       }}
     >
       {/* cream backdrop + fog — matches the page, no cool-white rectangle */}

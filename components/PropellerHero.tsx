@@ -23,6 +23,20 @@ const VesselScene = dynamic(() => import("./VesselScene"), {
 
 const MUTE = "color-mix(in oklch, var(--color-ink) 66%, transparent)";
 
+/* WebGL availability probe — if the browser/GPU can't give us a context at all,
+   never mount the canvas; go straight to the static poster hero. */
+function hasWebGL() {
+  try {
+    const c = document.createElement("canvas");
+    return !!(
+      window.WebGLRenderingContext &&
+      (c.getContext("webgl") || c.getContext("experimental-webgl"))
+    );
+  } catch {
+    return false;
+  }
+}
+
 /* trapezoid 0→1 visibility window */
 function trap(p: number, a: number, b: number, c: number, d: number) {
   if (p <= a || p >= d) return 0;
@@ -169,19 +183,21 @@ export default function PropellerHero() {
   const shownRef = useRef<boolean[]>(BEATS.map(() => false));
   const [mounted, setMounted] = useState(false);
   const [useCanvas, setUseCanvas] = useState(false);
+  const [canvasFailed, setCanvasFailed] = useState(false);
   const [active, setActive] = useState<boolean[]>(BEATS.map(() => false));
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     motionState.reduced = reduced;
     // Vessel renders on ALL viewports (mobile included) via the iOS-safe sticky
-    // scroll pattern. Static photo is ONLY the reduced-motion a11y fallback.
-    setUseCanvas(!reduced);
+    // scroll pattern. Static photo is the reduced-motion a11y fallback AND the
+    // fallback when WebGL is unavailable, so the hero is never a blank canvas.
+    setUseCanvas(!reduced && hasWebGL());
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!mounted || !useCanvas || !sectionRef.current) return;
+    if (!mounted || !useCanvas || canvasFailed || !sectionRef.current) return;
 
     const st = ScrollTrigger.create({
       trigger: sectionRef.current,
@@ -224,10 +240,10 @@ export default function PropellerHero() {
       st.kill();
       sceneState.invalidate = null;
     };
-  }, [mounted, useCanvas]);
+  }, [mounted, useCanvas, canvasFailed]);
 
-  /* ---------- reduced-motion / touch / mobile: honest static layout ---------- */
-  if (mounted && !useCanvas) {
+  /* ---------- reduced-motion / no-WebGL / context-lost: honest static layout ---------- */
+  if (mounted && (!useCanvas || canvasFailed)) {
     return (
       <>
         <StaticHero />
@@ -249,8 +265,11 @@ export default function PropellerHero() {
       style={{ height: "340lvh" }}
     >
       <div className="sticky top-0 h-[100lvh] overflow-hidden bg-[color:var(--color-paper)]">
-        {/* 3D layer — exploded parts fly together into the vessel */}
-        <div className="absolute inset-0">{mounted && <VesselScene />}</div>
+        {/* 3D layer — exploded parts fly together into the vessel.
+            onContextLost → swap to the static poster so it can never go blank. */}
+        <div className="absolute inset-0">
+          {mounted && <VesselScene onContextLost={() => setCanvasFailed(true)} />}
+        </div>
 
         {/* readability wash — cream, anchored bottom-left for the copy */}
         <div
