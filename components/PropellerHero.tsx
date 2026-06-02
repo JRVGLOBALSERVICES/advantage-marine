@@ -108,12 +108,15 @@ function BeatBlock({
           animateBy="words"
           className="font-display font-bold leading-[1.08] tracking-[-0.01em] text-[color:var(--color-ink)]"
         />
+        {/* second line stays dark INK (not accent teal) so the headline never
+            blends with the teal scene glow behind it — the luminous accents
+            live on the model only; the type holds high contrast. */}
         <BlurText
           text={beat.head[1]}
           inView={active}
           delay={140}
           animateBy="words"
-          className="font-display font-light leading-[1.08] tracking-[-0.01em] text-[color:var(--color-accent)]"
+          className="font-display font-light leading-[1.08] tracking-[-0.01em] text-[color:color-mix(in_oklch,var(--color-ink)_74%,transparent)]"
         />
       </div>
       <p
