@@ -5,6 +5,10 @@ export const scrollState = { progress: 0 };
 // set once on mount from prefers-reduced-motion; read inside useFrame
 export const motionState = { reduced: false };
 
+// R3F's invalidate(), wired up by the scene on mount so a `frameloop="demand"`
+// Canvas re-renders when GSAP ScrollTrigger advances `progress`.
+export const sceneState: { invalidate: (() => void) | null } = { invalidate: null };
+
 export const clamp = (v: number, lo = 0, hi = 1) => Math.min(hi, Math.max(lo, v));
 
 // normalized progress within a [a,b] window, clamped to 0..1

@@ -2,16 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { scrollState, motionState } from "@/lib/scroll";
+import { scrollState, motionState, sceneState } from "@/lib/scroll";
 import BlurText from "./ui/BlurText";
 import { NumberTicker } from "./ui/NumberTicker";
 import ScrollCue from "./ScrollCue";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const PropellerScene = dynamic(() => import("./PropellerScene"), {
+const VesselScene = dynamic(() => import("./VesselScene"), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 grid place-items-center">
@@ -19,6 +20,8 @@ const PropellerScene = dynamic(() => import("./PropellerScene"), {
     </div>
   ),
 });
+
+const MUTE = "color-mix(in oklch, var(--color-ink) 66%, transparent)";
 
 /* trapezoid 0→1 visibility window */
 function trap(p: number, a: number, b: number, c: number, d: number) {
@@ -36,27 +39,30 @@ type Beat = {
   statLabel: string;
 };
 
+/* Copy + stats grounded ONLY in lib/content/{about,services}.json.
+   Honest figures only — "10+ years" (over a decade), 4,630 m² Johor facility,
+   12 class-society / ISO certs, established 2014. No invented metrics. */
 const BEATS: Beat[] = [
   {
-    kicker: "00 — Whole-vessel capability",
-    head: ["Every system,", "brought together."],
-    lead: "Diving, robotic NDT, steel fabrication and rope access — one accountable team assembling the full scope below the waterline.",
-    stat: { value: 4, suffix: "" },
-    statLabel: "Core disciplines · one team afloat",
-  },
-  {
-    kicker: "01 — In-water inspection",
-    head: ["Surveyed afloat.", "Never dry-docked."],
-    lead: "IMCA-standard commercial divers and robotic tooling inspect, clean and repair below the waterline — so the vessel keeps earning while we work.",
+    kicker: "00 — In-water marine & offshore",
+    head: ["Every scope,", "assembled afloat."],
+    lead: "Commercial diving, robotic NDT, ICCP, steel fabrication and rope access — one accountable team delivering integrated solutions below the waterline.",
     stat: { value: 10, suffix: "+" },
     statLabel: "Years afloat · IMCA / OGP standard",
   },
   {
-    kicker: "02 — NDT precision",
-    head: ["Every weld,", "scanned to spec."],
-    lead: "UT-CS robotic crawlers, MFL inline inspection and Time-of-Flight Diffraction capture pipeline and weld integrity data underwater.",
-    stat: { value: 360, suffix: "°" },
-    statLabel: "Robotic UT-scan coverage",
+    kicker: "01 — Surveyed afloat, never dry-docked",
+    head: ["Class surveys,", "without the dock."],
+    lead: "IMCA-standard divers and the Chasing M2 ROV inspect, clean and repair hulls, propellers and structures in the water — so the vessel keeps earning while we work.",
+    stat: { value: 4630, suffix: " m²" },
+    statLabel: "Johor fabrication & dive facility",
+  },
+  {
+    kicker: "02 — Certified to class",
+    head: ["Verified to spec.", "Cleared by class."],
+    lead: "Conventional and advanced NDT — PAUT, TOFD, digital radiography — documented to ISO 9001 / 14001 / OHSAS and recognised by nine class societies.",
+    stat: { value: 12, suffix: "" },
+    statLabel: "ISO & class-society certifications",
   },
 ];
 
@@ -86,37 +92,40 @@ function BeatBlock({
           text={beat.head[0]}
           inView={active}
           animateBy="words"
-          className="font-display font-bold leading-[1.06] tracking-[-0.02em]"
+          className="font-display font-bold leading-[1.08] tracking-[-0.01em] text-[color:var(--color-ink)]"
         />
         <BlurText
           text={beat.head[1]}
           inView={active}
           delay={140}
           animateBy="words"
-          className="font-display font-light leading-[1.06] tracking-[-0.02em] text-[color:var(--color-cyan-hi)]"
+          className="font-display font-light leading-[1.08] tracking-[-0.01em] text-[color:var(--color-accent)]"
         />
       </div>
       <p
-        className="text-[color:var(--color-mute)] max-w-[34rem] leading-[1.55]"
-        style={{ fontSize: "var(--text-lead)" }}
+        className="max-w-[34rem] leading-[1.55]"
+        style={{ fontSize: "var(--text-lead)", color: MUTE }}
       >
         {beat.lead}
       </p>
 
       <div className="mt-[var(--space-lg)] flex items-end gap-[var(--space-md)] flex-wrap">
         <span
-          className="font-display font-bold leading-none text-[color:var(--color-amber)] flex items-baseline"
+          className="font-display font-bold leading-none text-[color:var(--color-accent)] flex items-baseline"
           style={{ fontSize: "var(--text-stat)" }}
         >
           <NumberTicker
             value={beat.stat.value}
             start={active}
             decimalPlaces={beat.stat.decimals ?? 0}
-            className="text-[color:var(--color-amber)]"
+            className="text-[color:var(--color-accent)]"
           />
           <span>{beat.stat.suffix}</span>
         </span>
-        <span className="eyebrow pb-2 max-w-[14rem] !tracking-[0.18em] normal-case text-[color:var(--color-mute)]">
+        <span
+          className="eyebrow pb-2 max-w-[14rem] !tracking-[0.18em] normal-case"
+          style={{ color: MUTE }}
+        >
           {beat.statLabel}
         </span>
       </div>
@@ -124,23 +133,56 @@ function BeatBlock({
   );
 }
 
+/* Static hero (mobile / touch / reduced-motion) — real photo + headline overlay */
+function StaticHero() {
+  return (
+    <header id="top" className="relative h-[100lvh] overflow-hidden bg-[color:var(--color-paper)]">
+      <Image
+        src="/media/home/Hero-AMS.jpeg"
+        alt="Advantage Marine Services diver and vessel"
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover"
+      />
+      {/* cream readability wash from the bottom */}
+      <div
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(to top, color-mix(in oklch, var(--color-paper) 92%, transparent) 0%, color-mix(in oklch, var(--color-paper) 30%, transparent) 42%, transparent 70%)",
+        }}
+      />
+      <div
+        className="absolute inset-0 grid items-end"
+        style={{ padding: "clamp(1.5rem,5vw,3.5rem)" }}
+      >
+        <BeatBlock beat={BEATS[0]} active />
+      </div>
+    </header>
+  );
+}
+
 export default function PropellerHero() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const beatRefs = useRef<(HTMLDivElement | null)[]>([]);
   const shownRef = useRef<boolean[]>(BEATS.map(() => false));
-  const [reduced, setReduced] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [useCanvas, setUseCanvas] = useState(false);
   const [active, setActive] = useState<boolean[]>(BEATS.map(() => false));
 
   useEffect(() => {
-    const r = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    motionState.reduced = r;
-    setReduced(r);
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const coarse = window.matchMedia("(pointer: coarse)").matches;
+    const small = window.innerWidth < 768;
+    motionState.reduced = reduced;
+    // Canvas only on capable desktops; skip on reduced-motion / touch / small
+    setUseCanvas(!reduced && !coarse && !small);
     setMounted(true);
   }, []);
 
   useEffect(() => {
-    if (!mounted || reduced || !sectionRef.current) return;
+    if (!mounted || !useCanvas || !sectionRef.current) return;
 
     const st = ScrollTrigger.create({
       trigger: sectionRef.current,
@@ -149,15 +191,16 @@ export default function PropellerHero() {
       scrub: true,
       onUpdate: (self) => {
         scrollState.progress = self.progress;
+        // demand-mode canvas: kick a render whenever scroll advances
+        sceneState.invalidate?.();
       },
     });
 
-    // copy beats driven straight off scroll progress (no re-render for fades)
-    // copy beats — beat 0 lands as the parts lock together (~0.28), then narrative
+    // copy beats — beat 0 lands as the vessel locks together (~0.6), then narrative
     const windows: [number, number, number, number][] = [
-      [-0.02, 0.16, 0.3, 0.4],
-      [0.4, 0.47, 0.58, 0.66],
-      [0.66, 0.73, 0.92, 1.05],
+      [-0.02, 0.12, 0.5, 0.62],
+      [0.62, 0.69, 0.82, 0.9],
+      [0.9, 0.95, 1.04, 1.1],
     ];
     const tick = () => {
       const p = scrollState.progress;
@@ -167,7 +210,6 @@ export default function PropellerHero() {
         const o = trap(p, ...windows[i]);
         el.style.opacity = String(o);
         el.style.transform = `translateY(${(1 - o) * 26}px)`;
-        // latch the reveal trigger once the beat is materially visible
         if (o > 0.4 && !shownRef.current[i]) {
           shownRef.current[i] = true;
           changed = true;
@@ -181,24 +223,15 @@ export default function PropellerHero() {
     return () => {
       gsap.ticker.remove(tick);
       st.kill();
+      sceneState.invalidate = null;
     };
-  }, [mounted, reduced]);
+  }, [mounted, useCanvas]);
 
-  /* ---------- reduced-motion: honest static layout, all copy in flow ---------- */
-  if (mounted && reduced) {
+  /* ---------- reduced-motion / touch / mobile: honest static layout ---------- */
+  if (mounted && !useCanvas) {
     return (
       <>
-        <header id="top" className="relative h-[100lvh] overflow-hidden">
-          <div className="absolute inset-0">
-            <PropellerScene />
-          </div>
-          <div
-            className="absolute inset-0 grid items-end"
-            style={{ padding: "clamp(1.5rem,4vw,4rem)" }}
-          >
-            <BeatBlock beat={BEATS[0]} active />
-          </div>
-        </header>
+        <StaticHero />
         <section className="px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)] grid gap-[var(--space-2xl)] max-w-[min(1200px,92vw)] mx-auto">
           {BEATS.slice(1).map((beat, i) => (
             <BeatBlock key={i} beat={beat} active />
@@ -208,52 +241,50 @@ export default function PropellerHero() {
     );
   }
 
-  /* ---------- default: pinned scroll narrative ---------- */
+  /* ---------- default: sticky scroll narrative with the vessel scene ---------- */
   return (
-    <>
-      <section
-        id="top"
-        ref={sectionRef}
-        className="relative"
-        style={{ height: "340lvh" }}
-      >
-        <div className="sticky top-0 h-[100lvh] overflow-hidden">
-          {/* 3D layer */}
-          <div className="absolute inset-0">{mounted && <PropellerScene />}</div>
+    <section
+      id="top"
+      ref={sectionRef}
+      className="relative"
+      style={{ height: "340lvh" }}
+    >
+      <div className="sticky top-0 h-[100lvh] overflow-hidden bg-[color:var(--color-paper)]">
+        {/* 3D layer — exploded parts fly together into the vessel */}
+        <div className="absolute inset-0">{mounted && <VesselScene />}</div>
 
-          {/* readability vignette */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(120% 90% at 70% 30%, transparent 40%, color-mix(in oklch, var(--color-abyss) 78%, transparent) 100%), linear-gradient(to top, color-mix(in oklch, var(--color-abyss) 88%, transparent) 0%, transparent 45%)",
-            }}
-          />
+        {/* readability wash — cream, anchored bottom-left for the copy */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(to top, color-mix(in oklch, var(--color-paper) 78%, transparent) 0%, transparent 50%)",
+          }}
+        />
 
-          {/* copy layer */}
-          <div
-            className="absolute inset-0 grid items-end pointer-events-none"
-            style={{ padding: "clamp(1.5rem,4vw,4rem)" }}
-          >
-            <div className="grid">
-              {BEATS.map((beat, i) => (
-                <BeatBlock
-                  key={i}
-                  beat={beat}
-                  stacked
-                  active={active[i]}
-                  innerRef={(el) => (beatRefs.current[i] = el)}
-                />
-              ))}
-            </div>
-          </div>
-
-          {/* scroll cue */}
-          <div className="absolute bottom-[var(--space-md)] right-[clamp(1.5rem,4vw,4rem)]">
-            <ScrollCue />
+        {/* copy layer */}
+        <div
+          className="absolute inset-0 grid items-end pointer-events-none"
+          style={{ padding: "clamp(1.5rem,4vw,4rem)" }}
+        >
+          <div className="grid">
+            {BEATS.map((beat, i) => (
+              <BeatBlock
+                key={i}
+                beat={beat}
+                stacked
+                active={active[i]}
+                innerRef={(el) => (beatRefs.current[i] = el)}
+              />
+            ))}
           </div>
         </div>
-      </section>
-    </>
+
+        {/* scroll cue */}
+        <div className="absolute bottom-[var(--space-md)] right-[clamp(1.5rem,4vw,4rem)]">
+          <ScrollCue />
+        </div>
+      </div>
+    </section>
   );
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FooterJrvLogoReveal } from "@/components/FooterJrvLogoReveal";
+import FooterVideo from "@/components/FooterVideo";
 import servicesData from "@/lib/content/services.json";
 
 // Caliber footer (cream system, no dark surface): editorial statement + HQ
@@ -39,6 +40,9 @@ export default function SiteFooter() {
 
   return (
     <footer className="relative overflow-hidden border-t border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)]">
+      {/* === Video band — cinematic marine clip + ADVANTAGE MARINE wordmark === */}
+      <FooterVideo />
+
       {/* === A — statement + spec sheet === */}
       <div className="mx-auto max-w-[min(1200px,92vw)] border-b border-[color:var(--color-rule)] px-[clamp(1.5rem,4vw,4rem)] pb-[var(--space-xl)] pt-[var(--space-2xl)]">
         {/* eslint-disable-next-line @next/next/no-img-element */}
