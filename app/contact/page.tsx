@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import PageHeader from "@/components/PageHeader";
 import Reveal from "@/components/Reveal";
 import ContactForm from "@/components/ContactForm";
+import { PinContainer } from "@/components/ui/PinCard";
 
 export const metadata: Metadata = {
   title: "Contact — Advantage Marine Services, Johor",
@@ -67,16 +68,35 @@ export default function ContactPage() {
             <p className="eyebrow mb-[var(--space-lg)]">Our offices</p>
           </Reveal>
           <div className="grid gap-[var(--space-lg)] sm:grid-cols-2 lg:grid-cols-3">
-            {OFFICES.map((o, i) => (
-              <Reveal key={o.tag} delay={i * 0.05}>
-                <div>
-                  <p className="font-display font-medium mb-2">{o.tag}</p>
-                  {o.lines.map((ln) => (
-                    <p key={ln} className="text-sm leading-[1.55]" style={{ color: "color-mix(in oklch, var(--color-ink) 64%, transparent)" }}>{ln}</p>
-                  ))}
-                </div>
-              </Reveal>
-            ))}
+            {OFFICES.map((o, i) => {
+              const loc = o.tag.split("·").pop()?.trim() ?? o.tag;
+              const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(o.lines.join(", "))}`;
+              return (
+                <Reveal key={o.tag} delay={i * 0.05}>
+                  <div className="flex h-[22rem] items-center justify-center">
+                    <PinContainer title={loc} href={maps}>
+                      <div className="flex h-[12rem] w-[15rem] flex-col p-1">
+                        <p className="font-display font-medium text-[color:var(--color-ink)]">{o.tag}</p>
+                        <div className="mt-2 space-y-1">
+                          {o.lines.map((ln) => (
+                            <p key={ln} className="text-[0.82rem] leading-[1.5]" style={{ color: "color-mix(in oklch, var(--color-ink) 66%, transparent)" }}>{ln}</p>
+                          ))}
+                        </div>
+                        <div className="mt-auto flex items-center gap-2 text-xs text-[color:var(--color-accent)]">
+                          <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--color-accent-2)]" aria-hidden />
+                          View on map
+                        </div>
+                        {/* slim seafoam band — marine brand texture */}
+                        <div
+                          className="mt-2 h-1 w-full rounded-full"
+                          style={{ background: "linear-gradient(90deg, color-mix(in oklch, var(--color-accent) 45%, transparent), var(--color-aqua-2), transparent)" }}
+                        />
+                      </div>
+                    </PinContainer>
+                  </div>
+                </Reveal>
+              );
+            })}
           </div>
         </div>
       </section>

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import Reveal from "@/components/Reveal";
+import { CardContainer, CardBody, CardItem } from "@/components/ui/TiltCard";
+import { MovingBorderButton } from "@/components/ui/MovingBorderButton";
 import servicesData from "@/lib/content/services.json";
 
 export const metadata: Metadata = {
@@ -63,22 +65,26 @@ export default function ServicesPage() {
             Supporting scope, in-house.
           </h2>
         </Reveal>
-        <div className="grid gap-px bg-[color:var(--color-rule)] sm:grid-cols-2 lg:grid-cols-3 rounded-[var(--radius-card)] overflow-hidden border border-[color:var(--color-rule)]">
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {specialty.map((s, i) => (
             <Reveal key={s.slug} delay={(i % 3) * 0.05}>
-              <div className="bg-[color:var(--color-paper)] p-[var(--space-lg)] h-full">
-                <h3 className="font-display font-medium mb-[var(--space-sm)]" style={{ fontSize: "1.05rem" }}>{s.title}</h3>
-                <p className="leading-[1.55] text-[0.95rem]" style={{ color: "color-mix(in oklch, var(--color-ink) 64%, transparent)" }}>
-                  {s.body}
-                </p>
-              </div>
+              <CardContainer containerClassName="block w-full h-full" className="w-full h-full">
+                <CardBody className="w-full h-full">
+                  <CardItem as="h3" translateZ={40} className="font-display font-medium mb-[var(--space-sm)]" style={{ fontSize: "1.05rem" }}>
+                    {s.title}
+                  </CardItem>
+                  <CardItem as="p" translateZ={18} className="leading-[1.55] text-[0.95rem]" style={{ color: "color-mix(in oklch, var(--color-ink) 64%, transparent)" }}>
+                    {s.body}
+                  </CardItem>
+                </CardBody>
+              </CardContainer>
             </Reveal>
           ))}
         </div>
 
-        <Reveal className="mt-[var(--space-2xl)] flex flex-wrap items-center gap-4">
+        <Reveal className="mt-[var(--space-2xl)] flex flex-wrap items-center gap-5">
           <p className="font-display" style={{ fontSize: "var(--text-h3)" }}>Need a scope priced?</p>
-          <Link href="/contact" className="cta-primary">Request a quote</Link>
+          <MovingBorderButton as={Link} href="/contact" duration={3600}>Request a quote</MovingBorderButton>
         </Reveal>
       </section>
     </main>

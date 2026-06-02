@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import PageHeader from "@/components/PageHeader";
 import Reveal from "@/components/Reveal";
+import { CardContainer, CardBody, CardItem } from "@/components/ui/TiltCard";
+import { MovingBorderButton } from "@/components/ui/MovingBorderButton";
 import projectsData from "@/lib/content/projects.json";
 
 export const metadata: Metadata = {
@@ -51,33 +53,39 @@ export default function ProjectsPage() {
                 <span className="eyebrow !tracking-[0.18em]">{String(g.items.length).padStart(2, "0")}</span>
               </div>
             </Reveal>
-            <div className="grid gap-px bg-[color:var(--color-rule)] sm:grid-cols-2 rounded-[var(--radius-card)] overflow-hidden border border-[color:var(--color-rule)]">
+            <div className="grid gap-5 sm:grid-cols-2">
               {g.items.map((p, i) => (
                 <Reveal key={p.title} delay={(i % 2) * 0.05}>
-                  <article className="bg-[color:var(--color-paper)] p-[var(--space-lg)] h-full flex flex-col gap-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <h3 className="font-display font-medium leading-[1.25]" style={{ fontSize: "1.1rem" }}>{p.title}</h3>
-                    </div>
-                    {p.client && (
-                      <p className="eyebrow !tracking-[0.16em] normal-case text-[color:var(--color-accent)]">{p.client}</p>
-                    )}
-                    {p.summary ? (
-                      <p className="leading-[1.6] text-[0.95rem]" style={{ color: "color-mix(in oklch, var(--color-ink) 66%, transparent)" }}>{p.summary}</p>
-                    ) : (
-                      <p className="text-[0.9rem] italic" style={{ color: "color-mix(in oklch, var(--color-ink) 48%, transparent)" }}>
-                        Project record on file — full scope available on request.
-                      </p>
-                    )}
-                  </article>
+                  <CardContainer containerClassName="block w-full h-full" className="w-full h-full">
+                    <CardBody className="w-full h-full flex flex-col gap-3">
+                      <CardItem as="h3" translateZ={42} className="font-display font-medium leading-[1.25]" style={{ fontSize: "1.1rem" }}>
+                        {p.title}
+                      </CardItem>
+                      {p.client && (
+                        <CardItem as="p" translateZ={26} className="eyebrow !tracking-[0.16em] normal-case text-[color:var(--color-accent)]">
+                          {p.client}
+                        </CardItem>
+                      )}
+                      {p.summary ? (
+                        <CardItem as="p" translateZ={18} className="leading-[1.6] text-[0.95rem]" style={{ color: "color-mix(in oklch, var(--color-ink) 66%, transparent)" }}>
+                          {p.summary}
+                        </CardItem>
+                      ) : (
+                        <CardItem as="p" translateZ={18} className="text-[0.9rem] italic" style={{ color: "color-mix(in oklch, var(--color-ink) 48%, transparent)" }}>
+                          Project record on file — full scope available on request.
+                        </CardItem>
+                      )}
+                    </CardBody>
+                  </CardContainer>
                 </Reveal>
               ))}
             </div>
           </section>
         ))}
 
-        <Reveal className="mt-[var(--space-2xl)] flex flex-wrap items-center gap-4">
+        <Reveal className="mt-[var(--space-2xl)] flex flex-wrap items-center gap-5">
           <p className="font-display" style={{ fontSize: "var(--text-h3)" }}>Have a scope in mind?</p>
-          <Link href="/contact" className="cta-primary">Request a quote</Link>
+          <MovingBorderButton as={Link} href="/contact" duration={3600}>Request a quote</MovingBorderButton>
         </Reveal>
       </div>
     </main>
