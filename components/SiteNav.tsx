@@ -2,7 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+gsap.registerPlugin(ScrollTrigger);
 
 const LINKS = [
   { href: "/", label: "Home" },
@@ -17,19 +21,97 @@ export default function SiteNav() {
   const [open, setOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
+  const barRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
+  const sheetLinksRef = useRef<(HTMLAnchorElement | null)[]>([]);
+  const openRef = useRef(false);
+
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 24);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
+    openRef.current = open;
+  }, [open]);
+
+  // entrance + hide-on-scroll-down / show-on-scroll-up, synced via Lenis→ScrollTrigger
+  useEffect(() => {
+    const bar = barRef.current;
+    if (!bar) return;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (!reduce) {
+      gsap.fromTo(
+        bar,
+        { y: -24, autoAlpha: 0 },
+        { y: 0, autoAlpha: 1, duration: 0.7, ease: "power3.out", delay: 0.12 }
+      );
+    }
+
+    let lastY = 0;
+    const st = ScrollTrigger.create({
+      start: 0,
+      end: "max",
+      onUpdate: (self) => {
+        const y = self.scroll();
+        setScrolled(y > 24);
+        if (reduce || openRef.current) return;
+        if (y > 140 && y > lastY + 4) {
+          // scrolling down past the hero → tuck the bar away
+          gsap.to(bar, { yPercent: -135, duration: 0.4, ease: "power2.out", overwrite: "auto" });
+        } else if (y < lastY - 4 || y < 140) {
+          // scrolling up (or near the top) → bring it back
+          gsap.to(bar, { yPercent: 0, duration: 0.4, ease: "power2.out", overwrite: "auto" });
+        }
+        lastY = y;
+      },
+    });
+    return () => st.kill();
   }, []);
+
+  // GSAP mobile sheet — staggered open / reverse close (sheet stays in the DOM)
+  useEffect(() => {
+    const sheet = sheetRef.current;
+    if (!sheet) return;
+    const links = sheetLinksRef.current.filter(Boolean) as HTMLAnchorElement[];
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // make sure a tucked-away bar comes back when the menu opens
+    if (open && barRef.current) gsap.to(barRef.current, { yPercent: 0, duration: 0.3, ease: "power2.out" });
+
+    if (reduce) {
+      gsap.set(sheet, { autoAlpha: open ? 1 : 0, height: open ? "auto" : 0 });
+      gsap.set(links, { autoAlpha: open ? 1 : 0 });
+      return;
+    }
+
+    const tl = gsap.timeline();
+    if (open) {
+      tl.set(sheet, { display: "grid" })
+        .fromTo(
+          sheet,
+          { autoAlpha: 0, y: -10, scaleY: 0.96, transformOrigin: "top" },
+          { autoAlpha: 1, y: 0, scaleY: 1, duration: 0.32, ease: "power3.out" }
+        )
+        .fromTo(
+          links,
+          { autoAlpha: 0, y: 12 },
+          { autoAlpha: 1, y: 0, duration: 0.34, ease: "power3.out", stagger: 0.06 },
+          "-=0.18"
+        );
+    } else {
+      tl.to(links, { autoAlpha: 0, y: 8, duration: 0.18, ease: "power2.in", stagger: 0.03 })
+        .to(sheet, { autoAlpha: 0, y: -10, scaleY: 0.96, duration: 0.22, ease: "power2.in" }, "-=0.08")
+        .set(sheet, { display: "none" });
+    }
+    return () => {
+      tl.kill();
+    };
+  }, [open]);
 
   return (
     <nav className="fixed top-0 inset-x-0 z-50 pointer-events-none">
       <div
+        ref={barRef}
         className="mx-auto mt-[var(--space-md)] max-w-[min(1200px,92vw)] flex items-center justify-between
-                   rounded-[18px] pointer-events-auto transition-all duration-300
+                   rounded-[18px] pointer-events-auto transition-[background,box-shadow] duration-300
                    px-[var(--space-md)] py-[0.55rem]"
         style={{
           background: scrolled
@@ -59,10 +141,16 @@ export default function SiteNav() {
               <Link
                 key={l.href}
                 href={l.href}
-                className="font-body font-medium transition-colors whitespace-nowrap"
+                className="group relative font-body font-medium transition-colors whitespace-nowrap"
                 style={{ color: active ? "var(--color-accent)" : "color-mix(in oklch, var(--color-ink) 70%, transparent)" }}
               >
                 {l.label}
+                {/* animated underline — grows from the left on hover / active */}
+                <span
+                  aria-hidden
+                  className="pointer-events-none absolute -bottom-1 inset-x-0 h-px origin-left bg-[color:var(--color-accent)] transition-transform duration-300 group-hover:scale-x-100"
+                  style={{ transform: active ? "scaleX(1)" : "scaleX(0)" }}
+                />
               </Link>
             );
           })}
@@ -84,36 +172,41 @@ export default function SiteNav() {
               {open ? (
                 <path d="M4 4l10 10M14 4L4 14" strokeLinecap="round" />
               ) : (
-                <>
-                  <path d="M2 5h14M2 9h14M2 13h14" strokeLinecap="round" />
-                </>
+                <path d="M2 5h14M2 9h14M2 13h14" strokeLinecap="round" />
               )}
             </svg>
           </button>
         </div>
       </div>
 
-      {/* mobile sheet */}
-      {open && (
-        <div
-          className="md:hidden pointer-events-auto mx-auto mt-2 max-w-[min(1200px,92vw)] rounded-[18px] p-[var(--space-sm)] grid gap-1"
-          style={{
-            background: "color-mix(in oklch, var(--color-paper) 96%, transparent)",
-            backdropFilter: "blur(12px)",
-            border: "1px solid var(--color-rule)",
-          }}
-        >
-          {LINKS.map((l) => (
+      {/* mobile sheet — stays mounted; GSAP drives open/close so it animates both ways */}
+      <div
+        ref={sheetRef}
+        className="md:hidden pointer-events-auto mx-auto mt-2 max-w-[min(1200px,92vw)] rounded-[18px] p-[var(--space-sm)] gap-1"
+        style={{
+          display: "none",
+          background: "color-mix(in oklch, var(--color-paper) 96%, transparent)",
+          backdropFilter: "blur(12px)",
+          border: "1px solid var(--color-rule)",
+        }}
+      >
+        {LINKS.map((l, i) => {
+          const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+          return (
             <Link
               key={l.href}
+              ref={(el) => {
+                sheetLinksRef.current[i] = el;
+              }}
               href={l.href}
-              className="px-[var(--space-sm)] py-3 rounded-[12px] font-body font-medium hover:bg-[color:var(--color-aqua)]"
+              className="px-[var(--space-sm)] py-3 rounded-[12px] font-body font-medium transition-colors hover:bg-[color:var(--color-aqua)]"
+              style={{ color: active ? "var(--color-accent)" : "var(--color-ink)" }}
             >
               {l.label}
             </Link>
-          ))}
-        </div>
-      )}
+          );
+        })}
+      </div>
     </nav>
   );
 }
