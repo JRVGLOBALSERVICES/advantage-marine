@@ -50,11 +50,18 @@ Accent budget: ≤ 5% of any viewport. Muted text = `--color-ink` at opacity
 Type stays pure ink (tinted via opacity); never set cream-coloured text.
 
 ## Typography
-- Display: Space Grotesk, weight 500/700, normal. (Held — the font Rj gave; kept
-  from the scaffold. Strong geometric-technical face, fits marine-NDT.)
-- Body:    Inter, weight 400/500.
-- No third family. No body `text-lg`. Strict fluid scale below.
-- Display tracking: −0.02em on headings.
+- Display: Cinzel, weight 400/500/600/700 — inscriptional Roman caps serif
+  (Rj's pick, 2026-06-02). Used for every heading, stat numeral and the footer
+  wordmark via `.font-display`.
+- Accent: Kaushan Script, weight 400 — brush script, the single expressive
+  statement moment ONLY (footer statement). Never for body, labels or eyebrows.
+  Wired as `--font-accent` / `.font-accent`.
+- Body:    Inter, weight 400/500. Cinzel is caps-only and Kaushan is a script;
+  neither carries running copy, so the legible body sans stays (matches the
+  brief's "no body added").
+- No `text-lg`. Strict fluid scale below.
+- Display tracking: +0.012em on `.font-display` — caps serif needs air, so the
+  old −0.02em geometric-sans tracking is centrally neutralized (not per-element).
 - Type scale anchor: `--text-display` = clamp(2.6rem, min(8.5vw, 13.6vh), 7rem),
   width+height adaptive per [[feedback_hero_typography_width_and_height]].
 
@@ -90,7 +97,7 @@ tokens, never raw values.
 ## What pages MUST share
 - The AMS logo image in the nav (not a text wordmark).
 - The accent colour + ≤5% placement.
-- Space Grotesk + Inter.
+- Cinzel (display) + Inter (body); Kaushan accent reserved for the footer statement.
 - CTA pill geometry + voice.
 - The shared caliber footer (`SiteFooter`): editorial italic statement +
   HQ spec-sheet + capabilities/company/offices index + ADVANTAGE mega-wordmark

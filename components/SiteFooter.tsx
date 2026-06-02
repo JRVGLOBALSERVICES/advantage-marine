@@ -51,11 +51,11 @@ export default function SiteFooter() {
         />
         <div className="grid items-start gap-[var(--space-xl)] lg:grid-cols-[1.2fr_1fr] lg:gap-20">
           <p
-            className="font-display italic leading-[1.12] tracking-[-0.01em] max-w-[20ch]"
-            style={{ fontSize: "var(--text-h2)", fontWeight: 500 }}
+            className="font-accent leading-[1.18] max-w-[20ch]"
+            style={{ fontSize: "var(--text-h2)", fontWeight: 400 }}
           >
             In-water inspection. Robotic NDT.{" "}
-            <span className="text-[color:var(--color-accent)] not-italic">Marine engineering.</span>
+            <span className="text-[color:var(--color-accent)]">Marine engineering.</span>
           </p>
 
           <dl className="grid grid-cols-2 gap-x-8 gap-y-5 text-sm leading-[1.5]">

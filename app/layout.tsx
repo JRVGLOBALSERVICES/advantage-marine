@@ -1,17 +1,28 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Inter } from "next/font/google";
+import { Cinzel, Kaushan_Script, Inter } from "next/font/google";
 import "./globals.css";
 import SmoothScroll from "@/components/SmoothScroll";
 import SiteNav from "@/components/SiteNav";
 import SiteFooter from "@/components/SiteFooter";
 
-const spaceGrotesk = Space_Grotesk({
+// Display: Cinzel — inscriptional Roman caps serif (headings, stats, wordmark)
+const cinzel = Cinzel({
   subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-space-grotesk",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-cinzel",
   display: "swap",
 });
 
+// Accent: Kaushan Script — brush script for the one expressive statement moment
+const kaushan = Kaushan_Script({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-kaushan",
+  display: "swap",
+});
+
+// Body: Inter — paragraph + UI text (Cinzel is caps-only, Kaushan is a script;
+// neither can carry running copy, so the legible body sans stays)
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
@@ -45,7 +56,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className={`${spaceGrotesk.variable} ${inter.variable}`}>
+      <body className={`${cinzel.variable} ${kaushan.variable} ${inter.variable}`}>
         <SmoothScroll>
           <SiteNav />
           {children}

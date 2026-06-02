@@ -25,8 +25,9 @@
   --background: var(--color-paper);
   --foreground: var(--color-ink);
 
-  /* ---- Type (held: Space Grotesk display + Inter body) ---- */
-  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  /* ---- Type (Cinzel display caps + Kaushan script accent + Inter body) ---- */
+  --font-display: var(--font-cinzel), Georgia, "Times New Roman", serif;
+  --font-accent:  var(--font-kaushan), "Brush Script MT", cursive;
   --font-body:    var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
   /* ---- Fluid type scale (width + height adaptive) ---- */
@@ -76,7 +77,13 @@ body {
 
 ::selection { background: var(--color-accent-2); color: var(--color-ink); }
 
-.font-display { font-family: var(--font-display); }
+/* Cinzel is inscriptional caps — neutralize the tight negative tracking the old
+   geometric sans used and give the capitals a touch of air. This rule sits after
+   @tailwind utilities in source order, so it overrides per-element tracking-[…]. */
+.font-display { font-family: var(--font-display); letter-spacing: 0.012em; }
+
+/* Kaushan brush script — the one expressive accent; never for body or labels */
+.font-accent { font-family: var(--font-accent); letter-spacing: 0; }
 
 .eyebrow {
   font-family: var(--font-body);
