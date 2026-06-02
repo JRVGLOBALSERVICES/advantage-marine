@@ -120,6 +120,16 @@ a { color: inherit; }
   .measure { max-width: 65ch; }
 }
 
+/* footer link — hairline underline grows from the left on hover */
+.footer-link { position: relative; display: inline-block; }
+.footer-link::after {
+  content: ""; position: absolute; left: 0; bottom: -2px;
+  width: 100%; height: 1px; background: var(--color-accent);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.footer-link:hover::after { transform: scaleX(1); }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
 }

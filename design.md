@@ -92,7 +92,22 @@ tokens, never raw values.
 - The accent colour + ≤5% placement.
 - Space Grotesk + Inter.
 - CTA pill geometry + voice.
-- "Site by JRV" footer.
+- The shared caliber footer (`SiteFooter`): editorial italic statement +
+  HQ spec-sheet + capabilities/company/offices index + ADVANTAGE mega-wordmark
+  sign-off + microbar. Footer is cream (`--color-paper-2`), never dark.
+- JRV credit via `FooterJrvLogoReveal` — the real JRV **logo image** (Cloudinary),
+  not plain "Site by JRV" text. Ink/55 label + teal hover underline.
+
+## Shared caliber components (ported from seagull-group + jrv-systems-new)
+Reusable motion/structure components, all recolored to the cream+teal system,
+no new dependencies (motion 11 + gsap 3.15 already present):
+- `ui/WordReveal` — word-by-word IO reveal (blur+rise), `once:false`, predictive margin.
+- `ui/TextSpotlightReveal` — GSAP char spotlight (blur/scale, stagger from centre),
+  rewired off `@gsap/react` to plain `useEffect` + `gsap.context`.
+- `ui/StackedCards` / `StackedCard` — motion stagger stack-in reveal.
+- `ui/MagneticLink` — pointer-magnetic CTA wrapper (pointer-fine + motion-OK only).
+Home service section uses numbered editorial spec-rows (NOT identical feature cards)
++ a real-discipline marquee; about teaser uses TextSpotlightReveal + real NumberTicker stats.
 
 ## What pages MAY differ on
 - Macrostructure within the page-type family.
