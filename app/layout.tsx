@@ -17,6 +17,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://advantage-marine.vercel.app"),
   title: "Advantage Marine Services — In-Water Inspection, NDT & Marine Engineering",
   description:
     "IMCA-standard commercial diving, underwater hull & propeller services, robotic NDT and steel fabrication for the marine, shipping and offshore industries. Johor, Malaysia. Class surveys accepted by ABS, DNV, BV, LR and ClassNK.",
