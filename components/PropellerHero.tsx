@@ -173,11 +173,10 @@ export default function PropellerHero() {
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const coarse = window.matchMedia("(pointer: coarse)").matches;
-    const small = window.innerWidth < 768;
     motionState.reduced = reduced;
-    // Canvas only on capable desktops; skip on reduced-motion / touch / small
-    setUseCanvas(!reduced && !coarse && !small);
+    // Vessel renders on ALL viewports (mobile included) via the iOS-safe sticky
+    // scroll pattern. Static photo is ONLY the reduced-motion a11y fallback.
+    setUseCanvas(!reduced);
     setMounted(true);
   }, []);
 
