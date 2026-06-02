@@ -236,13 +236,16 @@ function Rig() {
 
 export default function VesselScene({
   onContextLost,
+  active = true,
 }: {
   onContextLost?: () => void;
+  /** pause the render loop when the band scrolls out of view (GPU/battery) */
+  active?: boolean;
 }) {
   return (
     <Canvas
       dpr={[1, 1.8]}
-      frameloop="always"
+      frameloop={active ? "always" : "never"}
       gl={{ antialias: true, powerPreference: "high-performance" }}
       camera={{ position: [0.2, 1.5, 8.4], fov: 40, near: 0.1, far: 200 }}
       onCreated={({ gl, invalidate }) => {
