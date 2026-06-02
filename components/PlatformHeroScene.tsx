@@ -292,7 +292,9 @@ function RisingTiles() {
     const { a2 } = acts(p);
     const t = state.clock.elapsedTime;
     const reduced = motionState.reduced;
-    (inst.material as THREE.MeshBasicMaterial).opacity = reduced ? 0.18 : 0.2 + a2 * 0.8;
+    // Act-2 element only — fully gated on a2 so the tile field is INVISIBLE on
+    // load (no faint blue grid behind the rig before the pedestal beat).
+    (inst.material as THREE.MeshBasicMaterial).opacity = reduced ? 0 : a2 * 0.9;
 
     for (let i = 0; i < TILE_N; i++) {
       const tile = tiles[i];
@@ -323,7 +325,7 @@ function RisingTiles() {
       <boxGeometry args={[1, 1, 1]} />
       <meshBasicMaterial
         transparent
-        opacity={0.2}
+        opacity={0}
         depthWrite={false}
         toneMapped={false}
       />

@@ -217,8 +217,10 @@ export default function PropellerHero() {
     // copy beats aligned to the scene's acts: beat 0 over ACT 1 (rig right +
     // thrust), beat 1 over the recentre/lift, beat 2 over ACT 2 (pedestal +
     // rising tiles + sonar) before the GlobalReach handoff.
+    // beat 0 starts FULLY ON at load (a,b < 0) so the headline is crisp on
+    // first paint — never a faded ghost — then fades out as ACT 1 hands off.
     const windows: [number, number, number, number][] = [
-      [-0.02, 0.1, 0.42, 0.52],
+      [-0.1, -0.05, 0.42, 0.52],
       [0.5, 0.58, 0.68, 0.76],
       [0.78, 0.84, 0.97, 1.04],
     ];
