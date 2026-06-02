@@ -1,9 +1,9 @@
 "use client";
 
 // Source: Aceternity UI — world-map, MIT.
-// Adapted: removed the next-themes dependency and hard-coded the dark palette
-// (transparent background, faint cyan dots) so it sits over the abyss section /
-// BackgroundBeams. Default arc color set to brand violet for the "Global Reach" beat.
+// Adapted for the cream system: transparent background, teal dots at a readable
+// opacity so they show on the #F4EBD9 sailcloth base (the original faint bright-cyan
+// dots washed out invisibly on cream). Default arc color is brand teal.
 
 import { useRef } from "react";
 import { motion } from "motion/react";
@@ -17,13 +17,13 @@ interface MapProps {
   lineColor?: string;
 }
 
-export default function WorldMap({ dots = [], lineColor = "#8B5CF6" }: MapProps) {
+export default function WorldMap({ dots = [], lineColor = "#30837b" }: MapProps) {
   const svgRef = useRef<SVGSVGElement>(null);
   const map = new DottedMap({ height: 100, grid: "diagonal" });
 
   const svgMap = map.getSVG({
     radius: 0.22,
-    color: "#22d3ee30",
+    color: "#30837b73",
     shape: "circle",
     backgroundColor: "transparent",
   });
