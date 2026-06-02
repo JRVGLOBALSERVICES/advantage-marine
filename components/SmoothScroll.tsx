@@ -29,7 +29,19 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
     gsap.ticker.add(onTick);
     gsap.ticker.lagSmoothing(0);
 
+    // The scene-build loader locks scroll until the hero is revealed. If it
+    // already requested the lock before Lenis existed (loader effect runs
+    // before this parent effect), honor it immediately; otherwise react to the
+    // events it dispatches.
+    if (document.documentElement.classList.contains("am-scroll-locked")) lenis.stop();
+    const onLock = () => lenis.stop();
+    const onUnlock = () => lenis.start();
+    window.addEventListener("am:lock-scroll", onLock);
+    window.addEventListener("am:unlock-scroll", onUnlock);
+
     return () => {
+      window.removeEventListener("am:lock-scroll", onLock);
+      window.removeEventListener("am:unlock-scroll", onUnlock);
       gsap.ticker.remove(onTick);
       lenis.destroy();
     };

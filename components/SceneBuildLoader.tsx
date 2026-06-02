@@ -46,6 +46,40 @@ export default function SceneBuildLoader() {
     let shown = START_COUNT;
     let glitchTimer = 0;
 
+    // ── scroll lock: hold the frame until the hero is revealed ──
+    // Three coordinated paths: Lenis (desktop smooth) via event, native +
+    // iOS-touch via the CSS class, wheel/touch/key preventDefault as a hard
+    // backstop. Never leave the page locked — unlockScroll runs on dismiss
+    // AND unconditionally on cleanup.
+    const root = document.documentElement;
+    const SCROLL_KEYS = new Set([
+      "ArrowUp", "ArrowDown", "PageUp", "PageDown", "Home", "End", " ", "Spacebar",
+    ]);
+    const preventScroll = (e: Event) => e.preventDefault();
+    const preventScrollKeys = (e: KeyboardEvent) => {
+      if (SCROLL_KEYS.has(e.key)) e.preventDefault();
+    };
+    let locked = false;
+    const lockScroll = () => {
+      if (locked) return;
+      locked = true;
+      root.classList.add("am-scroll-locked");
+      window.dispatchEvent(new Event("am:lock-scroll"));
+      window.addEventListener("wheel", preventScroll, { passive: false });
+      window.addEventListener("touchmove", preventScroll, { passive: false });
+      window.addEventListener("keydown", preventScrollKeys);
+    };
+    const unlockScroll = () => {
+      if (!locked) return;
+      locked = false;
+      root.classList.remove("am-scroll-locked");
+      window.dispatchEvent(new Event("am:unlock-scroll"));
+      window.removeEventListener("wheel", preventScroll);
+      window.removeEventListener("touchmove", preventScroll);
+      window.removeEventListener("keydown", preventScrollKeys);
+    };
+    lockScroll();
+
     const setCount = (n: number) => {
       const label = String(Math.max(0, n)).padStart(2, "0");
       if (count) {
@@ -119,7 +153,10 @@ export default function SceneBuildLoader() {
           duration: reduced ? 0.4 : 0.6,
           delay: reduced ? 0 : 0.32, // let the "00" land before the fade
           ease: "power2.inOut",
-          onComplete: () => setDismissed(true),
+          onComplete: () => {
+            unlockScroll(); // hero is fully revealed — hand scroll back
+            setDismissed(true);
+          },
         });
       }, wait);
     };
@@ -134,6 +171,7 @@ export default function SceneBuildLoader() {
       window.removeEventListener("am:scene-ready", onReady);
       window.clearTimeout(safety);
       window.clearTimeout(glitchTimer);
+      unlockScroll(); // safety — never leave the page scroll-locked
       ctx.revert();
     };
   }, [mounted]);

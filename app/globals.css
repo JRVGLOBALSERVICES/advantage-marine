@@ -193,6 +193,17 @@ a { color: inherit; }
 }
 @keyframes sbl-scan-move { from { background-position-y: 0; } to { background-position-y: 12px; } }
 
+/* scroll lock while the loader holds the frame — released on hero reveal.
+   Covers native + iOS-touch scroll; Lenis (desktop smooth) is stopped via the
+   am:lock-scroll event in SmoothScroll. We only lock during initial load when
+   scrollY is 0, so no position restore is needed. */
+html.am-scroll-locked,
+html.am-scroll-locked body {
+  overflow: hidden !important;
+  overscroll-behavior: none;
+  touch-action: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
 }
