@@ -46,17 +46,24 @@ and a touch deeper so Advantage Marine reads as its own brand. Sail + sea.
 - Legacy dark-build token names (`--color-abyss`, `--color-navy`, `--color-cyan`, `--color-amber`) are kept as **back-compat aliases that now resolve to the cream/teal values** — so no dark surface can leak through an old reference.
 
 ### Typography
-- **Display**: Space Grotesk (`--font-display`) — 400 / 500 / 700
-- **Body / eyebrow**: Inter (`--font-body`) — 400 / 500
+- **Display**: Cinzel (`--font-display`) — 400 / 500 / 600 / 700 — inscriptional
+  Roman caps serif. Drives every heading, stat numeral and the footer wordmark
+  via `.font-display`. Tracking neutralized to **+0.012em** centrally (caps serifs
+  need air; the old −0.02em geometric-sans tracking would cramp them).
+- **Accent**: Kaushan Script (`--font-accent` / `.font-accent`) — 400 — brush
+  script reserved for the **single expressive statement** (footer statement) only.
+  Never used for body, labels or eyebrows.
+- **Body / eyebrow**: Inter (`--font-body`) — 400 / 500. Retained because Cinzel
+  is caps-only and Kaushan is a script — neither carries running copy.
 - Fluid, width-**and**-height-adaptive scale via `clamp(min, min(Xvw, Yvh), max)`
   so short laptops shrink type: `--text-display`, `--text-h2`, `--text-h3`,
   `--text-stat`, `--text-lead`, `--text-card`, `--text-eyebrow`. No `text-lg`,
   no arbitrary `text-[Npx]`.
 
-> Note: the design brief floated Cinzel + Kaushan Script as a display/accent pair;
-> the build **held to Space Grotesk + Inter** for legibility on dense NDT/marine
-> data surfaces (Cinzel caps + Kaushan brush read luxury-wedding, fighting the
-> technical-B2B direction). Font family revisit is parked pending Rj's call.
+> Note: Cinzel + Kaushan is Rj's explicit pick (2026-06-02). It's a luxury/editorial
+> pairing rather than a technical-B2B one — Kaushan is deliberately confined to a
+> single statement moment to keep the brush script from reading as wedding-y across
+> the dense NDT/marine surfaces.
 
 ### Spacing (4pt)
 `--space-xs 0.5rem · sm 1rem · md 1.5rem · lg 2.5rem · xl 4rem · 2xl 6rem`
@@ -94,7 +101,7 @@ Patterns implemented:
 
 ```
 app/
-  layout.tsx            Root layout, fonts (Space Grotesk + Inter), metadata, <SmoothScroll>
+  layout.tsx            Root layout, fonts (Cinzel + Kaushan + Inter), metadata, <SmoothScroll>
   globals.css           OKLCH cream tokens + Hallmark stamp
   page.tsx              Home — hero + capability beats + reach
   about/page.tsx        About Us — AMS since 2014, IMCA/OGP, Johor facility
