@@ -20,6 +20,7 @@
   --color-aqua:       oklch(0.930 0.030 178);  /* soft seafoam wash (warmed for cream) */
   --color-aqua-2:     oklch(0.900 0.045 176);  /* deeper seafoam */
   --color-focus:      oklch(0.55 0.110 186);
+  --color-glitch-warm: oklch(0.62 0.20 18);    /* loader RGB-split warm channel (glitch artifact only) */
 
   /* shadcn-compat (kept for any registry component) */
   --background: var(--color-paper);
@@ -136,6 +137,61 @@ a { color: inherit; }
   transition: transform var(--dur-fast) var(--ease-out);
 }
 .footer-link:hover::after { transform: scaleX(1); }
+
+/* ── Scene-build loader: glitching countdown ────────────────────── */
+.sbl-count {
+  position: relative;
+  display: inline-block;
+  font-family: ui-monospace, "JetBrains Mono", "SF Mono", Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  line-height: 0.85;
+  letter-spacing: 0.03em;
+  color: var(--color-accent-ink);
+}
+/* chromatic-aberration duplicates — pure glitch artifact, not a 2nd brand colour */
+.sbl-count::before,
+.sbl-count::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+.sbl-count::before {
+  color: var(--color-accent-2);            /* teal channel */
+  clip-path: inset(0 0 52% 0);
+  animation: sbl-rgb 2.6s steps(2, end) infinite;
+}
+.sbl-count::after {
+  color: var(--color-glitch-warm);         /* warm channel for the split */
+  clip-path: inset(56% 0 0 0);
+  animation: sbl-rgb 3.1s steps(2, end) infinite reverse;
+}
+@keyframes sbl-rgb {
+  0%, 100% { transform: translate(-2px, 0); }
+  50%      { transform: translate(2px, 1px); }
+}
+/* hard burst fired on every digit decrement (.is-glitch toggled in JS) */
+.sbl-count.is-glitch::before { animation: sbl-slice 0.26s steps(3, end) 1; }
+.sbl-count.is-glitch::after  { animation: sbl-slice 0.26s steps(3, end) reverse 1; }
+@keyframes sbl-slice {
+  0%   { transform: translate(-7px, -1px); clip-path: inset(8% 0 62% 0); }
+  40%  { transform: translate(6px, 1px);   clip-path: inset(58% 0 10% 0); }
+  70%  { transform: translate(-3px, 0);    clip-path: inset(32% 0 38% 0); }
+  100% { transform: translate(0, 0); }
+}
+/* drifting scanline veil */
+.sbl-scan {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0px,
+    transparent 2px,
+    color-mix(in oklch, var(--color-ink) 24%, transparent) 3px
+  );
+  animation: sbl-scan-move 5.5s linear infinite;
+}
+@keyframes sbl-scan-move { from { background-position-y: 0; } to { background-position-y: 12px; } }
 
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
