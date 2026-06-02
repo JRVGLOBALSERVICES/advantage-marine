@@ -1,5 +1,6 @@
 import Link from "next/link";
 import PropellerHero from "@/components/PropellerHero";
+import SceneBuildLoader from "@/components/SceneBuildLoader";
 import GlobalReach from "@/components/GlobalReach";
 import Reveal from "@/components/Reveal";
 import { WordReveal } from "@/components/ui/WordReveal";
@@ -94,6 +95,8 @@ export default function Home() {
 
   return (
     <main>
+      {/* branded scene-build loader — holds the frame while the vessel hydrates */}
+      <SceneBuildLoader />
       {/* one crawlable H1 — the page promise */}
       <h1 className="sr-only">
         Advantage Marine Services — in-water inspection, robotic NDT and marine

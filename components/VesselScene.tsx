@@ -97,6 +97,10 @@ function Vessel() {
         if (!g.attributes.normal) g.computeVertexNormals();
       }
     });
+    // GLB loaded + positioned → tell the loader it can clear.
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("am:scene-ready"));
+    }
   }, [scene, material]);
 
   useFrame((state, dt) => {
@@ -202,7 +206,7 @@ function AdvantageTag() {
 
 /* ---------- scroll-driven camera: wide on the scatter → settle on the vessel ---------- */
 function Rig() {
-  const { camera } = useThree();
+  const { camera, size } = useThree();
   const target = useRef(new THREE.Vector3(0, 0.2, 0));
   const kpos = useMemo(
     () => [
@@ -219,7 +223,11 @@ function Rig() {
     let seg = 0;
     while (seg < stops.length - 2 && p > stops[seg + 1]) seg++;
     const t = smooth(window01(p, stops[seg], stops[seg + 1]));
-    const pos = kpos[seg].clone().lerp(kpos[seg + 1], t);
+    // portrait phones have a narrow horizontal FOV — back the camera off so the
+    // long horizontal hull fits the frame instead of being cropped / oversized.
+    const aspect = size.width / Math.max(size.height, 1);
+    const distMul = aspect < 1 ? 1 + (1 - aspect) * 0.9 : 1;
+    const pos = kpos[seg].clone().lerp(kpos[seg + 1], t).multiplyScalar(distMul);
     camera.position.lerp(pos, 0.1);
     camera.lookAt(target.current);
   });
