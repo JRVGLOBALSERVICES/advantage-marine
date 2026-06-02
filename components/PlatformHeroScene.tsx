@@ -24,7 +24,7 @@ import { scrollState, motionState, sceneState, window01, smooth } from "@/lib/sc
    ════════════════════════════════════════════════════════════════ */
 
 const FIT_SIZE = 4.0; // longest axis fit, world units — tall jacket structure
-const MODEL_URL = "/models/platform-hero.glb";
+const MODEL_URL = "/models/platform-v2.glb";
 
 function Platform() {
   const { scene } = useGLTF(MODEL_URL);
