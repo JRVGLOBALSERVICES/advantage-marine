@@ -1,27 +1,82 @@
+/* Hallmark · macrostructure: Pinned Scroll-Narrative (3D-first) · tone: technical/industrial-marine · anchor hue: cyan 230 + amber 75
+ * pre-emit critique: P5 H4 E5 S4 R4 V4
+ * Advantage Marine Services — design tokens (OKLCH, brand-derived) */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* ---- Brand palette (derived from advantagemarine.com.my) → OKLCH ---- */
+  --color-abyss:    oklch(0.17 0.035 240);   /* deep underwater */
+  --color-navy:     oklch(0.33 0.072 238);   /* #003b5c */
+  --color-navy-2:   oklch(0.30 0.115 264);   /* #002e70 */
+  --color-cyan:     oklch(0.67 0.132 232);   /* #0799d1 */
+  --color-cyan-hi:  oklch(0.80 0.115 215);
+  --color-amber:    oklch(0.79 0.155 76);    /* #f5b018 */
+  --color-paper:    oklch(0.98 0.004 240);
+  --color-ink:      oklch(0.22 0.03 245);
+  --color-mute:     oklch(0.72 0.02 240);
+
+  /* ---- Type ---- */
+  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
+  --font-body:    var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  /* ---- Fluid type scale (width + height adaptive) ---- */
+  --text-display: clamp(2.6rem, min(8.5vw, 13.6vh), 7.5rem);
+  --text-h2:      clamp(1.9rem, min(4.6vw, 7.4vh), 3.4rem);
+  --text-stat:    clamp(3rem, min(11vw, 17.6vh), 9rem);
+  --text-eyebrow: clamp(0.72rem, 1.1vw, 0.84rem);
+  --text-lead:    clamp(1rem, 1.4vw, 1.18rem);
+  --text-card:    clamp(1.1rem, 1.6vw, 1.25rem);
+
+  /* ---- Spacing (4pt) ---- */
+  --space-xs: 0.5rem;  --space-sm: 1rem;   --space-md: 1.5rem;
+  --space-lg: 2.5rem;  --space-xl: 4rem;   --space-2xl: 6rem;
+
+  /* ---- Motion ---- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in:  cubic-bezier(0.55, 0, 1, 0.45);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 160ms; --dur-mid: 320ms;
+
+  --rule: 1px solid color-mix(in oklch, var(--color-cyan) 22%, transparent);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+* { box-sizing: border-box; }
+html, body { overflow-x: clip; }
+html { scroll-behavior: auto; } /* Lenis owns scroll */
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  background: var(--color-abyss);
+  color: var(--color-paper);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--color-amber); color: var(--color-navy-2); }
+
+.font-display { font-family: var(--font-display); }
+
+.eyebrow {
+  font-family: var(--font-body);
+  font-size: var(--text-eyebrow);
+  letter-spacing: 0.32em;
+  text-transform: uppercase;
+  font-weight: 500;
+  color: var(--color-cyan-hi);
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-cyan-hi);
+  outline-offset: 3px;
 }
 
 @layer utilities {
-  .text-balance {
-    text-wrap: balance;
-  }
+  .text-balance { text-wrap: balance; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
 }

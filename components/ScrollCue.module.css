@@ -1,0 +1,47 @@
+/* Source: Uiverse.io by Nawsome (brave-turtle-26), MIT.
+   Reduced from 5 pills to a single minimal track, recolored to brand cyan on dark. */
+.cue {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.track {
+  overflow: hidden;
+  height: 48px;
+  width: 14px;
+  border-radius: 30px;
+  border: 1px solid color-mix(in oklch, var(--color-mute) 38%, transparent);
+  position: relative;
+}
+
+.track::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 50%;
+  margin-left: -3px;
+  height: 6px;
+  width: 6px;
+  border-radius: 100%;
+  background: var(--color-cyan-hi);
+  box-shadow: 0 0 8px color-mix(in oklch, var(--color-cyan-hi) 70%, transparent);
+  animation: cueDrop 2.4s var(--ease-in-out) infinite;
+}
+
+@keyframes cueDrop {
+  0% {
+    transform: translateY(6px);
+    opacity: 0;
+  }
+  25% {
+    opacity: 1;
+  }
+  75% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(34px);
+    opacity: 0;
+  }
+}

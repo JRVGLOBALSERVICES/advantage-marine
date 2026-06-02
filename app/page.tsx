@@ -1,101 +1,89 @@
-import Image from "next/image";
+import PropellerHero from "@/components/PropellerHero";
+import GlobalReach from "@/components/GlobalReach";
+
+const SERVICES = [
+  ["Marine / Diving", "Air & mixed-gas commercial diving, Class IWS, real-time CCTV inspection, hull cleaning and propeller polishing."],
+  ["Robotic NDT", "UT-CS crawlers, MFL inline inspection, Time-of-Flight Diffraction, MPI, eddy current and lifting-gear inspection."],
+  ["Steel Fabrication", "Piping and steel renewal, structural fabrication and afloat repairs, inshore and offshore."],
+  ["Rope Access & HVAC", "Industrial rope-access maintenance, accommodation upgrading, HVAC, automation and calibration."],
+];
 
 export default function Home() {
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+    <main>
+      {/* one crawlable H1 — the page promise */}
+      <h1 className="sr-only">
+        Advantage Marine Services — in-water inspection, robotic NDT and marine
+        engineering for shipping and offshore, Johor, Malaysia.
+      </h1>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
+      <PropellerHero />
+
+      {/* ---- beat 3: Global Reach (registry components) ---- */}
+      <GlobalReach />
+
+      {/* ---- grounding content below the hero ---- */}
+      <section
+        id="services"
+        className="px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)] max-w-[min(1200px,92vw)] mx-auto"
+      >
+        <p className="eyebrow mb-[var(--space-md)]">What we do</p>
+        <h2
+          className="font-display font-bold leading-[1.08] tracking-[-0.02em] mb-[var(--space-xl)] max-w-[20ch]"
+          style={{ fontSize: "var(--text-h2)", overflowWrap: "anywhere" }}
+        >
+          End-to-end marine &amp; offshore engineering.
+        </h2>
+        <div className="grid gap-px bg-[color:color-mix(in_oklch,var(--color-cyan)_16%,transparent)] sm:grid-cols-2 rounded-2xl overflow-hidden border border-[color:color-mix(in_oklch,var(--color-cyan)_16%,transparent)]">
+          {SERVICES.map(([t, d]) => (
+            <div key={t} className="bg-[color:var(--color-abyss)] p-[var(--space-lg)]">
+              <h3 className="font-display font-medium mb-[var(--space-sm)]" style={{ fontSize: "var(--text-card)" }}>{t}</h3>
+              <p className="text-[color:var(--color-mute)] leading-[1.55]">{d}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section
+        id="about"
+        className="px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)] max-w-[min(900px,92vw)] mx-auto border-t border-[color:color-mix(in_oklch,var(--color-cyan)_14%,transparent)]"
+      >
+        <p className="eyebrow mb-[var(--space-md)]">About AMS</p>
+        <p
+          className="font-display leading-[1.3] tracking-[-0.01em]"
+          style={{ fontSize: "var(--text-h2)" }}
+        >
+          Advantage Marine Services (Malaysia) Sdn Bhd has delivered
+          best-in-class in-water services for marine, shipping and offshore
+          since 2014 — to OGP / IMCA standard, from a 4,630&nbsp;m² facility in
+          Johor.
+        </p>
+      </section>
+
+      <footer
+        id="contact"
+        className="px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-xl)] border-t border-[color:color-mix(in_oklch,var(--color-cyan)_14%,transparent)]"
+      >
+        <div className="max-w-[min(1200px,92vw)] mx-auto flex flex-wrap items-end justify-between gap-[var(--space-lg)]">
+          <div>
+            <p className="font-display font-bold" style={{ fontSize: "var(--text-card)" }}>
+              ADVANTAGE<span className="text-[color:var(--color-cyan-hi)]"> MARINE</span>
+            </p>
+            <p className="text-[color:var(--color-mute)] text-sm mt-2">
+              Johor, Malaysia · Class-approved · IMCA / OGP standard
+            </p>
+          </div>
           <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="https://www.advantagemarine.com.my/"
+            className="text-sm font-medium rounded-full px-5 py-2.5 bg-[color:var(--color-amber)] text-[color:var(--color-navy-2)] hover:opacity-90 transition-opacity"
           >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
+            Talk to AMS
           </a>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
+        <p className="max-w-[min(1200px,92vw)] mx-auto mt-[var(--space-xl)] text-xs text-[color:var(--color-mute)]">
+          Site by JRV
+        </p>
       </footer>
-    </div>
+    </main>
   );
 }
