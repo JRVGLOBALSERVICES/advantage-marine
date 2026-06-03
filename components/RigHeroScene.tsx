@@ -17,28 +17,25 @@ import type { Group, Mesh, MeshStandardMaterial, Object3D } from "three";
 import { scrollState, motionState, sceneState } from "@/lib/scroll";
 
 /* ════════════════════════════════════════════════════════════════
-   RIG HERO — EXPLODED ASSEMBLY (turbofan-reel treatment, 2026-06).
+   RIG HERO — SCROLL-DRIVEN ASSEMBLY (turbofan-reel treatment).
 
-   The brief: the whole jack-up comes APART part-by-part and goes back
-   TOGETHER — the Rolls-Royce turbofan-reel move, not a waterline dive.
-   Every one of the 26 named GEO parts fans out from the hull along its
-   own radial + vertical axis, holds as a readable engineering diagram,
-   then flies home into the locked rig.
+   The video pattern mapped to the jack-up rig:
 
-     0.00–0.10  assembled, recognizable; slow turntable
-     0.10–0.45  EXPLODE — parts fan out (topside rises, legs/cans drop,
-                crane + cantilever swing out)
-     0.45–0.65  HOLD — full exploded diagram; honest assembly labels;
-                one teal scan sweep climbs the structure (the accent)
-     0.65–0.95  REASSEMBLE — parts ease home
-     0.95–1.00  assembled hero, topped-out
+   0.00–0.12  ASSEMBLED — slow turntable, rig whole & readable
+   0.12–0.42  EXPLODE — parts fan out radially + vertically;
+                ground grid fades in; camera pulls back
+   0.42–0.62  HOLD — full exploded diagram; assembly labels;
+                teal scan sweep climbs the structure; grid holds
+   0.62–0.92  REASSEMBLE — parts ease home; rig rotates 90° on Y
+                so the viewer sees a new face; glow ring pulses
+                from the base; camera pushes in
+   0.92–1.00  ASSEMBLED HERO — topped-out, new angle, slow drift
 
-   Scale-honest: the assembled bounds + centroid are MEASURED on load;
-   every explode offset is expressed as a fraction of the measured span,
-   so any authored model self-frames.
+   Scale-honest: assembled bounds + centroid measured on load;
+   every offset is a fraction of measured span.
 
-   Brand (AM design.md): dark gunmetal steel on warm sailcloth-cream,
-   ONE teal accent. Bloom catches ONLY the raw-HDR teal scan ring.
+   Brand: dark gunmetal steel on warm sailcloth-cream, ONE teal accent.
+   Bloom catches ONLY the raw-HDR teal scan ring + glow ring.
    ════════════════════════════════════════════════════════════════ */
 
 const MODEL_URL = "/models/jackup-rig.glb";
@@ -47,9 +44,8 @@ const smoothstep = (t: number) => t * t * (3 - 2 * t);
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-/* Honest assembly labels — real jack-up nomenclature + AM's real inspection
-   scope. Anchored to one part per major assembly, shown only in the exploded
-   hold. Suppressed on a narrow frame (labels would overlap). */
+/* Honest assembly labels — real jack-up nomenclature + AM scope.
+   Anchored to one part per major assembly, shown only in the hold. */
 const LABELS: Record<string, { code: string; spec: string }> = {
   "GEO-Derrick": { code: "Derrick & drill floor", spec: "weld NDT · class survey" },
   "GEO-Hull": { code: "Hull & jackhouses", spec: "plate UT · CP read" },
@@ -60,17 +56,14 @@ const LABELS: Record<string, { code: string; spec: string }> = {
 type Part = {
   node: Object3D;
   base: THREE.Vector3;
-  offset: THREE.Vector3; // fully-exploded translation (world-ish, applied in group space)
-  dir: THREE.Vector2; // outward (x,z) unit dir — drives leader-line
-  label?: string; // key into LABELS for the major-assembly anchors
+  offset: THREE.Vector3;
+  dir: THREE.Vector2;
+  label?: string;
 };
 
-/* measured model anchors */
 type Anchors = { top: number; bot: number; span: number; foot: number; cx: number; cz: number };
 
-/* Per-part explode plan — classify by name, return a radial+vertical offset as a
-   fraction of the measured span. Topside rises, legs/cans drop, crane + cantilever
-   swing out. Layout-agnostic: radial direction is measured from each part's centre. */
+/* Per-part explode plan — radial+vertical offset as fraction of span. */
 function explodePlan(name: string): { kR: number; kV: number; anchor?: boolean } {
   if (/SpudCan/.test(name)) return { kR: 0.34, kV: -0.40 };
   if (/^GEO-Leg-/.test(name)) return { kR: 0.24, kV: -0.20 };
@@ -82,10 +75,154 @@ function explodePlan(name: string): { kR: number; kV: number; anchor?: boolean }
   if (/Accom/.test(name)) return { kR: 0.24, kV: 0.28 };
   if (/Crane/.test(name)) return { kR: 0.34, kV: 0.16 };
   if (/Cantilever/.test(name)) return { kR: 0.40, kV: 0.08 };
-  if (/Hull/.test(name)) return { kR: 0, kV: 0, anchor: true }; // the anchor everything comes off
+  if (/Hull/.test(name)) return { kR: 0, kV: 0, anchor: true };
   return { kR: 0.16, kV: 0.06 };
 }
 
+/* ════════════════════════════════════════════════════════════════
+   GROUND GRID — reflective grid plane that fades in during the
+   exploded hold, giving the rig a stage to sit on (video ref).
+   ════════════════════════════════════════════════════════════════ */
+function GroundGrid({ anchors }: { anchors: React.MutableRefObject<Anchors> }) {
+  const meshRef = useRef<THREE.Mesh>(null!);
+  const matRef = useRef<THREE.ShaderMaterial>(null!);
+
+  const uniforms = useMemo(
+    () => ({
+      uTime: { value: 0 },
+      uOpacity: { value: 0 },
+      uColor: { value: new THREE.Color("#3a3530") },
+      uBg: { value: new THREE.Color("#F4EBD9") },
+      uSpan: { value: 100 },
+    }),
+    [],
+  );
+
+  useFrame((state) => {
+    if (!matRef.current) return;
+    const p = motionState.reduced ? 0.52 : scrollState.progress;
+    // fade in 0.12→0.22, hold, fade out 0.82→0.92
+    let o = 0;
+    if (p >= 0.12 && p < 0.22) o = smoothstep(clamp01((p - 0.12) / 0.1));
+    else if (p >= 0.22 && p < 0.82) o = 1;
+    else if (p >= 0.82 && p < 0.92) o = 1 - smoothstep(clamp01((p - 0.82) / 0.1));
+    matRef.current.uniforms.uOpacity.value = o * 0.35;
+    matRef.current.uniforms.uTime.value = state.clock.elapsedTime;
+  });
+
+  const { foot } = anchors.current;
+  const size = foot * 6;
+
+  return (
+    <mesh ref={meshRef} rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow>
+      <planeGeometry args={[size, size]} />
+      <shaderMaterial
+        ref={matRef as never}
+        uniforms={uniforms}
+        transparent
+        depthWrite={false}
+        vertexShader={`
+          varying vec2 vUv;
+          void main(){
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0);
+          }
+        `}
+        fragmentShader={`
+          uniform float uTime;
+          uniform float uOpacity;
+          uniform vec3 uColor;
+          uniform vec3 uBg;
+          varying vec2 vUv;
+          void main(){
+            vec2 uv = vUv - 0.5;
+            float grid = max(
+              abs(fract(uv.x * 24.0) - 0.5),
+              abs(fract(uv.y * 24.0) - 0.5)
+            );
+            float line = smoothstep(0.02, 0.0, grid);
+            // radial fade at edges
+            float rim = 1.0 - smoothstep(0.25, 0.5, length(uv));
+            // subtle breathing pulse
+            float pulse = 0.92 + 0.08 * sin(uTime * 1.2);
+            vec3 col = mix(uBg, uColor, line * pulse * rim);
+            float alpha = line * rim * uOpacity;
+            gl_FragColor = vec4(col, alpha);
+          }
+        `}
+      />
+    </mesh>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   GLOW RING — pulsing teal ring that expands from the rig base
+   during reassembly (video's purple-pink glow ring, AM-branded).
+   ════════════════════════════════════════════════════════════════ */
+function GlowRing({ anchors }: { anchors: React.MutableRefObject<Anchors> }) {
+  const ref = useRef<THREE.Mesh>(null!);
+  const innerRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    if (!ref.current || !innerRef.current) return;
+    const p = motionState.reduced ? 0 : scrollState.progress;
+    // appear during reassembly 0.62→0.72, hold to 0.88, fade 0.88→0.95
+    let t = 0;
+    if (p >= 0.62 && p < 0.72) t = smoothstep(clamp01((p - 0.62) / 0.1));
+    else if (p >= 0.72 && p < 0.88) t = 1;
+    else if (p >= 0.88 && p < 0.95) t = 1 - smoothstep(clamp01((p - 0.88) / 0.07));
+
+    const { bot, foot, cx, cz } = anchors.current;
+    ref.current.visible = t > 0.01;
+    innerRef.current.visible = t > 0.01;
+
+    const pulse = 1.0 + 0.18 * Math.sin(state.clock.elapsedTime * 3.5);
+    const s = foot * 1.1 * pulse;
+    ref.current.position.set(cx, bot - 0.02, cz);
+    ref.current.scale.set(s, s, s);
+    innerRef.current.position.set(cx, bot - 0.01, cz);
+    innerRef.current.scale.set(s * 0.86, s * 0.86, s * 0.86);
+
+    const m = ref.current.material as THREE.MeshBasicMaterial;
+    const m2 = innerRef.current.material as THREE.MeshBasicMaterial;
+    m.opacity = Math.sin(t * Math.PI) * 0.55;
+    m2.opacity = Math.sin(t * Math.PI) * 0.35;
+  });
+
+  return (
+    <group>
+      <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} visible={false} renderOrder={4}>
+        <ringGeometry args={[0.88, 1.0, 96]} />
+        <meshBasicMaterial
+          color="#5cf0d8"
+          transparent
+          opacity={0}
+          side={THREE.DoubleSide}
+          toneMapped={false}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+      <mesh ref={innerRef} rotation={[-Math.PI / 2, 0, 0]} visible={false} renderOrder={4}>
+        <ringGeometry args={[0.82, 0.92, 96]} />
+        <meshBasicMaterial
+          color="#8fffe8"
+          transparent
+          opacity={0}
+          side={THREE.DoubleSide}
+          toneMapped={false}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RIG — the jack-up assembly with explode / hold / reassemble /
+   rotate / fade phases, all driven by scrollState.progress.
+   ════════════════════════════════════════════════════════════════ */
 function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
   const group = useRef<Group>(null);
   const { scene } = useGLTF(MODEL_URL, true);
@@ -94,7 +231,6 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
   const anchors = useRef<Anchors>({ top: 26, bot: 0, span: 26, foot: 14, cx: 0, cz: 0 });
 
   useEffect(() => {
-    // 1. measure assembled bounds + centroid (drives framing + explode scale)
     const geoBox = new THREE.Box3();
     scene.traverse((o) => {
       if (o.name.startsWith("GEO-") && (o as Mesh).isMesh) geoBox.expandByObject(o);
@@ -110,7 +246,6 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
     anchors.current = { top, bot, span, foot, cx: ctr.x, cz: ctr.z };
     onMeasured(anchors.current);
 
-    // 2. gunmetal PBR steel — warm-cream stage carries the reflections (HDRI).
     const patchSteel = (m: Mesh, base: string, rough: number) => {
       const mat = (m.material as MeshStandardMaterial).clone();
       mat.color = new THREE.Color(base);
@@ -122,20 +257,17 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
       m.receiveShadow = true;
     };
 
-    // 3. build the explode plan, one part per named top-level GEO node
     const collected: Part[] = [];
     scene.traverse((o) => {
       const m = o as Mesh;
       if (m.isMesh && o.name.startsWith("GEO-")) {
         patchSteel(m, /SpudCan/.test(o.name) ? "#3A4046" : "#4E565C", /SpudCan/.test(o.name) ? 0.55 : 0.4);
       }
-      // explode entries: top-level named GEO nodes only (skip nested mesh children)
       if (o.name.startsWith("GEO-") && o.parent?.name.startsWith("EMPTY-")) {
         const wc = new THREE.Vector3();
         new THREE.Box3().setFromObject(o).getCenter(wc);
         const dir = new THREE.Vector2(wc.x - anchors.current.cx, wc.z - anchors.current.cz);
         if (dir.lengthSq() < 1e-4) {
-          // centred parts (derrick/hull) — fan by a stable hash of the name
           const h = name2angle(o.name);
           dir.set(Math.cos(h), Math.sin(h));
         }
@@ -168,35 +300,38 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
   const damped = useRef(0);
   const yaw = useRef(-0.5);
   const { camera, size } = useThree();
-
-  // constant viewing azimuth; the explode varies orbit radius + a gentle parallax.
   const DIR = useMemo(() => new THREE.Vector2(42, 48).normalize(), []);
 
   useFrame((state) => {
     const target = motionState.reduced ? 0.5 : scrollState.progress;
     damped.current += (target - damped.current) * (motionState.reduced ? 1 : 0.1);
     const p = damped.current;
-
     const { top, bot, span, foot, cx, cz } = anchors.current;
 
-    // explode factor: assembled → exploded (0.10–0.45) → hold (0.45–0.65)
-    // → reassemble (0.65–0.95) → assembled.
+    // ── explode factor ──
     let ex: number;
     if (motionState.reduced) ex = 0.62;
-    else if (p < 0.45) ex = smoothstep(clamp01((p - 0.1) / 0.35));
-    else if (p < 0.65) ex = 1;
-    else ex = 1 - smoothstep(clamp01((p - 0.65) / 0.3));
+    else if (p < 0.42) ex = smoothstep(clamp01((p - 0.12) / 0.3));
+    else if (p < 0.62) ex = 1;
+    else ex = 1 - smoothstep(clamp01((p - 0.62) / 0.3));
 
-    // turntable — alive, but FROZEN during the exploded hold so labels read still.
+    // ── reassembly rotation (video: 90° turn as parts come home) ──
+    // 0.62→0.92: rotate from 0 to +π/2 so viewer sees a new face
+    const reassemblyTurn = motionState.reduced
+      ? 0
+      : smoothstep(clamp01((p - 0.62) / 0.3)) * (1 - smoothstep(clamp01((p - 0.92) / 0.08))) * Math.PI * 0.5;
+
+    // ── turntable ──
     if (group.current) {
       if (motionState.reduced) {
         yaw.current = -0.5;
-      } else if (!(p > 0.45 && p < 0.65)) {
+      } else if (!(p > 0.42 && p < 0.62)) {
         yaw.current = -0.5 + state.clock.elapsedTime * 0.05;
       }
-      group.current.rotation.y = yaw.current;
+      group.current.rotation.y = yaw.current + reassemblyTurn;
     }
 
+    // ── part positions ──
     for (const part of parts.current) {
       part.node.position.set(
         part.base.x + part.offset.x * ex,
@@ -205,23 +340,30 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
       );
     }
 
-    // ── camera: fit assembled tight, pull back as it explodes, push in on reassemble ──
+    // ── camera: dramatic orbit matching video phases ──
     const cy = (top + bot) / 2;
     const fitR = Math.max(span * 1.9, foot * 2.5);
-    const R = fitR * lerp(1.0, 1.5, ex);
-    const camY = lerp(cy + span * 0.18, cy + span * 0.42, ex);
-    // gentle parallax orbit in the exploded hold
-    const az = motionState.reduced
+    // pull back during explode, push in during reassemble
+    const camR = fitR * lerp(1.0, 1.55, ex) * lerp(1.0, 0.88, reassemblyTurn / (Math.PI * 0.5));
+    const camY = lerp(cy + span * 0.18, cy + span * 0.44, ex);
+
+    // azimuth drift: gentle parallax in hold, orbit during reassembly
+    const baseAz = motionState.reduced
       ? 0
-      : Math.sin(state.clock.elapsedTime * 0.22) * 0.07 * smoothstep(clamp01((p - 0.45) / 0.2)) * (1 - smoothstep(clamp01((p - 0.65) / 0.2)));
+      : Math.sin(state.clock.elapsedTime * 0.22) * 0.07 * smoothstep(clamp01((p - 0.42) / 0.2)) * (1 - smoothstep(clamp01((p - 0.62) / 0.2)));
+    const reassemblyOrbit = motionState.reduced
+      ? 0
+      : smoothstep(clamp01((p - 0.62) / 0.3)) * 0.18 * Math.sin(state.clock.elapsedTime * 0.35);
+    const az = baseAz + reassemblyOrbit;
+
     const cos = Math.cos(az);
     const sin = Math.sin(az);
     const dx = DIR.x * cos - DIR.y * sin;
     const dz = DIR.x * sin + DIR.y * cos;
 
     const aspect = size.width / Math.max(size.height, 1);
-    const distMul = aspect < 1 ? 1 + (1 - aspect) * 0.5 : 1; // portrait pull-back
-    camPos.current.set(cx + dx * R * distMul, camY, cz + dz * R * distMul);
+    const distMul = aspect < 1 ? 1 + (1 - aspect) * 0.5 : 1;
+    camPos.current.set(cx + dx * camR * distMul, camY, cz + dz * camR * distMul);
     camTgt.current.set(cx, cy, cz);
     camera.position.lerp(camPos.current, motionState.reduced ? 1 : 0.12);
     camera.lookAt(camTgt.current);
@@ -249,15 +391,14 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
   );
 }
 
-/* deterministic name → angle so centred parts still fan radially */
 function name2angle(name: string) {
   let h = 0;
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
   return (h / 360) * Math.PI * 2;
 }
 
-/* a single assembly label: a thin teal leader-line from the part's exploded
-   position out to a Cinzel code + mono spec. Fades in over the exploded hold. */
+/* Assembly label: thin teal leader-line + Cinzel code + mono spec.
+   Fades in over the exploded hold. */
 function Callout({
   part,
   finding,
@@ -270,8 +411,6 @@ function Callout({
   const lineRef = useRef<THREE.Object3D & { material: THREE.Material & { opacity: number } }>(null!);
   const htmlWrap = useRef<HTMLDivElement>(null!);
   const reach = foot * 0.5;
-
-  // anchor at the part's FULLY-EXPLODED position (base + offset)
   const start = useMemo(() => part.base.clone().add(part.offset), [part]);
   const end = useMemo(
     () => start.clone().add(new THREE.Vector3(part.dir.x, 0, part.dir.y).normalize().multiplyScalar(reach)),
@@ -280,8 +419,7 @@ function Callout({
 
   useFrame(() => {
     const p = motionState.reduced ? 0.55 : scrollState.progress;
-    // visible only across the exploded hold (fade in 0.45–0.52, out 0.62–0.68)
-    const o = smoothstep(clamp01((p - 0.45) / 0.07)) * (1 - smoothstep(clamp01((p - 0.62) / 0.06)));
+    const o = smoothstep(clamp01((p - 0.42) / 0.07)) * (1 - smoothstep(clamp01((p - 0.62) / 0.06)));
     if (lineRef.current?.material) lineRef.current.material.opacity = o * 0.9;
     if (htmlWrap.current) htmlWrap.current.style.opacity = String(o);
   });
@@ -331,18 +469,16 @@ function Callout({
   );
 }
 
-/* emissive teal scan ring that climbs the structure during the exploded hold —
-   the "we are reading every joint right now" tell + the page's single bloom source.
-   Raw-HDR teal, toneMapped off. */
+/* Teal scan ring climbing the structure during the exploded hold. */
 function ScanBand({ anchors }: { anchors: React.MutableRefObject<Anchors> }) {
   const ref = useRef<THREE.Mesh>(null!);
   useFrame(() => {
     if (!ref.current) return;
     const p = motionState.reduced ? 0 : scrollState.progress;
-    const t = smoothstep(clamp01((p - 0.45) / 0.2)) * (1 - smoothstep(clamp01((p - 0.65) / 0.15)));
+    const t = smoothstep(clamp01((p - 0.42) / 0.2)) * (1 - smoothstep(clamp01((p - 0.62) / 0.15)));
     const { bot, top, foot, cx, cz } = anchors.current;
     ref.current.visible = t > 0.01;
-    ref.current.position.set(cx, lerp(bot, top, smoothstep(clamp01((p - 0.45) / 0.2))), cz);
+    ref.current.position.set(cx, lerp(bot, top, smoothstep(clamp01((p - 0.42) / 0.2))), cz);
     const m = ref.current.material as THREE.MeshBasicMaterial;
     m.opacity = Math.sin(t * Math.PI) * 0.7 + 0.04;
     const s = foot * 1.25;
@@ -391,7 +527,6 @@ export default function RigHeroScene({
         );
       }}
     >
-      {/* warm sailcloth-cream studio stage */}
       <color attach="background" args={["#F4EBD9"]} />
       <fog attach="fog" args={["#F4EBD9", 110, 280]} />
 
@@ -409,6 +544,8 @@ export default function RigHeroScene({
 
         <Rig onMeasured={(a) => (anchors.current = a)} />
         <ScanBand anchors={anchors} />
+        <GlowRing anchors={anchors} />
+        <GroundGrid anchors={anchors} />
 
         <ContactShadows
           position={[0, 0.02, 0]}
@@ -421,7 +558,6 @@ export default function RigHeroScene({
         />
         <AdaptiveDpr pixelated />
 
-        {/* Bloom only on the raw-HDR teal scan ring. ToneMapping LAST (skill §2). */}
         <EffectComposer multisampling={4}>
           <Bloom
             intensity={0.85}

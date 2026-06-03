@@ -5,6 +5,7 @@ export const metadata: Metadata = {
   title: "Contact — Advantage Marine Services, Johor",
   description:
     "Talk to Advantage Marine Services. Main office in Gelang Patah, Johor, with branches in Miri and Kuala Lumpur. Email sales@advantagemarine.com.my for quotes and service requests.",
+  alternates: { canonical: "/contact" },
 };
 
 export default function ContactPage() {

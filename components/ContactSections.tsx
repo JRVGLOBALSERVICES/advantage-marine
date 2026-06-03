@@ -7,7 +7,6 @@ import DecryptedText from "@/components/ui/reactbits/DecryptedText";
 import SpotlightCard from "@/components/ui/reactbits/SpotlightCard";
 import { RevealIconButton } from "@/components/ui/uiverse/RevealIconButton";
 import { WordReveal } from "@/components/ui/WordReveal";
-import VesselShowcase from "@/components/VesselShowcase";
 
 /* ---------- real content (from about.json / live site) ---------- */
 
@@ -153,8 +152,10 @@ export default function ContactSections() {
         </div>
       </section>
 
-      {/* ===================== rig assembly — cream 3D scroll band ===================== */}
-      <VesselShowcase />
+      {/* ===================== contact 3D band — NEW model (in build) =====================
+          The vessel moved to the home hero. Contact gets its own DIFFERENT model
+          (ROV / subsea hero — authored in Blender). Showcase wired here once the
+          GLB lands. ============================================================ */}
 
       {/* ===================== enquiry + key contacts ===================== */}
       <section

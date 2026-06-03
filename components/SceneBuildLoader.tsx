@@ -7,18 +7,18 @@ import { MorphSVGPlugin } from "gsap/MorphSVGPlugin";
 gsap.registerPlugin(MorphSVGPlugin);
 
 /* Four 8-point telemetry waveforms the loader sonar-line morphs between while
-   the vessel hydrates (flat carrier → swell → telemetry spike → sonar hump).
+   the rig hydrates (flat carrier → swell → telemetry spike → sonar hump).
    Same point count across all four so MorphSVG maps them 1:1, no kinks. */
 const WAVE_FLAT = "M4,30 L32,30 L60,30 L88,30 L116,30 L144,30 L172,30 L196,30";
 const WAVE_SWELL = "M4,30 L32,14 L60,30 L88,46 L116,30 L144,14 L172,30 L196,46";
 const WAVE_SPIKE = "M4,30 L40,30 L52,30 L60,7 L72,53 L88,30 L150,30 L196,30";
 const WAVE_SONAR = "M4,46 L32,40 L60,30 L88,21 L116,15 L144,21 L172,30 L196,46";
 
-/* Branded scene-build loader — holds the frame while the WebGL vessel hydrates.
+/* Branded scene-build loader — holds the frame while the WebGL rig hydrates.
    Plays the glitch marine footage muted behind the Advantage Marine wordmark +
    logo, with a glitching T-minus COUNTDOWN as the centrepiece. The countdown
    decrements on a timer (each digit drop fires a hard chromatic-split burst)
-   and SNAPS to 00 on the real `am:scene-ready` event dispatched by VesselScene
+   and SNAPS to 00 on the real `am:scene-ready` event dispatched by RigHeroScene
    once the GLB is loaded + positioned — then fades to reveal the cream hero.
    Min on-screen floor (never flashes) + safety timeout (stalled GPU / reduced
    motion still clears). Pattern mirrors seagull's SceneBuildLoader. */
@@ -241,7 +241,7 @@ export default function SceneBuildLoader() {
         className="absolute left-5 top-5 h-1.5 w-1.5 rounded-full bg-[color:var(--color-accent-2)]"
       />
       <span className="absolute right-5 top-5 font-[family-name:var(--font-inter)] text-[10px] tracking-[0.22em] text-[color:var(--color-accent-ink)]/55">
-        PREPARING VESSEL
+        PREPARING RIG
       </span>
 
       {/* center: logo + wordmark + glitch countdown */}
@@ -298,7 +298,7 @@ export default function SceneBuildLoader() {
           <div ref={barRef} className="h-px w-full bg-[color:var(--color-accent-2)]" />
         </div>
         <div className="mt-3 flex justify-between font-[family-name:var(--font-inter)] text-[10px] tracking-[0.22em] text-[color:var(--color-accent-ink)]/45">
-          <span>VESSEL TELEMETRY</span>
+          <span>RIG TELEMETRY</span>
           <span>SYNCING</span>
         </div>
       </div>

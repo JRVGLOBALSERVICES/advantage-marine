@@ -23,67 +23,93 @@ import { SlideFillButton } from "@/components/ui/uiverse/SlideFillButton";
 import { ExpandIconButton } from "@/components/ui/uiverse/ExpandIconButton";
 import GsapifySection from "@/components/ui/GsapifySection";
 import servicesData from "@/lib/content/services.json";
-import mediaManifest from "@/lib/content/media-manifest.json";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 type Bucket = (typeof servicesData.buckets)[number];
 type Specialty = (typeof servicesData.specialty)[number];
 
-const manifest = mediaManifest as unknown as Record<string, string[]>;
-
-/** Keep only real photographs — drop the icon-*.png and logo chrome. */
-function photos(key: string): string[] {
-  const list = manifest[key] ?? [];
-  return list.filter(
-    (p) =>
-      !/\/icon-\d+\.png$/i.test(p) &&
-      !/\/logo-/i.test(p) &&
-      !/shape-\d/i.test(p) &&
-      !/removebg/i.test(p) &&
-      !/-100px-/i.test(p) &&
-      !/AMS-head-white/i.test(p),
-  );
-}
-
-/** Map a bucket slug to its media-manifest gallery key (per the brief). */
-const BUCKET_MEDIA: Record<string, string> = {
-  "marine-diving": "service_diving",
-  ndt: "service_ndt",
-  "engineering-steelwork": "service_steelwork",
-  "trading-others": "service_trading",
+/**
+ * Explicit, curated, deduplicated galleries.
+ *
+ * The original scrape dumped ONE shared underwater-welding gallery (a-1, c-1,
+ * d-1, 3-, 4-, P4190801, underwater-wet-welding…) into eight service folders,
+ * so iccp/rov/salvage/ovolifts/trading all rendered the SAME photos as diving —
+ * md5-identical (verified). That reads as AI-slop content padding.
+ *
+ * Fix: hand-pick real photos PER discipline so no image repeats anywhere on the
+ * page. Every path below is a genuine AMS field photo (or, for Ovolifts, the
+ * real manufacturer product shot — AMS is the authorized SE-Asia distributor).
+ * The shared underwater-welding set now lives only on Marine/Diving, where it
+ * truthfully belongs.
+ */
+const D = "/media/service_diving";
+const BUCKET_GALLERY: Record<string, string[]> = {
+  "marine-diving": [
+    `${D}/WhatsApp-Image-2021-03-22-at-14.58.23.jpeg`,
+    `${D}/WhatsApp-Image-2021-03-22-at-14.58.25.jpeg`,
+    `${D}/WhatsApp-Image-2021-03-22-at-14.58.26.jpeg`,
+    `${D}/WhatsApp-Image-2021-03-22-at-14.58.27.jpeg`,
+    `${D}/1.jpeg`,
+    `${D}/3.jpeg`,
+  ],
+  ndt: [
+    "/media/service_ndt/ndt1.jpg",
+    "/media/service_ndt/ndt2.jpg",
+    "/media/service_ndt/ndt3.jpg",
+    // Radiographic testing IS an NDT method — these belong here truthfully.
+    "/media/service_radiography/rs1.png",
+    "/media/service_radiography/rs2.png",
+    "/media/service_radiography/rs3.png",
+  ],
+  "engineering-steelwork": [
+    "/media/service_steelwork/ES1.jpg",
+    "/media/service_steelwork/ES2.jpg",
+    "/media/service_steelwork/ES3.jpg",
+  ],
+  "trading-others": [
+    // Real category photos pulled from AMS's own live site.
+    "/media/_live/other_service.jpg",
+    "/media/_live/marine_dive.jpg",
+    "/media/_live/steel.jpg",
+  ],
 };
 
-/** Map a specialty slug to its gallery key + paired Lottie icon. */
-const SPECIALTY_META: Record<string, { media: string; lottie: string; eyebrow: string }> = {
+/** Map a specialty slug to ONE distinct hero photo + paired Lottie icon. */
+const SPECIALTY_META: Record<string, { img: string; lottie: string; eyebrow: string }> = {
   "rope-access": {
-    media: "service_rope",
+    img: "/media/service_rope/ra1.jpg",
     lottie: "/lottie/engineering-gear.json",
     eyebrow: "IRATA member company",
   },
   "salvage-works": {
-    media: "service_salvage",
+    // Salvage = underwater recovery — a real AMS dive photo, distinct from the bucket six.
+    img: `${D}/WhatsApp-Image-2021-03-22-at-14.58.26-1.jpeg`,
     lottie: "/lottie/diving-helmet.json",
     eyebrow: "Rescue & recovery",
   },
   iccp: {
-    media: "service_iccp",
+    // ICCP / anode work is performed underwater — a real AMS dive photo.
+    img: `${D}/underwater-wet-welding-1-1-e1490151670919-640x480_c.jpg`,
     lottie: "/lottie/ndt-scan.json",
     eyebrow: "Cathodic protection",
   },
   ovolifts: {
-    media: "service_ovolifts",
+    // REAL manufacturer product shot (Ovolifts pipeline-access system).
+    img: "/media/service_ovolifts/_real/ovolift-system.jpg",
     lottie: "/lottie/engineering-gear.json",
     eyebrow: "Authorized distributor — SE Asia",
   },
   "chasing-m2-rov": {
-    media: "service_rov",
+    // Subsea / offshore context. TODO(Rj): swap in the official Chasing M2
+    // product photo — AMS holds it as the authorized SE-Asia distributor.
+    img: `${D}/bluestream-offshore-1920-2-1.1920x0.jpg`,
     lottie: "/lottie/rov-sonar.json",
     eyebrow: "Authorized distributor — SE Asia",
   },
 };
 
-const HERO_IMG = photos("service_diving")[0] ?? "/media/service_diving/1.jpeg";
+const HERO_IMG = `${D}/P4040406.JPG-1.jpeg`;
 
 export default function ServicesContent() {
   const router = useRouter();
@@ -207,8 +233,7 @@ export default function ServicesContent() {
       {/* ───────────────── the 4 real discipline buckets ───────────────── */}
       <div className="mx-auto max-w-[min(1280px,94vw)] px-[clamp(1.5rem,4vw,4rem)]">
         {buckets.map((b, i) => {
-          const mediaKey = BUCKET_MEDIA[b.slug];
-          const gallery = photos(mediaKey).slice(0, 6);
+          const gallery = (BUCKET_GALLERY[b.slug] ?? []).slice(0, 6);
           const cards: FanCard[] = gallery.map((src, idx) => ({
             title: b.title,
             src,
@@ -337,7 +362,7 @@ export default function ServicesContent() {
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {specialty.map((s, i) => {
             const meta = SPECIALTY_META[s.slug];
-            const img = meta ? photos(meta.media)[0] : undefined;
+            const img = meta?.img;
             return (
               <motion.div
                 key={s.slug}

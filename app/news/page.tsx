@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   title: "News — Advantage Marine Services",
   description:
     "Advantage Marine Services news and events — including Oil & Gas Asia (OGA) 2024 and 2025 at the Kuala Lumpur Convention Centre.",
+  alternates: { canonical: "/news" },
 };
 
 type Post = { title: string; date: string; excerpt: string | null };

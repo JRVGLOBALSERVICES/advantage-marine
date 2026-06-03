@@ -10,12 +10,12 @@ import { WordReveal } from "@/components/ui/WordReveal";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const VesselContactScene = dynamic(() => import("./VesselContactScene"), {
+const RigContactScene = dynamic(() => import("./RigContactScene"), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 grid place-items-center">
       <span className="eyebrow animate-pulse text-[color:var(--color-accent)]">
-        Assembling vessel…
+        Assembling rig…
       </span>
     </div>
   ),
@@ -41,19 +41,18 @@ function hasWebGL() {
 }
 
 /* ──────────────────────────────────────────────────────────────────────────
-   VESSEL SHOWCASE — contact-page band.
+   RIG SHOWCASE — contact-page band.
 
-   The 11-part support vessel explode→assembles as the band is scrolled: a
-   tall section with a sticky 100lvh stage; GSAP ScrollTrigger maps section
-   scroll → scrollState.progress (0 exploded diagram → 1 assembled hull, slow
-   turntable), which VesselContactScene reads inside useFrame. Synced through
-   the same Lenis-driven ticker the rest of the site uses.
+   The jack-up rig GLB explode→assembles as the band is scrolled: a tall
+   section with a sticky 100lvh stage; GSAP ScrollTrigger maps section scroll
+   → scrollState.progress (0 exploded → 0.6 assembled → 1 orbit/tag reveal),
+   which RigContactScene reads inside useFrame. Synced through the same
+   Lenis-driven ticker the rest of the site uses (RigHero pattern).
 
-   A DIFFERENT hero than the home jack-up rig — the vessel — but the same
-   cream system: navy hull / white wheelhouse / bronze screws reading on warm
-   sailcloth, copy in ink, the AM warm accent on the crane + waterline.
+   Sits in the AM cream system — the rig reads as dark steel on warm
+   sailcloth, copy is ink (NOT the retired platform band's warm-white on dark).
    ────────────────────────────────────────────────────────────────────────── */
-export default function VesselShowcase() {
+export default function RigShowcase() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
   const [useCanvas, setUseCanvas] = useState(false);
@@ -64,8 +63,8 @@ export default function VesselShowcase() {
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     motionState.reduced = reduced;
-    // 24 KB primitive GLB — light enough to render on every viewport that has
-    // WebGL; reduced-motion / no-WebGL get the real photo poster.
+    // 400 KB single-mesh GLB is light enough to render on every viewport that
+    // has WebGL; reduced-motion / no-WebGL get the real photo poster.
     setUseCanvas(!reduced && hasWebGL());
     setMounted(true);
   }, []);
@@ -108,7 +107,7 @@ export default function VesselShowcase() {
   if (mounted && (!useCanvas || canvasFailed)) {
     return (
       <section
-        aria-label="The vessels Advantage Marine services"
+        aria-label="The rigs and structures Advantage Marine services"
         className="relative isolate overflow-hidden border-y border-[color:var(--color-rule)] bg-[color:var(--color-paper)]"
       >
         <div className="relative h-[clamp(34rem,86lvh,52rem)] w-full">
@@ -138,25 +137,25 @@ export default function VesselShowcase() {
     );
   }
 
-  /* default: sticky-scroll vessel assembly band */
+  /* default: sticky-scroll rig assembly band */
   return (
     <section
       ref={sectionRef}
-      aria-label="The vessels Advantage Marine services"
+      aria-label="The rigs and structures Advantage Marine services"
       className="relative"
       style={{ height: "220lvh" }}
     >
       <div className="sticky top-0 h-[100lvh] overflow-hidden border-y border-[color:var(--color-rule)] bg-[color:var(--color-paper)]">
         <div className="absolute inset-0">
           {hasEntered && (
-            <VesselContactScene
+            <RigContactScene
               active={active}
               onContextLost={() => setCanvasFailed(true)}
             />
           )}
         </div>
 
-        {/* cream readability wash — copy bottom-left, vessel breathing room right */}
+        {/* cream readability wash — copy bottom-left, rig breathing room right */}
         <div
           aria-hidden
           className="pointer-events-none absolute inset-0"
@@ -200,13 +199,13 @@ function Copy({ reduce }: { reduce?: boolean }) {
         {...fade}
         transition={{ duration: 0.7, ease: EASE }}
       >
-        Every system, in our scope
+        The structures we work on
       </motion.p>
       <h2
         className="font-display max-w-[18ch] leading-[1.08] text-[color:var(--color-ink)]"
         style={{ fontSize: "var(--text-h2)" }}
       >
-        <WordReveal text="Hull to propeller, one accountable crew." />
+        <WordReveal text="Surveyed afloat, joint by joint." />
       </h2>
       <motion.p
         className="mt-[var(--space-md)] max-w-[46ch] font-body leading-[1.55]"
@@ -214,9 +213,9 @@ function Copy({ reduce }: { reduce?: boolean }) {
         {...fade}
         transition={{ duration: 0.8, ease: EASE, delay: 0.12 }}
       >
-        Class survey, in-water repair, salvage and conversion — held on one work
-        order, from the boot-topping at the waterline to the twin screws and
-        rudder at the stern. Tell us the vessel; we hold the whole of it.
+        From hull plate to topside steel, our divers and ROV crews assemble the
+        full integrity picture in the water — keeping the asset on station while
+        the survey, cleaning and repair get done.
       </motion.p>
       <motion.p
         className="mt-[var(--space-md)] eyebrow !tracking-[0.2em] normal-case"
@@ -224,7 +223,7 @@ function Copy({ reduce }: { reduce?: boolean }) {
         {...fade}
         transition={{ duration: 0.8, ease: EASE, delay: 0.22 }}
       >
-        {reduce ? "Whole-of-vessel service scope" : "Live 3D · scroll to assemble the vessel"}
+        {reduce ? "In-water structural survey" : "Live 3D · scroll to explode the rig"}
       </motion.p>
     </>
   );
