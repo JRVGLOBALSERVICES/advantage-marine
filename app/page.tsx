@@ -9,10 +9,10 @@ import {
   StickyStackCards,
   type StickyStackItem,
 } from "@/components/ui/StickyStackCards";
-import { ProjectCard, type ProjectCardData } from "@/components/ProjectCard";
+import SelectedWorksLog, { type WorkRecord } from "@/components/SelectedWorksLog";
 import { CertOrbit } from "@/components/about/CertOrbit";
 import { type Cert } from "@/components/about/CertWall";
-import { parseYear, parsePeriod, reportHref } from "@/lib/projectMeta";
+import { parseYear, reportHref } from "@/lib/projectMeta";
 import { MovingBorderButton } from "@/components/ui/MovingBorderButton";
 import { MagneticLink } from "@/components/ui/MagneticLink";
 import { LottieIcon } from "@/components/ui/LottieIcon";
@@ -91,22 +91,18 @@ const DECK_SRC: { match: string; image: string }[] = [
   { match: "ENSCO 67", image: "/media/projects/blog-02.jpg" },
   { match: "Hengyuan Refinery", image: "/media/projects/blog-03.jpg" },
 ];
-/* Six fully-documented records surfaced as the homepage "Selected work" grid —
-   the SAME ProjectCard used on /projects (real photo, title, discipline,
-   summary, year, deep-linked report). Real entries only — no fabrication. */
-const HOME_PROJECTS: ProjectCardData[] = DECK_SRC.map(({ match, image }, i) => {
+/* Six fully-documented records surfaced as the homepage "Selected work" survey
+   register (the "record under the waterline" component). Real photo, title,
+   discipline, on-station year + deep-linked report — no fabrication. */
+const HOME_RECORDS: WorkRecord[] = DECK_SRC.map(({ match, image }) => {
   const p = projectsData.projects.find((x) => x.title.startsWith(match))!;
   return {
+    idx: String(projectsData.projects.indexOf(p) + 1).padStart(2, "0"),
     title: p.title,
     category: p.category,
-    summary: p.summary ?? null,
-    image,
-    idx: String(projectsData.projects.indexOf(p) + 1).padStart(2, "0"),
-    client: (p as { client?: string | null }).client ?? null,
     year: parseYear(p.summary ?? null),
-    period: parsePeriod(p.summary ?? null),
-    pdfHref: reportHref((p as { pdf?: string | null }).pdf) ?? undefined,
-    delayIndex: i,
+    image,
+    href: reportHref((p as { pdf?: string | null }).pdf) ?? undefined,
   };
 });
 
@@ -310,13 +306,9 @@ export default function Home() {
             </Reveal>
           </div>
 
-          {/* six documented records — the same ProjectCard as /projects,
-              real photo + parsed metadata, responsive 1/2/3-up grid */}
-          <div className="mt-[var(--space-xl)] grid items-stretch gap-[var(--space-lg)] sm:grid-cols-2 lg:grid-cols-3">
-            {HOME_PROJECTS.map((p) => (
-              <ProjectCard key={p.title} {...p} />
-            ))}
-          </div>
+          {/* six documented records as a survey register surfacing from under
+              the waterline — always-visible plates, identical at all 3 sizes */}
+          <SelectedWorksLog records={HOME_RECORDS} />
         </div>
       </section>
 

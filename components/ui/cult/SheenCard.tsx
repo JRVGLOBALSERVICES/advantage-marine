@@ -116,7 +116,8 @@ export function SheenCard({
         />
       )}
 
-      {/* Optional real image — never a placeholder. */}
+      {/* Optional real image — never a placeholder. Full-bleed, no cream
+          feather (that fade read as a white halo around the image on device). */}
       {imageSrc && (
         <div className="relative aspect-[16/10] w-full overflow-hidden">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -128,15 +129,6 @@ export function SheenCard({
               !reduce && "group-hover/sheen:scale-[1.04]",
             )}
             style={{ transitionTimingFunction: "var(--ease-out)" }}
-          />
-          {/* paper feather so the image grounds into the panel */}
-          <span
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3"
-            style={{
-              background:
-                "linear-gradient(to top, var(--color-paper-2) 0%, transparent 100%)",
-            }}
           />
         </div>
       )}

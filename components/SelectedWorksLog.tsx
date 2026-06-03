@@ -1,28 +1,27 @@
 "use client";
 
 /**
- * SelectedWorksLog — the homepage "Selected work" record, rendered as a
- * survey logbook surfacing from under the waterline.
+ * SelectedWorksLog — the homepage "Selected work" record, rendered as a survey
+ * register surfacing from under the waterline.
  *
- * Each project is one entry in the log: a ruled row carrying its sounding
- * index, title, discipline and year — read like a ship's survey register.
- * On hover (desktop / fine-pointer only) a teal marquee rises from the
- * closest edge carrying the real project photo, as if the record surfaced
- * out of the water. Touch / reduced-motion get the static ruled log, every
- * row still a live link to the real report.
+ * Each project is one ruled entry: a real project plate (thumbnail, always
+ * visible — no hover dependency) carrying its plate index, then the record
+ * title, discipline and on-station year laid out as a ship's survey register.
+ * The plate sits under a teal "waterline" wash in its idle state; on a real
+ * pointer it surfaces — the wash clears and the image lifts. Touch and
+ * reduced-motion get the same readable register, every row a live link to the
+ * real report. Identical structure at 390 / 768 / 1440 — the columns reflow,
+ * the imagery never disappears.
  *
- * Mechanism adapted from React Bits "FlowingMenu" (MIT, David Haz) — the
- * edge-aware rising marquee — retuned to the AM cream/ink/teal system and
- * a record-row layout instead of a full-screen nav. gsap is already a site
- * dependency (SmoothScroll drives gsap.ticker through Lenis).
+ * No paper-feather over the image (that cream fade read as a white halo on
+ * device) — the plate is full-bleed inside a hairline ring instead.
  */
 
-import { useRef, useEffect, useState } from "react";
-import { gsap } from "gsap";
 import { motion, useReducedMotion } from "motion/react";
+import { cn } from "@/lib/utils";
 
 export type WorkRecord = {
-  /** Two-digit sounding index, e.g. "03". */
+  /** Two-digit plate index, e.g. "03". */
   idx: string;
   title: string;
   category: string;
@@ -38,173 +37,155 @@ export default function SelectedWorksLog({ records }: { records: WorkRecord[] })
   const reduce = useReducedMotion() ?? false;
 
   return (
-    <div
-      className="mt-[var(--space-xl)] overflow-hidden rounded-[var(--radius-card)] border border-[color:var(--color-rule)] bg-[color:var(--color-paper)]"
-      role="list"
-      aria-label="Selected Advantage Marine project records"
-    >
-      {/* register header — the column legend of the logbook */}
-      <div
-        className="hidden items-center gap-4 border-b border-[color:var(--color-rule)] px-[clamp(1rem,3vw,2rem)] py-3 sm:grid"
+    <div className="relative mt-[var(--space-xl)] overflow-hidden rounded-[var(--radius-card)] border border-[color:var(--color-rule)] bg-[color:var(--color-paper)]">
+      {/* the waterline — records emerge from below this teal band */}
+      <span
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 z-0 h-20"
         style={{
-          gridTemplateColumns: "3.5rem 1fr 12rem 6rem",
-          color: "color-mix(in oklch, var(--color-ink) 45%, transparent)",
+          background:
+            "linear-gradient(to bottom, color-mix(in oklch, var(--color-accent) 13%, transparent) 0%, transparent 100%)",
         }}
+      />
+
+      {/* register legend — column headers of the logbook (desktop only) */}
+      <div
+        className="relative z-10 hidden grid-cols-[5.5rem_1fr_11rem_5rem_1.5rem] items-center gap-4 border-b border-[color:var(--color-rule)] px-[clamp(1rem,3vw,2rem)] py-3 sm:grid"
+        style={{ color: "color-mix(in oklch, var(--color-ink) 45%, transparent)" }}
         aria-hidden
       >
-        <span className="eyebrow !text-[0.6rem]">No.</span>
+        <span className="eyebrow !text-[0.6rem]">Plate</span>
         <span className="eyebrow !text-[0.6rem]">Record</span>
         <span className="eyebrow !text-[0.6rem]">Discipline</span>
         <span className="eyebrow !text-[0.6rem] text-right">On station</span>
+        <span />
       </div>
 
-      {records.map((r, i) => (
-        <LogRow key={r.title} record={r} isLast={i === records.length - 1} reduce={reduce} delay={i} />
-      ))}
+      <ul role="list" className="relative z-10">
+        {records.map((r, i) => (
+          <LogRow key={r.title} record={r} reduce={reduce} delay={i} />
+        ))}
+      </ul>
     </div>
   );
 }
 
 function LogRow({
   record,
-  isLast,
   reduce,
   delay,
 }: {
   record: WorkRecord;
-  isLast: boolean;
   reduce: boolean;
   delay: number;
 }) {
   const { idx, title, category, year, image, href } = record;
-  const rowRef = useRef<HTMLDivElement>(null);
-  const marqueeRef = useRef<HTMLDivElement>(null);
-  const innerRef = useRef<HTMLDivElement>(null);
-  const tween = useRef<gsap.core.Tween | null>(null);
-  const [reps, setReps] = useState(6);
-  const [canHover, setCanHover] = useState(false);
 
-  const defaults = { duration: 0.55, ease: "expo" };
-
-  const closestEdge = (mx: number, my: number, w: number, h: number): "top" | "bottom" =>
-    (mx - w / 2) ** 2 + my ** 2 < (mx - w / 2) ** 2 + (my - h) ** 2 ? "top" : "bottom";
-
-  // only wire the surfacing marquee where there's a real pointer + motion is allowed
-  useEffect(() => {
-    if (reduce) return;
-    const fine = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
-    setCanHover(fine);
-  }, [reduce]);
-
-  // size the repeating strip to cover the row width, then loop it
-  useEffect(() => {
-    if (!canHover || !innerRef.current) return;
-    const part = innerRef.current.querySelector(".rec-part") as HTMLElement | null;
-    if (part) {
-      const need = Math.ceil(window.innerWidth / Math.max(part.offsetWidth, 1)) + 2;
-      setReps(Math.max(4, need));
-    }
-    const t = setTimeout(() => {
-      const p = innerRef.current?.querySelector(".rec-part") as HTMLElement | null;
-      if (!p || p.offsetWidth === 0) return;
-      tween.current?.kill();
-      tween.current = gsap.to(innerRef.current, {
-        x: -p.offsetWidth,
-        duration: 14,
-        ease: "none",
-        repeat: -1,
-      });
-    }, 60);
-    return () => {
-      clearTimeout(t);
-      tween.current?.kill();
-    };
-  }, [canHover, reps]);
-
-  const onEnter = (e: React.MouseEvent) => {
-    if (!canHover || !rowRef.current || !marqueeRef.current || !innerRef.current) return;
-    const rect = rowRef.current.getBoundingClientRect();
-    const edge = closestEdge(e.clientX - rect.left, e.clientY - rect.top, rect.width, rect.height);
-    gsap
-      .timeline({ defaults })
-      .set(marqueeRef.current, { y: edge === "top" ? "-101%" : "101%" }, 0)
-      .set(innerRef.current, { y: edge === "top" ? "101%" : "-101%" }, 0)
-      .to([marqueeRef.current, innerRef.current], { y: "0%" }, 0);
-  };
-
-  const onLeave = (e: React.MouseEvent) => {
-    if (!canHover || !rowRef.current || !marqueeRef.current || !innerRef.current) return;
-    const rect = rowRef.current.getBoundingClientRect();
-    const edge = closestEdge(e.clientX - rect.left, e.clientY - rect.top, rect.width, rect.height);
-    gsap
-      .timeline({ defaults })
-      .to(marqueeRef.current, { y: edge === "top" ? "-101%" : "101%" }, 0)
-      .to(innerRef.current, { y: edge === "top" ? "101%" : "-101%" }, 0);
-  };
-
-  const RowInner = (
-    <div
-      className="grid items-center gap-3 px-[clamp(1rem,3vw,2rem)] py-[clamp(1.1rem,2.4vh,1.7rem)] sm:gap-4"
-      style={{ gridTemplateColumns: "2.5rem 1fr auto" }}
+  return (
+    <motion.li
+      role="listitem"
+      initial={reduce ? false : { opacity: 0, y: 16 }}
+      whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
+      viewport={{ once: false, margin: "120px" }}
+      transition={{ duration: 0.5, ease: EASE, delay: Math.min(delay, 6) * 0.06 }}
+      className="group/row border-t border-[color:var(--color-rule)] first:border-t-0"
     >
-      {/* sounding mark + index */}
-      <div className="flex items-center gap-2">
+      <a
+        href={href ?? "/projects"}
+        {...(href ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+        aria-label={`${title} — ${category}${year ? `, ${year}` : ""}${href ? " — view report" : ""}`}
+        className={cn(
+          "relative grid items-center gap-4 px-[clamp(1rem,3vw,2rem)] py-[clamp(0.9rem,2vh,1.35rem)] transition-colors duration-300",
+          "grid-cols-[4.5rem_1fr_auto] sm:grid-cols-[5.5rem_1fr_11rem_5rem_1.5rem]",
+          "group-hover/row:bg-[color:color-mix(in_oklch,var(--color-accent)_5%,transparent)]",
+        )}
+        style={{ transitionTimingFunction: "var(--ease-out)" }}
+      >
+        {/* the survey plate — full-bleed real photo, no cream feather (no halo) */}
+        <span className="relative block aspect-[4/3] w-full overflow-hidden rounded-[10px] ring-1 ring-[color:var(--color-rule)]">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={image}
+            alt=""
+            aria-hidden
+            loading="lazy"
+            decoding="async"
+            className={cn(
+              "h-full w-full object-cover transition-[transform,filter] duration-700",
+              !reduce && "group-hover/row:scale-[1.06]",
+            )}
+            style={{
+              filter: "saturate(0.84) brightness(0.92)",
+              transitionTimingFunction: "var(--ease-out)",
+            }}
+          />
+          {/* teal depth wash — the record sits under the waterline; clears on hover */}
+          <span
+            aria-hidden
+            className="pointer-events-none absolute inset-0 transition-opacity duration-700 group-hover/row:opacity-0"
+            style={{
+              background:
+                "linear-gradient(to top, color-mix(in oklch, var(--color-accent) 58%, transparent) 0%, color-mix(in oklch, var(--color-accent) 16%, transparent) 100%)",
+              mixBlendMode: "multiply",
+              transitionTimingFunction: "var(--ease-out)",
+            }}
+          />
+          {/* plate index */}
+          <span
+            className="absolute left-1.5 top-1.5 rounded-[5px] px-1.5 py-0.5 font-display tabular-nums leading-none"
+            style={{
+              fontSize: "0.6rem",
+              letterSpacing: "0.06em",
+              background: "color-mix(in oklch, var(--color-ink) 78%, transparent)",
+              color: "var(--color-accent-ink)",
+            }}
+          >
+            {idx}
+          </span>
+        </span>
+
+        {/* record title + (mobile) discipline · year */}
+        <span className="min-w-0">
+          <span
+            className="block font-display leading-[1.12] text-[color:var(--color-ink)] [text-wrap:balance]"
+            style={{ fontSize: "var(--text-h3)" }}
+          >
+            {title}
+          </span>
+          <span
+            className="eyebrow mt-1 block sm:hidden"
+            style={{ color: "color-mix(in oklch, var(--color-ink) 55%, transparent)" }}
+          >
+            {category}
+            {year ? ` · ${year}` : ""}
+          </span>
+        </span>
+
+        {/* discipline (desktop register column) */}
         <span
-          aria-hidden
-          className="h-6 w-px"
-          style={{ background: "color-mix(in oklch, var(--color-accent) 60%, transparent)" }}
-        />
-        <span
-          className="font-display tabular-nums"
+          className="hidden font-display sm:block"
           style={{
             fontSize: "var(--text-eyebrow)",
-            letterSpacing: "0.08em",
-            color: "color-mix(in oklch, var(--color-ink) 55%, transparent)",
-          }}
-        >
-          {idx}
-        </span>
-      </div>
-
-      {/* title + (mobile) discipline */}
-      <div className="min-w-0">
-        <h3
-          className="font-display leading-[1.12] text-[color:var(--color-ink)] [text-wrap:balance]"
-          style={{ fontSize: "var(--text-h3)" }}
-        >
-          {title}
-        </h3>
-        <span
-          className="eyebrow mt-1 block sm:hidden"
-          style={{ color: "color-mix(in oklch, var(--color-ink) 55%, transparent)" }}
-        >
-          {category}
-          {year ? ` · ${year}` : ""}
-        </span>
-      </div>
-
-      {/* discipline + year + arrow (desktop register columns) */}
-      <div className="flex items-center gap-4 sm:gap-6">
-        <span
-          className="hidden font-display sm:block sm:w-[12rem]"
-          style={{
-            fontSize: "var(--text-eyebrow)",
-            letterSpacing: "0.06em",
+            letterSpacing: "0.05em",
             color: "color-mix(in oklch, var(--color-ink) 62%, transparent)",
           }}
         >
           {category}
         </span>
+
+        {/* on-station year (desktop register column) */}
         <span
-          className="hidden font-display tabular-nums sm:block sm:w-[6rem] sm:text-right"
+          className="hidden font-display tabular-nums sm:block sm:text-right"
           style={{
             fontSize: "var(--text-eyebrow)",
-            letterSpacing: "0.06em",
+            letterSpacing: "0.05em",
             color: "var(--color-accent)",
           }}
         >
           {year ?? "—"}
         </span>
+
+        {/* surface arrow */}
         <svg
           viewBox="0 0 24 24"
           fill="none"
@@ -212,77 +193,14 @@ function LogRow({
           strokeWidth={1.6}
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="h-4 w-4 shrink-0 text-[color:var(--color-accent)] transition-transform duration-300 group-hover/row:translate-x-1"
+          className="h-4 w-4 shrink-0 justify-self-end text-[color:var(--color-accent)] transition-transform duration-300 group-hover/row:translate-x-1"
           style={{ transitionTimingFunction: "var(--ease-out)" }}
           aria-hidden
         >
           <path d="M5 12h14" />
           <path d="M13 6l6 6-6 6" />
         </svg>
-      </div>
-    </div>
-  );
-
-  return (
-    <motion.div
-      ref={rowRef}
-      role="listitem"
-      onMouseEnter={onEnter}
-      onMouseLeave={onLeave}
-      initial={reduce ? false : { opacity: 0, y: 18 }}
-      whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
-      viewport={{ once: false, margin: "120px" }}
-      transition={{ duration: 0.5, ease: EASE, delay: Math.min(delay, 6) * 0.05 }}
-      className="group/row relative overflow-hidden"
-      style={{ borderTop: isLast || delay === 0 ? undefined : undefined }}
-    >
-      {/* the live record link — opens the real report (or the project log) */}
-      <a
-        href={href ?? "/projects"}
-        {...(href ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-        aria-label={`${title} — ${category}${year ? `, ${year}` : ""}${href ? " — view report" : ""}`}
-        className="relative z-10 block border-t border-[color:var(--color-rule)] transition-colors duration-300"
-      >
-        {RowInner}
       </a>
-
-      {/* surfacing marquee — the record rising out of teal water on hover */}
-      {canHover && (
-        <div
-          ref={marqueeRef}
-          aria-hidden
-          className="pointer-events-none absolute inset-0 z-20 translate-y-[101%] overflow-hidden"
-          style={{ backgroundColor: "var(--color-accent)" }}
-        >
-          <div ref={innerRef} className="flex h-full w-fit items-center">
-            {Array.from({ length: reps }).map((_, k) => (
-              <div className="rec-part flex flex-shrink-0 items-center" key={k}>
-                <span
-                  className="whitespace-nowrap px-[1.2vw] font-display uppercase leading-none"
-                  style={{
-                    fontSize: "var(--text-h3)",
-                    letterSpacing: "0.02em",
-                    color: "var(--color-accent-ink)",
-                  }}
-                >
-                  {title}
-                </span>
-                <span
-                  aria-hidden
-                  className="px-[0.6vw] font-display"
-                  style={{ color: "color-mix(in oklch, var(--color-accent-ink) 60%, transparent)" }}
-                >
-                  ◆
-                </span>
-                <span
-                  className="mx-[0.6vw] h-[60%] w-[clamp(7rem,12vw,12rem)] flex-shrink-0 rounded-[var(--radius-pill,9999px)] bg-cover bg-center"
-                  style={{ backgroundImage: `url(${image})` }}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </motion.div>
+    </motion.li>
   );
 }
