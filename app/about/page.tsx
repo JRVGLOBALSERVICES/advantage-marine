@@ -9,7 +9,7 @@ import { WordReveal } from "@/components/ui/WordReveal";
 import { TextSpotlightReveal } from "@/components/ui/TextSpotlightReveal";
 import { NumberTicker } from "@/components/ui/NumberTicker";
 import DecryptedText from "@/components/ui/reactbits/DecryptedText";
-import SpotlightCard from "@/components/ui/reactbits/SpotlightCard";
+import { CardContainer, CardBody, CardItem } from "@/components/ui/TiltCard";
 import { FanCardsCarousel, type FanCard } from "@/components/ui/aceternity/FanCardsCarousel";
 import {
   ScrollVelocityContainer,
@@ -199,20 +199,34 @@ export default function AboutPage() {
             { t: "Commitment", b: company.commitment, idx: "03" },
           ].map((c, i) => (
             <Reveal key={c.t} delay={i * 0.06} className="h-full">
-              <SpotlightCard className="flex h-full flex-col gap-4">
-                <div className="flex items-baseline justify-between">
-                  <p className="eyebrow">{c.t}</p>
-                  <span
-                    className="font-display tabular-nums"
-                    style={{ ...muted, fontSize: "var(--text-eyebrow)", letterSpacing: "0.1em" }}
+              <CardContainer
+                containerClassName="block h-full"
+                className="h-full w-full"
+              >
+                <CardBody className="flex h-full w-full flex-col gap-4">
+                  <CardItem
+                    as="div"
+                    translateZ={45}
+                    className="flex w-full items-baseline justify-between"
                   >
-                    {c.idx}
-                  </span>
-                </div>
-                <p className="leading-[1.7]" style={{ ...mutedStrong, fontSize: "var(--text-card)" }}>
-                  {c.b}
-                </p>
-              </SpotlightCard>
+                    <p className="eyebrow">{c.t}</p>
+                    <span
+                      className="font-display tabular-nums"
+                      style={{ ...muted, fontSize: "var(--text-eyebrow)", letterSpacing: "0.1em" }}
+                    >
+                      {c.idx}
+                    </span>
+                  </CardItem>
+                  <CardItem
+                    as="p"
+                    translateZ={22}
+                    className="w-full leading-[1.7]"
+                    style={{ ...mutedStrong, fontSize: "var(--text-card)" }}
+                  >
+                    {c.b}
+                  </CardItem>
+                </CardBody>
+              </CardContainer>
             </Reveal>
           ))}
         </div>

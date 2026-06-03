@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/magic/ScrollBasedVelocity";
 import { FanCardDeck, type FanCard } from "@/components/ui/aceternity/FanCardDeck";
 import { MovingBorderButton } from "@/components/ui/MovingBorderButton";
+import { MagneticLink } from "@/components/ui/MagneticLink";
 import { LottieIcon } from "@/components/ui/LottieIcon";
 import GsapifySection from "@/components/ui/GsapifySection";
 import { SlideFillButton } from "@/components/ui/uiverse/SlideFillButton";
@@ -158,9 +159,9 @@ export default function Home() {
         </div>
 
         <Reveal className="mt-[var(--space-xl)]">
-          <Link href="/services" className="cta-secondary">
+          <MagneticLink href="/services" className="cta-secondary">
             Explore all services
-          </Link>
+          </MagneticLink>
         </Reveal>
       </section>
 
@@ -365,9 +366,9 @@ export default function Home() {
             <Link href="/contact" aria-label="Request a quote from AMS">
               <SlideFillButton label="Request a quote" icon="shield" />
             </Link>
-            <Link href="/services" className="cta-secondary">
+            <MagneticLink href="/services" className="cta-secondary">
               Explore services
-            </Link>
+            </MagneticLink>
           </div>
         </div>
       </section>
