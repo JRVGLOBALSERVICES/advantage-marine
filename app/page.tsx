@@ -13,7 +13,8 @@ import {
   ScrollVelocityContainer,
   ScrollVelocityRow,
 } from "@/components/ui/magic/ScrollBasedVelocity";
-import { SheenCard } from "@/components/ui/cult/SheenCard";
+import { FanCardDeck, type FanCard } from "@/components/ui/aceternity/FanCardDeck";
+import { MovingBorderButton } from "@/components/ui/MovingBorderButton";
 import { LottieIcon } from "@/components/ui/LottieIcon";
 import GsapifySection from "@/components/ui/GsapifySection";
 import { SlideFillButton } from "@/components/ui/uiverse/SlideFillButton";
@@ -58,25 +59,24 @@ const BUCKET_MEDIA: Record<
 /* ── 12 real class-society + ISO/OHSAS credential logos ─────────────────── */
 const CERTS = certsData.certs;
 
-/* ── three selected, fully-documented projects (real images + real copy) ── */
-const FEATURED = [
-  {
-    p: projectsData.projects.find((x) => x.title.startsWith("Span Breaker"))!,
-    image: "/media/projects/Photo-1.jpeg",
-  },
-  {
-    p: projectsData.projects.find((x) =>
-      x.title.startsWith("Perisai Pacific 101 - Seawater"),
-    )!,
-    image: "/media/projects/Photo-5.jpeg",
-  },
-  {
-    p: projectsData.projects.find((x) =>
-      x.title.startsWith("Borr Drilling"),
-    )!,
-    image: "/media/projects/Photo-3.jpeg",
-  },
+/* ── selected, fully-documented projects → fanned deck (real images + copy) ─ */
+const DECK_SRC: { match: string; image: string }[] = [
+  { match: "Span Breaker", image: "/media/projects/Photo-1.jpeg" },
+  { match: "Perisai Pacific 101 - Seawater", image: "/media/projects/Photo-5.jpeg" },
+  { match: "Borr Drilling", image: "/media/projects/Photo-3.jpeg" },
+  { match: "Jack-Up Rig UWILD", image: "/media/projects/blog-01.jpg" },
+  { match: "ENSCO 67", image: "/media/projects/blog-02.jpg" },
+  { match: "Hengyuan Refinery", image: "/media/projects/blog-03.jpg" },
 ];
+const DECK: FanCard[] = DECK_SRC.map(({ match, image }) => {
+  const p = projectsData.projects.find((x) => x.title.startsWith(match))!;
+  return {
+    title: p.title,
+    src: image,
+    category: p.category,
+    summary: p.summary ?? "Documented marine & offshore case file.",
+  };
+});
 
 export default function Home() {
   const buckets = servicesData.buckets;
@@ -297,14 +297,15 @@ export default function Home() {
         </ul>
       </section>
 
-      {/* (7) ── selected projects teaser — three documented case files ──── */}
+      {/* (7) ── selected projects — fanned case-file deck + moving-border CTA ─ */}
       <section
         id="projects"
-        className="border-t border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)]"
+        className="overflow-x-clip border-t border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)]"
       >
         <div className="mx-auto max-w-[min(1280px,92vw)] px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)]">
-          <div className="mb-[var(--space-xl)] grid items-end gap-[var(--space-md)] md:grid-cols-[1fr_auto]">
-            <div>
+          <div className="grid items-center gap-[var(--space-2xl)] md:grid-cols-[1fr_auto]">
+            {/* editorial column */}
+            <div className="max-w-[42ch]">
               <p className="eyebrow mb-[var(--space-md)]">Selected work</p>
               <h2
                 className="font-display font-bold leading-[1.08] tracking-[-0.02em] max-w-[18ch]"
@@ -312,30 +313,29 @@ export default function Home() {
               >
                 <WordReveal text="Rigs kept on station, on schedule." />
               </h2>
+              <Reveal>
+                <p
+                  className="measure mt-[var(--space-lg)] leading-[1.6]"
+                  style={muted(66)}
+                >
+                  A dealt deck of documented case files — UWILDs in lieu of
+                  drydock, structural steel renewals and seawater piping
+                  change-outs, delivered afloat across the region. Tap a card
+                  to deal the next.
+                </p>
+              </Reveal>
+              <Reveal className="mt-[var(--space-xl)]">
+                <MovingBorderButton as={Link} href="/projects" duration={3600}>
+                  See the project log
+                </MovingBorderButton>
+              </Reveal>
             </div>
-            <Reveal className="md:pb-2">
-              <Link href="/projects" className="cta-secondary">
-                See the project log
-              </Link>
-            </Reveal>
-          </div>
 
-          <ul className="grid gap-[var(--space-lg)] md:grid-cols-3">
-            {FEATURED.map(({ p, image }, i) => (
-              <li key={p.pdf}>
-                <SheenCard
-                  index={String(i + 1).padStart(2, "0")}
-                  eyebrow={p.category}
-                  title={p.title}
-                  description={p.summary ?? undefined}
-                  imageSrc={image}
-                  imageAlt={`${p.title} — AMS marine project`}
-                  href="/projects"
-                  className="h-full"
-                />
-              </li>
-            ))}
-          </ul>
+            {/* the fanned deck — Aceternity Card Stack, re-worked to fan */}
+            <div className="flex justify-center py-[var(--space-lg)] md:justify-end md:pr-[var(--space-lg)]">
+              <FanCardDeck items={DECK} rotate={4} interval={5200} />
+            </div>
+          </div>
         </div>
       </section>
 

@@ -62,7 +62,7 @@ export function FanCardDeck({
 
   return (
     <div
-      className="relative h-[26rem] w-72 md:h-[30rem] md:w-[26rem]"
+      className="relative h-[26rem] w-[min(78vw,18rem)] md:h-[30rem] md:w-[26rem]"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
     >

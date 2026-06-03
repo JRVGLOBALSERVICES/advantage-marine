@@ -46,6 +46,7 @@ export function MovingBorderButton({
     <Component
       className={cn(
         "relative inline-flex h-14 w-auto min-w-[10rem] overflow-hidden bg-transparent p-[1.5px]",
+        "outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[color:var(--color-paper)]",
         containerClassName,
       )}
       style={{ borderRadius }}
