@@ -9,10 +9,10 @@ import {
   StickyStackCards,
   type StickyStackItem,
 } from "@/components/ui/StickyStackCards";
-import SelectedWorksLog, { type WorkRecord } from "@/components/SelectedWorksLog";
+import { ExpandingCards, type ExpandingCardItem } from "@/components/ui/ExpandingCards";
 import { CertOrbit } from "@/components/about/CertOrbit";
 import { type Cert } from "@/components/about/CertWall";
-import { parseYear, reportHref } from "@/lib/projectMeta";
+import { parseYear } from "@/lib/projectMeta";
 import { MovingBorderButton } from "@/components/ui/MovingBorderButton";
 import { MagneticLink } from "@/components/ui/MagneticLink";
 import { LottieIcon } from "@/components/ui/LottieIcon";
@@ -91,18 +91,18 @@ const DECK_SRC: { match: string; image: string }[] = [
   { match: "ENSCO 67", image: "/media/projects/blog-02.jpg" },
   { match: "Hengyuan Refinery", image: "/media/projects/blog-03.jpg" },
 ];
-/* Six fully-documented records surfaced as the homepage "Selected work" survey
-   register (the "record under the waterline" component). Real photo, title,
-   discipline, on-station year + deep-linked report — no fabrication. */
-const HOME_RECORDS: WorkRecord[] = DECK_SRC.map(({ match, image }) => {
+/* Six fully-documented records surfaced as the homepage "Selected work"
+   expanding-cards accordion. Real photo, title, discipline, on-station year +
+   case summary — no fabrication. */
+const HOME_RECORDS: ExpandingCardItem[] = DECK_SRC.map(({ match, image }) => {
   const p = projectsData.projects.find((x) => x.title.startsWith(match))!;
   return {
-    idx: String(projectsData.projects.indexOf(p) + 1).padStart(2, "0"),
+    id: p.title,
     title: p.title,
     category: p.category,
-    year: parseYear(p.summary ?? null),
-    image,
-    href: reportHref((p as { pdf?: string | null }).pdf) ?? undefined,
+    summary: p.summary ?? "",
+    period: parseYear(p.summary ?? null),
+    imgSrc: image,
   };
 });
 
@@ -306,9 +306,12 @@ export default function Home() {
             </Reveal>
           </div>
 
-          {/* six documented records as a survey register surfacing from under
-              the waterline — always-visible plates, identical at all 3 sizes */}
-          <SelectedWorksLog records={HOME_RECORDS} />
+          {/* six documented records as a horizontal expanding-cards accordion —
+              active panel blooms to colour, rest collapse to rotated spines;
+              vertical stack on mobile (the ExpandingCards pattern) */}
+          <div className="mt-[var(--space-xl)]">
+            <ExpandingCards items={HOME_RECORDS} />
+          </div>
         </div>
       </section>
 
