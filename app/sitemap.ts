@@ -1,5 +1,6 @@
 import type { MetadataRoute } from "next";
 import { allPosts } from "@/lib/news";
+import { allServices } from "@/lib/services";
 
 const BASE =
   process.env.NEXT_PUBLIC_SITE_URL ?? "https://advantage-marine.vercel.app";
@@ -31,5 +32,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  return [...staticEntries, ...newsEntries];
+  // One URL per service — mirrors the live site's per-service nav structure
+  // (/marine-diving, /ndt, /rope-access …), here nested under /services.
+  const serviceEntries = allServices().map((s) => ({
+    url: `${BASE}/services/${s.slug}`,
+    lastModified,
+    changeFrequency: "monthly" as const,
+    priority: s.kind === "core" ? 0.8 : 0.6,
+  }));
+
+  return [...staticEntries, ...serviceEntries, ...newsEntries];
 }

@@ -12,6 +12,7 @@
  * media-manifest. No placeholders, no invented metrics, no empty cards.
  */
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "motion/react";
 import { FanCardsCarousel, type FanCard } from "@/components/ui/aceternity/FanCardsCarousel";
@@ -23,93 +24,24 @@ import { SlideFillButton } from "@/components/ui/uiverse/SlideFillButton";
 import { ExpandIconButton } from "@/components/ui/uiverse/ExpandIconButton";
 import GsapifySection from "@/components/ui/GsapifySection";
 import servicesData from "@/lib/content/services.json";
+import {
+  bucketGallery,
+  specialtyImage,
+  specialtyEyebrow,
+  specialtyLottie,
+} from "@/lib/services";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
 type Bucket = (typeof servicesData.buckets)[number];
 type Specialty = (typeof servicesData.specialty)[number];
 
-/**
- * Explicit, curated, deduplicated galleries.
- *
- * The original scrape dumped ONE shared underwater-welding gallery (a-1, c-1,
- * d-1, 3-, 4-, P4190801, underwater-wet-welding…) into eight service folders,
- * so iccp/rov/salvage/ovolifts/trading all rendered the SAME photos as diving —
- * md5-identical (verified). That reads as AI-slop content padding.
- *
- * Fix: hand-pick real photos PER discipline so no image repeats anywhere on the
- * page. Every path below is a genuine AMS field photo (or, for Ovolifts, the
- * real manufacturer product shot — AMS is the authorized SE-Asia distributor).
- * The shared underwater-welding set now lives only on Marine/Diving, where it
- * truthfully belongs.
- */
-const D = "/media/service_diving";
-const BUCKET_GALLERY: Record<string, string[]> = {
-  "marine-diving": [
-    `${D}/WhatsApp-Image-2021-03-22-at-14.58.23.jpeg`,
-    `${D}/WhatsApp-Image-2021-03-22-at-14.58.25.jpeg`,
-    `${D}/WhatsApp-Image-2021-03-22-at-14.58.26.jpeg`,
-    `${D}/WhatsApp-Image-2021-03-22-at-14.58.27.jpeg`,
-    `${D}/1.jpeg`,
-    `${D}/3.jpeg`,
-  ],
-  ndt: [
-    "/media/service_ndt/ndt1.jpg",
-    "/media/service_ndt/ndt2.jpg",
-    "/media/service_ndt/ndt3.jpg",
-    // Radiographic testing IS an NDT method — these belong here truthfully.
-    "/media/service_radiography/rs1.png",
-    "/media/service_radiography/rs2.png",
-    "/media/service_radiography/rs3.png",
-  ],
-  "engineering-steelwork": [
-    "/media/service_steelwork/ES1.jpg",
-    "/media/service_steelwork/ES2.jpg",
-    "/media/service_steelwork/ES3.jpg",
-  ],
-  "trading-others": [
-    // Real category photos pulled from AMS's own live site.
-    "/media/_live/other_service.jpg",
-    "/media/_live/marine_dive.jpg",
-    "/media/_live/steel.jpg",
-  ],
-};
+/* Curated, deduplicated galleries + per-specialty media now live in
+   lib/services.ts — shared verbatim with the /services/[slug] detail pages so
+   the dedup (one md5-distinct gallery per discipline, no repeats) can never
+   drift between the hub and the detail. */
 
-/** Map a specialty slug to ONE distinct hero photo + paired Lottie icon. */
-const SPECIALTY_META: Record<string, { img: string; lottie: string; eyebrow: string }> = {
-  "rope-access": {
-    img: "/media/service_rope/ra1.jpg",
-    lottie: "/lottie/engineering-gear.json",
-    eyebrow: "IRATA member company",
-  },
-  "salvage-works": {
-    // Salvage = underwater recovery — a real AMS dive photo, distinct from the bucket six.
-    img: `${D}/WhatsApp-Image-2021-03-22-at-14.58.26-1.jpeg`,
-    lottie: "/lottie/diving-helmet.json",
-    eyebrow: "Rescue & recovery",
-  },
-  iccp: {
-    // ICCP / anode work is performed underwater — a real AMS dive photo.
-    img: `${D}/underwater-wet-welding-1-1-e1490151670919-640x480_c.jpg`,
-    lottie: "/lottie/ndt-scan.json",
-    eyebrow: "Cathodic protection",
-  },
-  ovolifts: {
-    // REAL manufacturer product shot (Ovolifts pipeline-access system).
-    img: "/media/service_ovolifts/_real/ovolift-system.jpg",
-    lottie: "/lottie/engineering-gear.json",
-    eyebrow: "Authorized distributor — SE Asia",
-  },
-  "chasing-m2-rov": {
-    // Subsea / offshore context. TODO(Rj): swap in the official Chasing M2
-    // product photo — AMS holds it as the authorized SE-Asia distributor.
-    img: `${D}/bluestream-offshore-1920-2-1.1920x0.jpg`,
-    lottie: "/lottie/rov-sonar.json",
-    eyebrow: "Authorized distributor — SE Asia",
-  },
-};
-
-const HERO_IMG = `${D}/P4040406.JPG-1.jpeg`;
+const HERO_IMG = "/media/service_diving/P4040406.JPG-1.jpeg";
 
 export default function ServicesContent() {
   const router = useRouter();
@@ -233,7 +165,7 @@ export default function ServicesContent() {
       {/* ───────────────── the 4 real discipline buckets ───────────────── */}
       <div className="mx-auto max-w-[min(1280px,94vw)] px-[clamp(1.5rem,4vw,4rem)]">
         {buckets.map((b, i) => {
-          const gallery = (BUCKET_GALLERY[b.slug] ?? []).slice(0, 6);
+          const gallery = bucketGallery(b.slug).slice(0, 6);
           const cards: FanCard[] = gallery.map((src, idx) => ({
             title: b.title,
             src,
@@ -283,6 +215,21 @@ export default function ServicesContent() {
                   >
                     {b.summary}
                   </p>
+                  <Link
+                    href={`/services/${b.slug}`}
+                    className="group mt-[var(--space-lg)] inline-flex items-center gap-2 text-[color:var(--color-accent)]"
+                  >
+                    <span className="eyebrow !tracking-[0.16em]">
+                      Full capability
+                    </span>
+                    <span
+                      aria-hidden
+                      className="transition-transform duration-300 group-hover:translate-x-1"
+                      style={{ transitionTimingFunction: "var(--ease-out)" }}
+                    >
+                      →
+                    </span>
+                  </Link>
                 </motion.div>
 
                 <motion.div
@@ -361,8 +308,9 @@ export default function ServicesContent() {
 
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {specialty.map((s, i) => {
-            const meta = SPECIALTY_META[s.slug];
-            const img = meta?.img;
+            const img = specialtyImage(s.slug);
+            const eyebrow = specialtyEyebrow(s.slug);
+            const lottie = specialtyLottie(s.slug);
             return (
               <motion.div
                 key={s.slug}
@@ -372,20 +320,26 @@ export default function ServicesContent() {
                 transition={{ duration: 0.55, delay: (i % 3) * 0.06, ease: EASE }}
                 className="h-full"
               >
-                <SheenCard
-                  className="h-full"
-                  eyebrow={meta?.eyebrow ?? "Specialty"}
-                  index={String(i + 1).padStart(2, "0")}
-                  title={s.title}
-                  description={s.body}
-                  imageSrc={img}
-                  imageAlt={s.title}
-                  icon={
-                    meta ? (
-                      <LottieIcon src={meta.lottie} size={26} label={s.title} />
-                    ) : undefined
-                  }
-                />
+                <Link
+                  href={`/services/${s.slug}`}
+                  className="block h-full"
+                  aria-label={`${s.title} — full detail`}
+                >
+                  <SheenCard
+                    className="h-full"
+                    eyebrow={eyebrow ?? "Specialty"}
+                    index={String(i + 1).padStart(2, "0")}
+                    title={s.title}
+                    description={s.body}
+                    imageSrc={img}
+                    imageAlt={s.title}
+                    icon={
+                      lottie ? (
+                        <LottieIcon src={lottie} size={26} label={s.title} />
+                      ) : undefined
+                    }
+                  />
+                </Link>
               </motion.div>
             );
           })}
