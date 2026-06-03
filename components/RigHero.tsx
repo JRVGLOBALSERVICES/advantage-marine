@@ -68,9 +68,9 @@ const BEATS: Beat[] = [
     statLabel: "Years afloat · IMCA / OGP standard",
   },
   {
-    kicker: "01 — Seated, locked, load-tested",
-    head: ["Every leg seats.", "Every footing holds."],
-    lead: "Spud-cans driven, legs locked, load transferred to the seabed. Each joint is a point we inspect — before the platform ever takes weight.",
+    kicker: "01 — Taken apart, joint by joint",
+    head: ["Every part", "accounted for."],
+    lead: "Pulled apart to its last bracing — hull, legs, spud-cans, derrick, crane. Every joint is a point we read underwater, documented to class before the platform takes weight.",
     stat: { value: 4630, suffix: " m²" },
     statLabel: "Johor fabrication & dive facility",
   },
@@ -208,13 +208,14 @@ export default function RigHero() {
       },
     });
 
-    // Beats aligned to the scene's scrub: beat 0 over the assembly start (fully
-    // ON at load so the headline is crisp on first paint), beat 1 over the legs
-    // seating, beat 2 over the topped-out showcase before the GlobalReach handoff.
+    // Beats aligned to the scene's scrub: beat 0 over the assembled rig (fully
+    // ON at load so the headline is crisp on first paint), beat 1 over the
+    // exploded-diagram hold, beat 2 over the reassembled hero before the
+    // GlobalReach handoff.
     const windows: [number, number, number, number][] = [
-      [-0.1, -0.05, 0.42, 0.52],
-      [0.5, 0.58, 0.68, 0.76],
-      [0.78, 0.84, 0.97, 1.04],
+      [-0.1, -0.05, 0.14, 0.24],
+      [0.42, 0.5, 0.62, 0.7],
+      [0.86, 0.92, 0.99, 1.05],
     ];
     const tick = () => {
       const p = scrollState.progress;

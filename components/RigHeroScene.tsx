@@ -3,7 +3,6 @@
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   useGLTF,
-  useAnimations,
   Environment,
   AdaptiveDpr,
   ContactShadows,
@@ -18,31 +17,28 @@ import type { Group, Mesh, MeshStandardMaterial, Object3D } from "three";
 import { scrollState, motionState, sceneState } from "@/lib/scroll";
 
 /* ════════════════════════════════════════════════════════════════
-   RIG HERO — CROSSING THE WATERLINE (reel-tier redesign, 2026-06).
+   RIG HERO — EXPLODED ASSEMBLY (turbofan-reel treatment, 2026-06).
 
-   Concept that won the tournament (81/100, "Survey Card" spined onto
-   the "go-subsea" motion): the page literally DESCENDS into Advantage
-   Marine's worksite. A recognizable assembled jack-up on warm cream,
-   then the camera dives THROUGH the waterline; below it ONLY the
-   genuinely submerged steel — the three legs + spud-cans — separates
-   into a readable in-water NDT inspection diagram, while a world-Y
-   shader band cools the submerged steel to teal depth-scan. The hull
-   and derrick NEVER move (honest: nothing above the waterline detaches).
-   The explosion becomes the *service* — what AM dives down to find.
+   The brief: the whole jack-up comes APART part-by-part and goes back
+   TOGETHER — the Rolls-Royce turbofan-reel move, not a waterline dive.
+   Every one of the 26 named GEO parts fans out from the hull along its
+   own radial + vertical axis, holds as a readable engineering diagram,
+   then flies home into the locked rig.
 
-     0.00–0.30  assembled, recognizable; slow descent toward the surface
-     0.30–0.42  THE CROSSING — camera punches below the waterline
-     0.42–0.58  submerged teardown: legs splay, spud-cans drop to corners
-     0.58–0.78  annotated subsea survey diagram (leader-line callouts)
-     0.78–1.00  active scan sweep + sonar; ease to a held half-exploded hero
+     0.00–0.10  assembled, recognizable; slow turntable
+     0.10–0.45  EXPLODE — parts fan out (topside rises, legs/cans drop,
+                crane + cantilever swing out)
+     0.45–0.65  HOLD — full exploded diagram; honest assembly labels;
+                one teal scan sweep climbs the structure (the accent)
+     0.65–0.95  REASSEMBLE — parts ease home
+     0.95–1.00  assembled hero, topped-out
 
-   Scale-honest: the GLB is large (assembled framing ~42/27/48). The
-   waterline / top / bottom are MEASURED on load and the dive is
-   expressed relative to them — no hard-coded unit-scale numbers.
+   Scale-honest: the assembled bounds + centroid are MEASURED on load;
+   every explode offset is expressed as a fraction of the measured span,
+   so any authored model self-frames.
 
-   Brand (AM design.md): dark gunmetal on warm sailcloth-cream, ONE
-   teal accent, all luminous accents on/around the model. Bloom catches
-   ONLY raw-HDR emissive (>1.0, toneMapped=false): the scan band + sonar.
+   Brand (AM design.md): dark gunmetal steel on warm sailcloth-cream,
+   ONE teal accent. Bloom catches ONLY the raw-HDR teal scan ring.
    ════════════════════════════════════════════════════════════════ */
 
 const MODEL_URL = "/models/jackup-rig.glb";
@@ -51,171 +47,111 @@ const smoothstep = (t: number) => t * t * (3 - 2 * t);
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-/* In-water NDT findings — real survey language, grounded in AM's scope
-   (cathodic protection, UT wall-thickness, scour, weld NDT). Anchored to the
-   3 spud-cans on desktop; suppressed on a narrow frame (labels would overlap). */
-const FINDINGS: Record<string, { code: string; spec: string }> = {
-  A: { code: "SpudCan-A", spec: "scour survey · CLEAN" },
-  B: { code: "SpudCan-B", spec: "CP anode −0.92V · OK" },
-  C: { code: "SpudCan-C", spec: "UT wall 18.4mm · PASS" },
+/* Honest assembly labels — real jack-up nomenclature + AM's real inspection
+   scope. Anchored to one part per major assembly, shown only in the exploded
+   hold. Suppressed on a narrow frame (labels would overlap). */
+const LABELS: Record<string, { code: string; spec: string }> = {
+  "GEO-Derrick": { code: "Derrick & drill floor", spec: "weld NDT · class survey" },
+  "GEO-Hull": { code: "Hull & jackhouses", spec: "plate UT · CP read" },
+  "GEO-Leg-A": { code: "Lattice leg", spec: "chord & brace MPI" },
+  "GEO-SpudCan-A": { code: "Spud-can footing", spec: "scour · CP −0.92V" },
 };
 
 type Part = {
   node: Object3D;
   base: THREE.Vector3;
-  offset: THREE.Vector3;
-  dir: THREE.Vector2; // outward (x,z) unit dir from rig centre — drives splay + leader-line
-  corner?: string; // set for spud-cans → callout anchor
+  offset: THREE.Vector3; // fully-exploded translation (world-ish, applied in group space)
+  dir: THREE.Vector2; // outward (x,z) unit dir — drives leader-line
+  label?: string; // key into LABELS for the major-assembly anchors
 };
 
-/* measured model anchors (world Y), filled on scene-ready */
-type Anchors = { top: number; bot: number; water: number; span: number; foot: number };
+/* measured model anchors */
+type Anchors = { top: number; bot: number; span: number; foot: number; cx: number; cz: number };
+
+/* Per-part explode plan — classify by name, return a radial+vertical offset as a
+   fraction of the measured span. Topside rises, legs/cans drop, crane + cantilever
+   swing out. Layout-agnostic: radial direction is measured from each part's centre. */
+function explodePlan(name: string): { kR: number; kV: number; anchor?: boolean } {
+  if (/SpudCan/.test(name)) return { kR: 0.34, kV: -0.40 };
+  if (/^GEO-Leg-/.test(name)) return { kR: 0.24, kV: -0.20 };
+  if (/JackHouse/.test(name)) return { kR: 0.30, kV: 0.04 };
+  if (/CrownBlock/.test(name)) return { kR: 0.06, kV: 0.52 };
+  if (/Derrick/.test(name)) return { kR: 0.06, kV: 0.38 };
+  if (/DrillFloor/.test(name)) return { kR: 0.08, kV: 0.24 };
+  if (/Heli/.test(name)) return { kR: 0.22, kV: 0.46 };
+  if (/Accom/.test(name)) return { kR: 0.24, kV: 0.28 };
+  if (/Crane/.test(name)) return { kR: 0.34, kV: 0.16 };
+  if (/Cantilever/.test(name)) return { kR: 0.40, kV: 0.08 };
+  if (/Hull/.test(name)) return { kR: 0, kV: 0, anchor: true }; // the anchor everything comes off
+  return { kR: 0.16, kV: 0.06 };
+}
 
 function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
   const group = useRef<Group>(null);
-  const { scene, animations } = useGLTF(MODEL_URL, true);
-  const { actions, names } = useAnimations(animations, group);
+  const { scene } = useGLTF(MODEL_URL, true);
   const parts = useRef<Part[]>([]);
   const [ready, setReady] = useState(false);
-  const anchors = useRef<Anchors>({ top: 26, bot: 0, water: 10, span: 26, foot: 14 });
-
-  // world-Y uniforms shared by every patched steel material
-  const uWaterY = useRef({ value: 10 });
-  const uTime = useRef({ value: 0 });
-  const uSubsea = useRef({ value: new THREE.Color("#234b47").convertSRGBToLinear() });
-
-  const sonarNames = useMemo(
-    () => names.filter((n) => n.startsWith("FX-Sonar")),
-    [names],
-  );
-  const sonarDur = useMemo(
-    () =>
-      animations
-        .filter((c) => c.name.startsWith("FX-Sonar"))
-        .reduce((m, c) => Math.max(m, c.duration), 0) || 1,
-    [animations],
-  );
+  const anchors = useRef<Anchors>({ top: 26, bot: 0, span: 26, foot: 14, cx: 0, cz: 0 });
 
   useEffect(() => {
-    // Only FX-Sonar ring clips ride the mixer (scrubbed in the tail). GEO
-    // assembly clips stay OFF — every part holds its authored assembled pose
-    // and we drive the partial submerged teardown ourselves.
-    sonarNames.forEach((n) => {
-      const a = actions[n];
-      if (a) {
-        a.reset().play();
-        a.paused = true;
-      }
-    });
-    return () => sonarNames.forEach((n) => actions[n]?.stop());
-  }, [actions, sonarNames]);
-
-  useEffect(() => {
-    // 1. measure the model so the dive + waterline are scale-honest
+    // 1. measure assembled bounds + centroid (drives framing + explode scale)
     const geoBox = new THREE.Box3();
-    let waterNode: Object3D | null = null;
     scene.traverse((o) => {
-      if (o.name.startsWith("GEO-") && (o as Mesh).isMesh) {
-        geoBox.expandByObject(o);
-      }
-      if (o.name.startsWith("FX-Waterline")) waterNode = o;
+      if (o.name.startsWith("GEO-") && (o as Mesh).isMesh) geoBox.expandByObject(o);
     });
     const max = geoBox.max;
     const min = geoBox.min;
+    const ctr = new THREE.Vector3();
+    geoBox.getCenter(ctr);
     const top = isFinite(max.y) ? max.y : 26;
     const bot = isFinite(min.y) ? min.y : 0;
     const span = Math.max(1, top - bot);
-    // waterline: prefer the authored FX-Waterline Y, else 42% up from seabed
-    let water = bot + span * 0.42;
-    if (waterNode) {
-      const wp = new THREE.Vector3();
-      (waterNode as Object3D).getWorldPosition(wp);
-      if (isFinite(wp.y)) water = wp.y;
-    }
     const foot = Math.max(Math.abs(max.x), Math.abs(max.z), span * 0.5);
-    anchors.current = { top, bot, water, span, foot };
-    uWaterY.current.value = water;
+    anchors.current = { top, bot, span, foot, cx: ctr.x, cz: ctr.z };
     onMeasured(anchors.current);
 
-    // 2. materials + submerged explode plan (one traversal)
-    const glow = (m: Mesh, hex: string, intensity: number) => {
-      const mat = (m.material as MeshStandardMaterial).clone();
-      mat.emissive = new THREE.Color(hex);
-      mat.emissiveIntensity = intensity;
-      mat.toneMapped = false;
-      mat.transparent = true;
-      m.material = mat;
-    };
-    // shared world-Y section patch: below the waterline the steel albedo
-    // crushes toward deep teal with faint depth bands (NON-HDR — no bloom
-    // conflict; bloom stays on the dedicated FX meshes only).
+    // 2. gunmetal PBR steel — warm-cream stage carries the reflections (HDRI).
     const patchSteel = (m: Mesh, base: string, rough: number) => {
       const mat = (m.material as MeshStandardMaterial).clone();
       mat.color = new THREE.Color(base);
       mat.metalness = 0.9;
       mat.roughness = rough;
-      mat.onBeforeCompile = (shader) => {
-        shader.uniforms.uWaterY = uWaterY.current;
-        shader.uniforms.uTime = uTime.current;
-        shader.uniforms.uSubsea = uSubsea.current;
-        shader.vertexShader = shader.vertexShader
-          .replace(
-            "#include <common>",
-            "#include <common>\nvarying vec3 vWPosAM;",
-          )
-          .replace(
-            "#include <begin_vertex>",
-            "#include <begin_vertex>\nvWPosAM = (modelMatrix * vec4(transformed, 1.0)).xyz;",
-          );
-        shader.fragmentShader = shader.fragmentShader
-          .replace(
-            "#include <common>",
-            "#include <common>\nvarying vec3 vWPosAM;\nuniform float uWaterY;\nuniform float uTime;\nuniform vec3 uSubsea;",
-          )
-          .replace(
-            "#include <color_fragment>",
-            `#include <color_fragment>
-             float subAM = smoothstep(uWaterY + 1.2, uWaterY - 1.2, vWPosAM.y);
-             float bandAM = smoothstep(0.62, 0.98, sin(vWPosAM.y * 1.3 - uTime * 0.6) * 0.5 + 0.5);
-             vec3 deepAM = mix(uSubsea, uSubsea + vec3(0.0, 0.10, 0.09), bandAM);
-             diffuseColor.rgb = mix(diffuseColor.rgb, deepAM, subAM * 0.82);`,
-          );
-      };
       mat.needsUpdate = true;
       m.material = mat;
       m.castShadow = true;
+      m.receiveShadow = true;
     };
 
+    // 3. build the explode plan, one part per named top-level GEO node
     const collected: Part[] = [];
     scene.traverse((o) => {
       const m = o as Mesh;
-      if (m.isMesh) {
-        if (o.name.startsWith("FX-Sonar")) glow(m, "#5cf0d8", 3.2);
-        else if (o.name.startsWith("FX-Waterline")) glow(m, "#34c6b4", 1.6);
-        else if (o.name.startsWith("GEO-SpudCan")) patchSteel(m, "#3A4046", 0.55);
-        else if (o.name.startsWith("GEO-")) patchSteel(m, "#4E565C", 0.4);
+      if (m.isMesh && o.name.startsWith("GEO-")) {
+        patchSteel(m, /SpudCan/.test(o.name) ? "#3A4046" : "#4E565C", /SpudCan/.test(o.name) ? 0.55 : 0.4);
       }
-      // submerged teardown plan — ONLY legs + spud-cans translate. Layout-agnostic:
-      // the outward splay direction is MEASURED from each part's world-space centre,
-      // so it works for the authored 3-leg triangle (or any leg count) with no
-      // hard-coded corner map.
-      const leg = m.isMesh && /GEO-Leg-[A-C]$/.test(o.name);
-      const can = m.isMesh && o.name.match(/GEO-SpudCan-([A-C])$/);
-      if (leg || can) {
-        const ctr = new THREE.Vector3();
-        new THREE.Box3().setFromObject(o).getCenter(ctr);
-        const dir = new THREE.Vector2(ctr.x, ctr.z);
-        if (dir.lengthSq() < 1e-4) dir.set(0, 1);
+      // explode entries: top-level named GEO nodes only (skip nested mesh children)
+      if (o.name.startsWith("GEO-") && o.parent?.name.startsWith("EMPTY-")) {
+        const wc = new THREE.Vector3();
+        new THREE.Box3().setFromObject(o).getCenter(wc);
+        const dir = new THREE.Vector2(wc.x - anchors.current.cx, wc.z - anchors.current.cz);
+        if (dir.lengthSq() < 1e-4) {
+          // centred parts (derrick/hull) — fan by a stable hash of the name
+          const h = name2angle(o.name);
+          dir.set(Math.cos(h), Math.sin(h));
+        }
         dir.normalize();
-        const isCan = !!can;
+        const plan = explodePlan(o.name);
+        const off = new THREE.Vector3(
+          dir.x * span * plan.kR,
+          span * plan.kV,
+          dir.y * span * plan.kR,
+        );
         collected.push({
           node: o,
           base: o.position.clone(),
+          offset: off,
           dir: dir.clone(),
-          offset: new THREE.Vector3(dir.x, isCan ? -0.7 : -0.35, dir.y)
-            .normalize()
-            .multiplyScalar(span * (isCan ? 0.22 : 0.16)),
-          corner: isCan ? can[1] : undefined,
+          label: LABELS[o.name] ? o.name : undefined,
         });
       }
     });
@@ -233,66 +169,51 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
   const yaw = useRef(-0.5);
   const { camera, size } = useThree();
 
-  // proven viewing azimuth (x,z direction) kept constant — the dive varies
-  // camera elevation, target Y and orbit radius, all relative to measured anchors.
+  // constant viewing azimuth; the explode varies orbit radius + a gentle parallax.
   const DIR = useMemo(() => new THREE.Vector2(42, 48).normalize(), []);
 
   useFrame((state) => {
-    const target = motionState.reduced ? 0.32 : scrollState.progress; // reduced → static above-surface frame
+    const target = motionState.reduced ? 0.5 : scrollState.progress;
     damped.current += (target - damped.current) * (motionState.reduced ? 1 : 0.1);
     const p = damped.current;
-    uTime.current.value = state.clock.elapsedTime;
 
-    const { top, bot, water, span } = anchors.current;
+    const { top, bot, span, foot, cx, cz } = anchors.current;
 
-    // turntable — slow & alive, but FROZEN during the report beat (0.5–0.78)
-    // so leader-line callouts sit dead-still and readable.
+    // explode factor: assembled → exploded (0.10–0.45) → hold (0.45–0.65)
+    // → reassemble (0.65–0.95) → assembled.
+    let ex: number;
+    if (motionState.reduced) ex = 0.62;
+    else if (p < 0.45) ex = smoothstep(clamp01((p - 0.1) / 0.35));
+    else if (p < 0.65) ex = 1;
+    else ex = 1 - smoothstep(clamp01((p - 0.65) / 0.3));
+
+    // turntable — alive, but FROZEN during the exploded hold so labels read still.
     if (group.current) {
       if (motionState.reduced) {
         yaw.current = -0.5;
-      } else if (!(p > 0.5 && p < 0.8)) {
+      } else if (!(p > 0.45 && p < 0.65)) {
         yaw.current = -0.5 + state.clock.elapsedTime * 0.05;
       }
       group.current.rotation.y = yaw.current;
     }
 
-    // submerged teardown: 0 until the crossing (0.42), full by 0.58
-    const e = motionState.reduced ? 0 : smoothstep(clamp01((p - 0.42) / 0.16));
-    // at rest (>0.85) ease parts back ~30% — held half-exploded, never reassembled
-    const hold = p > 0.85 ? lerp(1, 0.7, clamp01((p - 0.85) / 0.15)) : 1;
-    const ee = e * hold;
     for (const part of parts.current) {
       part.node.position.set(
-        part.base.x + part.offset.x * ee,
-        part.base.y + part.offset.y * ee,
-        part.base.z + part.offset.z * ee,
+        part.base.x + part.offset.x * ex,
+        part.base.y + part.offset.y * ex,
+        part.base.z + part.offset.z * ex,
       );
     }
 
-    // sonar tail: expand from 0.78→1
-    const sp = clamp01((p - 0.78) / 0.22);
-    sonarNames.forEach((n) => {
-      const a = actions[n];
-      if (a) a.time = Math.min(sp * sonarDur, a.getClip().duration);
-    });
-
-    // ── camera dive, scale-relative ──
-    const dive = smoothstep(clamp01((p - 0.1) / 0.5)); // 0 above → 1 settled subsea
-    // assembled framing distance derived from the MEASURED rig size (no hard-coded
-    // unit-scale): fits both the horizontal footprint and the vertical span, so a
-    // smaller/larger authored model self-frames.
-    const fitR = Math.max(span * 2.0, anchors.current.foot * 2.6);
-    const R =
-      fitR *
-      lerp(1.0, 0.8, dive) *
-      (p > 0.85 ? lerp(1, 1.06, clamp01((p - 0.85) / 0.15)) : 1);
-    const camY = lerp(top * 1.04, water - span * 0.16, dive);
-    const tgtY = lerp(lerp(water, top, 0.5), bot + span * 0.18, dive);
-    // gentle ±parallax orbit around the cluster in the tail
-    const az =
-      motionState.reduced
-        ? 0
-        : Math.sin(state.clock.elapsedTime * 0.25) * 0.06 * smoothstep(clamp01((p - 0.78) / 0.22));
+    // ── camera: fit assembled tight, pull back as it explodes, push in on reassemble ──
+    const cy = (top + bot) / 2;
+    const fitR = Math.max(span * 1.9, foot * 2.5);
+    const R = fitR * lerp(1.0, 1.5, ex);
+    const camY = lerp(cy + span * 0.18, cy + span * 0.42, ex);
+    // gentle parallax orbit in the exploded hold
+    const az = motionState.reduced
+      ? 0
+      : Math.sin(state.clock.elapsedTime * 0.22) * 0.07 * smoothstep(clamp01((p - 0.45) / 0.2)) * (1 - smoothstep(clamp01((p - 0.65) / 0.2)));
     const cos = Math.cos(az);
     const sin = Math.sin(az);
     const dx = DIR.x * cos - DIR.y * sin;
@@ -300,8 +221,8 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
 
     const aspect = size.width / Math.max(size.height, 1);
     const distMul = aspect < 1 ? 1 + (1 - aspect) * 0.5 : 1; // portrait pull-back
-    camPos.current.set(dx * R * distMul, camY, dz * R * distMul);
-    camTgt.current.set(0, tgtY, 0);
+    camPos.current.set(cx + dx * R * distMul, camY, cz + dz * R * distMul);
+    camTgt.current.set(cx, cy, cz);
     camera.position.lerp(camPos.current, motionState.reduced ? 1 : 0.12);
     camera.lookAt(camTgt.current);
   });
@@ -315,12 +236,12 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
         !isNarrow &&
         !motionState.reduced &&
         parts.current
-          .filter((pt) => pt.corner)
+          .filter((pt) => pt.label)
           .map((pt) => (
             <Callout
-              key={pt.corner}
+              key={pt.label}
               part={pt}
-              finding={FINDINGS[pt.corner as string]}
+              finding={LABELS[pt.label as string]}
               foot={anchors.current.foot}
             />
           ))}
@@ -328,10 +249,15 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
   );
 }
 
-/* a single NDT finding: a thin teal leader-line from the spud-can out to a
-   Cinzel code + mono spec value. Fades in during the survey beat (0.52–0.66)
-   and holds. Lines fan to the corner's outward direction so they never cross
-   the camera or each other. */
+/* deterministic name → angle so centred parts still fan radially */
+function name2angle(name: string) {
+  let h = 0;
+  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
+  return (h / 360) * Math.PI * 2;
+}
+
+/* a single assembly label: a thin teal leader-line from the part's exploded
+   position out to a Cinzel code + mono spec. Fades in over the exploded hold. */
 function Callout({
   part,
   finding,
@@ -345,19 +271,17 @@ function Callout({
   const htmlWrap = useRef<HTMLDivElement>(null!);
   const reach = foot * 0.5;
 
-  const start = useMemo(() => part.base.clone(), [part]);
+  // anchor at the part's FULLY-EXPLODED position (base + offset)
+  const start = useMemo(() => part.base.clone().add(part.offset), [part]);
   const end = useMemo(
-    () => new THREE.Vector3(part.dir.x, 0, part.dir.y).normalize().multiplyScalar(reach),
-    [part.dir, reach],
-  );
-  const elbow = useMemo(
-    () => start.clone().add(end).add(new THREE.Vector3(0, -reach * 0.1, 0)),
-    [start, end, reach],
+    () => start.clone().add(new THREE.Vector3(part.dir.x, 0, part.dir.y).normalize().multiplyScalar(reach)),
+    [start, part.dir, reach],
   );
 
   useFrame(() => {
-    const p = motionState.reduced ? 1 : scrollState.progress;
-    const o = smoothstep(clamp01((p - 0.52) / 0.14));
+    const p = motionState.reduced ? 0.55 : scrollState.progress;
+    // visible only across the exploded hold (fade in 0.45–0.52, out 0.62–0.68)
+    const o = smoothstep(clamp01((p - 0.45) / 0.07)) * (1 - smoothstep(clamp01((p - 0.62) / 0.06)));
     if (lineRef.current?.material) lineRef.current.material.opacity = o * 0.9;
     if (htmlWrap.current) htmlWrap.current.style.opacity = String(o);
   });
@@ -368,7 +292,7 @@ function Callout({
         ref={lineRef as never}
         points={[
           [start.x, start.y, start.z],
-          [elbow.x, elbow.y, elbow.z],
+          [end.x, end.y, end.z],
         ]}
         color="#34c6b4"
         lineWidth={1.1}
@@ -377,7 +301,7 @@ function Callout({
         toneMapped={false}
       />
       <Html
-        position={[elbow.x, elbow.y, elbow.z]}
+        position={[end.x, end.y, end.z]}
         center
         distanceFactor={foot * 2.4}
         style={{ pointerEvents: "none" }}
@@ -407,26 +331,26 @@ function Callout({
   );
 }
 
-/* emissive scan ring that rides up the submerged structure in the active-scan
-   beat (0.78→1) — the "we are reading the steel right now" tell. Raw-HDR teal,
-   toneMapped off → the only thing (besides sonar) that blooms. */
+/* emissive teal scan ring that climbs the structure during the exploded hold —
+   the "we are reading every joint right now" tell + the page's single bloom source.
+   Raw-HDR teal, toneMapped off. */
 function ScanBand({ anchors }: { anchors: React.MutableRefObject<Anchors> }) {
   const ref = useRef<THREE.Mesh>(null!);
   useFrame(() => {
     if (!ref.current) return;
     const p = motionState.reduced ? 0 : scrollState.progress;
-    const t = clamp01((p - 0.78) / 0.22);
-    const { bot, water, foot } = anchors.current;
+    const t = smoothstep(clamp01((p - 0.45) / 0.2)) * (1 - smoothstep(clamp01((p - 0.65) / 0.15)));
+    const { bot, top, foot, cx, cz } = anchors.current;
     ref.current.visible = t > 0.01;
-    ref.current.position.y = lerp(bot, water, smoothstep(t));
+    ref.current.position.set(cx, lerp(bot, top, smoothstep(clamp01((p - 0.45) / 0.2))), cz);
     const m = ref.current.material as THREE.MeshBasicMaterial;
-    m.opacity = Math.sin(smoothstep(t) * Math.PI) * 0.7 + 0.05;
-    const s = foot * 1.05;
+    m.opacity = Math.sin(t * Math.PI) * 0.7 + 0.04;
+    const s = foot * 1.25;
     ref.current.scale.set(s, s, s);
   });
   return (
     <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} visible={false} renderOrder={3}>
-      <ringGeometry args={[0.82, 1.0, 64]} />
+      <ringGeometry args={[0.86, 1.0, 80]} />
       <meshBasicMaterial
         color="#5cf0d8"
         transparent
@@ -445,7 +369,7 @@ export default function RigHeroScene({
 }: {
   onContextLost?: () => void;
 }) {
-  const anchors = useRef<Anchors>({ top: 26, bot: 0, water: 10, span: 26, foot: 14 });
+  const anchors = useRef<Anchors>({ top: 26, bot: 0, span: 26, foot: 14, cx: 0, cz: 0 });
   return (
     <Canvas
       dpr={[1, 1.8]}
@@ -467,16 +391,20 @@ export default function RigHeroScene({
         );
       }}
     >
-      {/* warm sailcloth-cream stage — NO dark surfaces, even subsea. The subsea
-          cooling lives on the steel albedo (shader), not the page background. */}
+      {/* warm sailcloth-cream studio stage */}
       <color attach="background" args={["#F4EBD9"]} />
-      <fog attach="fog" args={["#F4EBD9", 90, 230]} />
+      <fog attach="fog" args={["#F4EBD9", 110, 280]} />
 
       <Suspense fallback={null}>
         <hemisphereLight args={["#ffffff", "#ECDFC7", 0.85]} />
-        <directionalLight position={[18, 30, 14]} intensity={1.6} color="#fff6e6" />
-        {/* teal-tinted fill from below so the submerged half never goes muddy */}
-        <directionalLight position={[-16, -6, -12]} intensity={0.45} color="#234b47" />
+        <directionalLight
+          position={[18, 30, 14]}
+          intensity={1.6}
+          color="#fff6e6"
+          castShadow
+          shadow-mapSize={[1024, 1024]}
+        />
+        <directionalLight position={[-16, 8, -12]} intensity={0.4} color="#cfe7e2" />
         <Environment preset="warehouse" environmentIntensity={0.7} />
 
         <Rig onMeasured={(a) => (anchors.current = a)} />
@@ -484,16 +412,16 @@ export default function RigHeroScene({
 
         <ContactShadows
           position={[0, 0.02, 0]}
-          scale={64}
-          far={44}
+          scale={80}
+          far={60}
           blur={2.8}
-          opacity={0.34}
+          opacity={0.32}
           color="#5b5347"
           resolution={1024}
         />
         <AdaptiveDpr pixelated />
 
-        {/* Bloom only on raw-HDR FX (>1.0). ToneMapping LAST (skill §2). */}
+        {/* Bloom only on the raw-HDR teal scan ring. ToneMapping LAST (skill §2). */}
         <EffectComposer multisampling={4}>
           <Bloom
             intensity={0.85}
