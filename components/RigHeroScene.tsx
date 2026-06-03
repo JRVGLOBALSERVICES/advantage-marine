@@ -46,17 +46,25 @@ const ASSEMBLY_FRAC = 0.64;
 const ASSEMBLY_SCROLL = 0.58;
 
 /* Camera path — keyframes lerped by (damped) scroll progress. Rig is a tall
-   vertical assembly centred ≈ (0, 13, 0). Tuned in the headed-Chrome test. */
+   vertical assembly centred ≈ (0, 13, 0).
+
+   RESTRAINT PASS (reel-tier): the earlier path framed the rig at ~90% of
+   viewport height — it overflowed and read "super huge". These keyframes sit
+   ~1.5× further out so the tall rig occupies ~55–68% of frame height as ONE
+   vertical object in generous cream air (copy lives in the horizontal space,
+   lusion / igloo / activetheory restraint). The aggressive low-angle hero beat
+   is softened to a refined eye-level 3/4 — the slow turntable (added in Rig)
+   carries the "alive" quality the low push used to fake. */
 const CAM_KEYS: {
   at: number;
   pos: [number, number, number];
   tgt: [number, number, number];
 }[] = [
-  { at: 0.0, pos: [27, 21, 31], tgt: [0, 11, 0] }, // wide establishing — exploded
-  { at: 0.35, pos: [21, 15, 24], tgt: [0, 12, 0] }, // closing in — legs seating
-  { at: 0.62, pos: [13.5, 8, 18], tgt: [0, 15.5, 0] }, // low — derrick topping out
-  { at: 0.82, pos: [17, 12.5, 21], tgt: [0, 12.5, 0] }, // settle — hero 3/4
-  { at: 1.0, pos: [19, 13.5, 22], tgt: [0, 12, 0] }, // slow hold drift
+  { at: 0.0, pos: [40, 27, 46], tgt: [0, 12, 0] }, // wide establishing — exploded, lots of air
+  { at: 0.35, pos: [37, 24, 43], tgt: [0, 12.5, 0] }, // easing in — legs seating
+  { at: 0.62, pos: [34, 20, 41], tgt: [0, 13, 0] }, // refined 3/4 — derrick topping out (NOT a low push)
+  { at: 0.82, pos: [36, 21.5, 42], tgt: [0, 12.5, 0] }, // settle — hero 3/4
+  { at: 1.0, pos: [37, 22.5, 43], tgt: [0, 12.5, 0] }, // slow hold drift
 ];
 
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
@@ -151,12 +159,21 @@ function Rig() {
   const damped = useRef(0); // buttery local scroll progress
   const { camera, size } = useThree();
 
-  useFrame(() => {
+  useFrame((state) => {
     // Damp toward the ScrollTrigger-written progress for a smooth scrub even on
     // coarse wheel/touch deltas (frameloop="always" keeps this advancing).
     const target = motionState.reduced ? 1 : scrollState.progress;
     damped.current += (target - damped.current) * (motionState.reduced ? 1 : 0.12);
     const p = damped.current;
+
+    // Slow turntable — the reel's "alive" quality. ~0.06 rad/s ≈ a full turn
+    // every ~105s: barely perceptible per frame, premium over a long dwell.
+    // Reduced-motion freezes it at a clean 3/4 yaw so the static read stays.
+    if (group.current) {
+      group.current.rotation.y = motionState.reduced
+        ? -0.5
+        : -0.5 + state.clock.elapsedTime * 0.06;
+    }
 
     // Two-stage scrub on ONE timeline. 0→58% plays the assembly (ends ~F160);
     // 58→100% plays the showcase tail (F160→250) where the sonar rings expand
@@ -176,7 +193,10 @@ function Rig() {
     // Camera along the keyframe path; pull back in portrait so the tall rig fits.
     sampleCam(p, camPos.current, camTgt.current);
     const aspect = size.width / Math.max(size.height, 1);
-    const distMul = aspect < 1 ? 1 + (1 - aspect) * 0.55 : 1;
+    // Portrait pullback so the tall rig fits — gentler factor now the base
+    // distances are already restraint-framed (over-shrinking on mobile reads
+    // as a toy; the base framing does most of the work).
+    const distMul = aspect < 1 ? 1 + (1 - aspect) * 0.4 : 1;
     camera.position.copy(camPos.current).multiplyScalar(distMul);
     camera.lookAt(camTgt.current);
   });
@@ -217,7 +237,10 @@ export default function RigHeroScene({
       {/* warm sailcloth-cream stage to match the AM brand (no dark surfaces);
           the HDRI still carries the metal reflections. */}
       <color attach="background" args={["#F4EBD9"]} />
-      <fog attach="fog" args={["#F4EBD9", 48, 120]} />
+      {/* fog pushed out to match the restraint-framed (further) camera — near 48
+          would have hazed the now-distant rig; this keeps it crisp with a soft
+          cream falloff behind for depth. */}
+      <fog attach="fog" args={["#F4EBD9", 82, 190]} />
 
       <Suspense fallback={null}>
         <hemisphereLight args={["#ffffff", "#ECDFC7", 0.9]} />
@@ -230,10 +253,10 @@ export default function RigHeroScene({
         {/* ground the rig so it doesn't float / read flat on cream */}
         <ContactShadows
           position={[0, 0.02, 0]}
-          scale={46}
-          far={34}
-          blur={2.6}
-          opacity={0.42}
+          scale={58}
+          far={40}
+          blur={2.8}
+          opacity={0.4}
           color="#5b5347"
           resolution={1024}
         />
