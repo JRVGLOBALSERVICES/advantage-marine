@@ -10,12 +10,12 @@ import { WordReveal } from "@/components/ui/WordReveal";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const VesselScene = dynamic(() => import("./VesselScene"), {
+const RigContactScene = dynamic(() => import("./RigContactScene"), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 grid place-items-center">
       <span className="eyebrow animate-pulse text-[color:var(--color-accent)]">
-        Assembling vessel…
+        Assembling rig…
       </span>
     </div>
   ),
@@ -149,7 +149,7 @@ export default function VesselShowcase() {
       <div className="sticky top-0 h-[100lvh] overflow-hidden border-y border-[color:var(--color-rule)] bg-[color:var(--color-paper)]">
         <div className="absolute inset-0">
           {hasEntered && (
-            <VesselScene
+            <RigContactScene
               active={active}
               onContextLost={() => setCanvasFailed(true)}
             />
@@ -224,7 +224,7 @@ function Copy({ reduce }: { reduce?: boolean }) {
         {...fade}
         transition={{ duration: 0.8, ease: EASE, delay: 0.22 }}
       >
-        {reduce ? "In-water hull survey" : "Live 3D · scroll to assemble the vessel"}
+        {reduce ? "In-water structural survey" : "Live 3D · scroll to explode the rig"}
       </motion.p>
     </>
   );

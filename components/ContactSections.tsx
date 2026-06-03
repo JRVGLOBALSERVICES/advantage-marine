@@ -6,7 +6,6 @@ import { PinContainer } from "@/components/ui/PinCard";
 import DecryptedText from "@/components/ui/reactbits/DecryptedText";
 import SpotlightCard from "@/components/ui/reactbits/SpotlightCard";
 import { RevealIconButton } from "@/components/ui/uiverse/RevealIconButton";
-import { ScrollVelocityContainer, ScrollVelocityRow } from "@/components/ui/magic/ScrollBasedVelocity";
 import { WordReveal } from "@/components/ui/WordReveal";
 import VesselShowcase from "@/components/VesselShowcase";
 
@@ -154,29 +153,7 @@ export default function ContactSections() {
         </div>
       </section>
 
-      {/* ===================== marquee band — discipline ticker ===================== */}
-      <div className="border-y border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)] py-[var(--space-md)]">
-        <ScrollVelocityContainer>
-          <ScrollVelocityRow
-            baseVelocity={4}
-            direction={1}
-            className="font-display text-[color:var(--color-ink)]"
-          >
-            <span className="px-8" style={{ fontSize: "var(--text-h3)" }}>COMMERCIAL DIVING</span>
-            <span className="px-8 text-[color:var(--color-accent)]">◆</span>
-            <span className="px-8" style={{ fontSize: "var(--text-h3)" }}>CLASS SURVEY</span>
-            <span className="px-8 text-[color:var(--color-accent)]">◆</span>
-            <span className="px-8" style={{ fontSize: "var(--text-h3)" }}>NDT INSPECTION</span>
-            <span className="px-8 text-[color:var(--color-accent)]">◆</span>
-            <span className="px-8" style={{ fontSize: "var(--text-h3)" }}>STEEL RENEWAL</span>
-            <span className="px-8 text-[color:var(--color-accent)]">◆</span>
-            <span className="px-8" style={{ fontSize: "var(--text-h3)" }}>ROPE ACCESS</span>
-            <span className="px-8 text-[color:var(--color-accent)]">◆</span>
-          </ScrollVelocityRow>
-        </ScrollVelocityContainer>
-      </div>
-
-      {/* ===================== vessel assembly — cream 3D scroll band ===================== */}
+      {/* ===================== rig assembly — cream 3D scroll band ===================== */}
       <VesselShowcase />
 
       {/* ===================== enquiry + key contacts ===================== */}

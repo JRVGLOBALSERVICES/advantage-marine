@@ -9,18 +9,13 @@ import {
   StickyStackCards,
   type StickyStackItem,
 } from "@/components/ui/StickyStackCards";
-import {
-  ScrollVelocityContainer,
-  ScrollVelocityRow,
-} from "@/components/ui/magic/ScrollBasedVelocity";
-import { ProjectCard, type ProjectCardData } from "@/components/ProjectCard";
+import SelectedWorksLog, { type WorkRecord } from "@/components/SelectedWorksLog";
 import { CertOrbit } from "@/components/about/CertOrbit";
 import { type Cert } from "@/components/about/CertWall";
-import { parsePeriod, parseYear, reportHref } from "@/lib/projectMeta";
+import { parseYear, reportHref } from "@/lib/projectMeta";
 import { MovingBorderButton } from "@/components/ui/MovingBorderButton";
 import { MagneticLink } from "@/components/ui/MagneticLink";
 import { LottieIcon } from "@/components/ui/LottieIcon";
-import GsapifySection from "@/components/ui/GsapifySection";
 import { SlideFillButton } from "@/components/ui/uiverse/SlideFillButton";
 import { NumberTicker } from "@/components/ui/NumberTicker";
 import servicesData from "@/lib/content/services.json";
@@ -72,27 +67,22 @@ const DECK_SRC: { match: string; image: string }[] = [
   { match: "ENSCO 67", image: "/media/projects/blog-02.jpg" },
   { match: "Hengyuan Refinery", image: "/media/projects/blog-03.jpg" },
 ];
-/* The three flagship records surfaced as the homepage "Selected projects" band
-   — rendered through the SAME ProjectCard component as /projects, so the cards
-   are identical in size + behaviour. */
-const HOME_PROJECTS: ProjectCardData[] = DECK_SRC.slice(0, 3).map(
-  ({ match, image }, i) => {
-    const p = projectsData.projects.find((x) => x.title.startsWith(match))!;
-    const idx = projectsData.projects.indexOf(p) + 1;
-    return {
-      title: p.title,
-      category: p.category,
-      summary: p.summary ?? "Documented marine & offshore case file.",
-      image,
-      idx: String(idx).padStart(2, "0"),
-      client: (p as { client?: string | null }).client ?? null,
-      year: parseYear(p.summary ?? null),
-      period: parsePeriod(p.summary ?? null),
-      pdfHref: reportHref((p as { pdf?: string | null }).pdf) ?? undefined,
-      delayIndex: i,
-    };
-  },
-);
+/* Six fully-documented records surfaced as the homepage "Selected work" log —
+   rendered as a survey logbook (SelectedWorksLog) that surfaces each project
+   from under the waterline on hover. Real titles, disciplines, years and
+   report links only — no fabricated entries. */
+const HOME_RECORDS: WorkRecord[] = DECK_SRC.map(({ match, image }) => {
+  const p = projectsData.projects.find((x) => x.title.startsWith(match))!;
+  const idx = projectsData.projects.indexOf(p) + 1;
+  return {
+    idx: String(idx).padStart(2, "0"),
+    title: p.title,
+    category: p.category,
+    year: parseYear(p.summary ?? null),
+    image,
+    href: reportHref((p as { pdf?: string | null }).pdf) ?? undefined,
+  };
+});
 
 export default function Home() {
   const buckets = servicesData.buckets;
@@ -229,46 +219,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* (5) ── discipline marquee — real capability terms ─────────────── */}
-      <section
-        aria-label="Disciplines"
-        className="border-b border-[color:var(--color-rule)] py-[var(--space-lg)]"
-      >
-        <ScrollVelocityContainer>
-          <ScrollVelocityRow
-            baseVelocity={4}
-            direction={1}
-            className="font-display text-[color:var(--color-ink)]"
-          >
-            {[
-              "COMMERCIAL DIVING",
-              "IN-WATER SURVEY",
-              "ROBOTIC NDT",
-              "STEEL FABRICATION",
-              "ROPE ACCESS",
-              "ICCP",
-              "SALVAGE WORKS",
-              "HYDROGRAPHIC SURVEY",
-            ].map((d) => (
-              <span
-                key={d}
-                className="inline-flex items-center"
-                style={{ fontSize: "var(--text-h3)" }}
-              >
-                <span className="px-[clamp(1rem,3vw,2.5rem)]">{d}</span>
-                <span
-                  aria-hidden
-                  className="inline-block h-2 w-2 rotate-45 bg-[color:var(--color-accent)]"
-                />
-              </span>
-            ))}
-          </ScrollVelocityRow>
-        </ScrollVelocityContainer>
-      </section>
-
-      {/* the GSAP-scrubbed discipline ticker band (real services.json terms) */}
-      <GsapifySection />
-
       {/* (6) ── certs strip — 12 real credential marks ──────────────────── */}
       <section
         id="accreditations"
@@ -334,12 +284,9 @@ export default function Home() {
             </Reveal>
           </div>
 
-          {/* uniform card grid — every card same width + height, summary clamped with read-more */}
-          <div className="mt-[var(--space-xl)] grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {HOME_PROJECTS.map((p) => (
-              <ProjectCard key={p.title} {...p} />
-            ))}
-          </div>
+          {/* survey logbook — six records on file, each surfacing its photo
+              from under the waterline on hover (SelectedWorksLog) */}
+          <SelectedWorksLog records={HOME_RECORDS} />
         </div>
       </section>
 
