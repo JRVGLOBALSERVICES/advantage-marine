@@ -198,7 +198,13 @@ export default function SceneBuildLoader() {
     };
   }, [mounted]);
 
-  if (!mounted || dismissed) return null;
+  // Render the overlay on the server / first paint (gated only by `dismissed`),
+  // NOT behind `mounted` — a useEffect-set `mounted` flag would return null
+  // until after hydration, flashing the unstyled hero (fallback-font "messy
+  // wordings") before the loader slams down on reload. The markup is fully
+  // deterministic so SSR + first client render match (no hydration mismatch);
+  // the gsap/scroll-lock effect still runs post-mount via the `mounted` flag.
+  if (dismissed) return null;
 
   return (
     <div
