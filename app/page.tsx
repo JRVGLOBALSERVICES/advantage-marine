@@ -26,10 +26,12 @@ import certsData from "@/lib/content/media-manifest.json";
 import newsData from "@/lib/content/news.json";
 
 /* ── homepage news rail — three most-recent real posts, real photos ──────── */
-type NewsPost = { title: string; date: string; excerpt: string | null };
+type NewsPost = { title: string; date: string; excerpt: string | null; dateLabel?: string };
 const NEWS_MEDIA: Record<string, string> = {
   "Oil & Gas Asia 2025": "/media/csr/WhatsApp-Image-2025-10-15-at-2.54.59-PM.jpeg",
   "Oil & Gas Asia 2024": "/media/home/photo_6305331321802710100_y.jpg",
+  "Industry awards & recognition": "/media/awards/amsawards2025.jpeg",
+  "Community & CSR": "/media/csr/blog-01.jpg",
   "Discover the AMS difference": "/media/csr/AMS-DIVER-3-scaled-e1616042912140.jpg",
 };
 const NEWS_FALLBACK_EXCERPT: Record<string, string> = {
@@ -45,6 +47,8 @@ const fmtNewsDate = (iso: string) =>
 const NEWS_CATEGORY: Record<string, string> = {
   "Oil & Gas Asia 2025": "Exhibition",
   "Oil & Gas Asia 2024": "Exhibition",
+  "Industry awards & recognition": "Recognition",
+  "Community & CSR": "Community",
   "Discover the AMS difference": "Company",
 };
 const newsSummary = (post: NewsPost) => {
@@ -58,7 +62,7 @@ const HOME_NEWS = (newsData.posts as NewsPost[])
 const NEWS_CARDS: FanCard[] = HOME_NEWS.map((post) => ({
   title: post.title,
   src: NEWS_MEDIA[post.title],
-  category: `${NEWS_CATEGORY[post.title] ?? "News"} · ${fmtNewsDate(post.date)}`,
+  category: `${NEWS_CATEGORY[post.title] ?? "News"} · ${post.dateLabel ?? fmtNewsDate(post.date)}`,
   summary: newsSummary(post),
 }));
 
