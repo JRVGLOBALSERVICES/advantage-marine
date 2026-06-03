@@ -2,30 +2,52 @@
   "posts": [
     {
       "title": "Oil & Gas Asia 2025",
+      "slug": "oil-gas-asia-2025",
       "date": "2025-10-15",
-      "excerpt": "The Oil & Gas Asia (OGA) 2025 exhibition successfully took place from 2-4 September 2025 at the Kuala Lumpur Convention Centre (KLCC), Malaysia. Celebrating its 21st edition, OGA once again proved to be one of the region's most influential gatherings for the oil, gas, energy, and petrochemical industries. With the theme \"Powering Progress, Shaping Tomorrow,\" this year's event highlighted innovation, sustainability, and digital transformation across the energy sector. More than 2,000 exhibitors and international pavilions from over 70 countries participated, showcasing advanced technologies, equipment, and services driving the industry forward. The event also featured SPEAK OGA, where industry leaders discussed energy transition, net-zero ambitions, and digital solutions shaping the future of global energy."
+      "excerpt": "The Oil & Gas Asia (OGA) 2025 exhibition successfully took place from 2–4 September 2025 at the Kuala Lumpur Convention Centre (KLCC), Malaysia.",
+      "body": [
+        "Celebrating its 21st edition, OGA once again proved to be one of the region's most influential gatherings for the oil, gas, energy and petrochemical industries. With the theme “Powering Progress, Shaping Tomorrow,” this year's event highlighted innovation, sustainability and digital transformation across the energy sector.",
+        "More than 2,000 exhibitors and international pavilions from over 70 countries participated, showcasing advanced technologies, equipment and services driving the industry forward. The event also featured SPEAK OGA, where industry leaders discussed energy transition, net-zero ambitions and the digital solutions shaping the future of global energy."
+      ]
     },
     {
       "title": "Oil & Gas Asia 2024",
+      "slug": "oil-gas-asia-2024",
       "date": "2024-10-17",
-      "excerpt": "We were super thrilled to be part of Oil & Gas Asia (OGA) 2024 Exhibition that began on 25th September at the Kuala Lumpur Convention Centre (KLCC), engaging conversations and exchanging ideas with various stakeholders and experts about the services provided by Advantage Marine Services (M) Sdn Bhd. This significant event brought together the Oil & Gas majors and solution providers with innovative and state-of-the-art technology. Over 2,000 companies representing multiple ranges of industries participated in the 20th edition of this event, which ended on 27th September. Aligned with our slogan Discover the AMS Difference, AMS thrives to excel as a preferred one-stop solution provider for underwater and topside Repairs, Inspection and Maintenance, engineering, steel fabrication, Non-Destructive Testing (NDT), and Rope Access for the Oil & Gas, Marine, and Petrochemical industry."
+      "excerpt": "We were thrilled to be part of the Oil & Gas Asia (OGA) 2024 Exhibition, which began on 25 September at the Kuala Lumpur Convention Centre (KLCC).",
+      "body": [
+        "Across the event we held engaging conversations and exchanged ideas with stakeholders and experts about the services provided by Advantage Marine Services (M) Sdn Bhd. This significant gathering brought together the oil & gas majors and solution providers with innovative, state-of-the-art technology.",
+        "Over 2,000 companies representing multiple industries participated in the 20th edition, which ended on 27 September. Aligned with our slogan Discover the AMS Difference, AMS thrives to excel as a preferred one-stop solution provider for underwater and topside repair, inspection and maintenance, engineering, steel fabrication, Non-Destructive Testing (NDT) and Rope Access for the oil & gas, marine and petrochemical industries."
+      ]
     },
     {
       "title": "Industry awards & recognition",
+      "slug": "industry-awards-recognition",
       "date": "2025-06-01",
       "dateLabel": "2025",
-      "excerpt": "AMS has been recognised across Malaysia's enterprise-awards circuit — among them the Asia Pacific Enterprise Awards (APEA), the Golden Bull Award, SME100, Sin Chew Business Excellence and Master Entrepreneur honours — marking over a decade of growth in marine and offshore services."
+      "excerpt": "AMS has been recognised across Malaysia's enterprise-awards circuit — marking over a decade of growth in marine and offshore services.",
+      "body": [
+        "Among the honours: the Asia Pacific Enterprise Awards (APEA), the Golden Bull Award, SME100, Sin Chew Business Excellence and Master Entrepreneur awards — recognition spanning more than a decade of disciplined growth in marine and offshore services."
+      ]
     },
     {
       "title": "Community & CSR",
+      "slug": "community-csr",
       "date": "2025-05-01",
       "dateLabel": "2025",
-      "excerpt": "Beyond operational excellence, AMS commits to corporate social responsibility — supporting community development, marine conservation and education and welfare programmes, while upholding the highest standards of safety, integrity and environmental stewardship."
+      "excerpt": "Beyond operational excellence, AMS commits to corporate social responsibility.",
+      "body": [
+        "Our CSR work supports community development, marine conservation and education and welfare programmes — while upholding the highest standards of safety, integrity and environmental stewardship across every project we deliver."
+      ]
     },
     {
       "title": "Discover the AMS difference",
+      "slug": "discover-the-ams-difference",
       "date": "2021-03-17",
-      "excerpt": null
+      "excerpt": "The brand line that still sets the standard for every dive, inspection and fabrication AMS delivers.",
+      "body": [
+        "“Discover the AMS Difference” is more than a slogan — it is the standard AMS holds itself to as a preferred one-stop solution provider for underwater and topside repair, inspection and maintenance, engineering, steel fabrication, NDT and rope access across the oil & gas, marine and petrochemical industries."
+      ]
     }
   ]
 }

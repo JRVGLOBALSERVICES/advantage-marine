@@ -4,7 +4,7 @@ import NewsHero from "@/components/news/NewsHero";
 import Reveal from "@/components/Reveal";
 import { ShineBorder } from "@/components/ui/magic/ShineBorder";
 import { SheenCard } from "@/components/ui/cult/SheenCard";
-import newsData from "@/lib/content/news.json";
+import { allPosts, postMedia, fmtDate } from "@/lib/news";
 
 export const metadata: Metadata = {
   title: "News — Advantage Marine Services",
@@ -13,43 +13,10 @@ export const metadata: Metadata = {
   alternates: { canonical: "/news" },
 };
 
-type Post = { title: string; date: string; excerpt: string | null };
-
-/* Map each real post to a real photograph from public/media via the manifest.
-   Keyed on title so order changes don't break the pairing. Fallback covers any
-   future post added to news.json. */
-const POST_MEDIA: Record<string, { src: string; alt: string }> = {
-  "Oil & Gas Asia 2025": {
-    src: "/media/csr/WhatsApp-Image-2025-10-15-at-2.54.59-PM.jpeg",
-    alt: "Advantage Marine Services at the Oil & Gas Asia 2025 exhibition, Kuala Lumpur Convention Centre",
-  },
-  "Oil & Gas Asia 2024": {
-    src: "/media/home/photo_6305331321802710100_y.jpg",
-    alt: "The AMS team in conversation with stakeholders at Oil & Gas Asia 2024",
-  },
-  "Discover the AMS difference": {
-    src: "/media/csr/AMS-DIVER-3-scaled-e1616042912140.jpg",
-    alt: "AMS commercial diver suited up before an in-water inspection dive",
-  },
-};
-const FALLBACK_MEDIA = {
-  src: "/media/projects/Photo-1.jpeg",
-  alt: "Advantage Marine Services offshore operations",
-};
-
-function media(title: string) {
-  return POST_MEDIA[title] ?? FALLBACK_MEDIA;
-}
-
-function fmtDate(iso: string) {
-  const d = new Date(iso + "T00:00:00");
-  return d.toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" });
-}
-
 export default function NewsPage() {
-  const posts = (newsData.posts as Post[]).slice().sort((a, b) => b.date.localeCompare(a.date));
+  const posts = allPosts();
   const [featured, ...rest] = posts;
-  const featuredMedia = media(featured.title);
+  const featuredMedia = postMedia(featured.title);
 
   return (
     <main>
@@ -74,7 +41,10 @@ export default function NewsPage() {
         {/* FEATURED — most recent post, large two-column editorial panel framed by
             the Magic UI ShineBorder (animated teal ring). Real image + full excerpt. */}
         <Reveal>
-          <article className="relative overflow-hidden rounded-[var(--radius-card)] border border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)]">
+          <Link
+            href={`/news/${featured.slug}`}
+            className="group/feat relative block overflow-hidden rounded-[var(--radius-card)] border border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)] transition-[border-color,box-shadow] duration-500 hover:border-[color:color-mix(in_oklch,var(--color-accent)_40%,var(--color-rule))] hover:shadow-[0_22px_48px_-16px_rgba(48,131,123,0.30)]"
+          >
             <ShineBorder borderWidth={1.5} duration={16} />
             <div className="grid md:grid-cols-2">
               <div className="relative aspect-[4/3] w-full overflow-hidden md:aspect-auto md:h-full md:min-h-[24rem]">
@@ -110,10 +80,15 @@ export default function NewsPage() {
                     {featured.excerpt}
                   </p>
                 )}
-                <span aria-hidden className="mt-1 block h-px w-16 bg-[color:var(--color-accent)]" />
+                <span
+                  className="eyebrow !tracking-[0.18em] inline-flex items-center gap-2 transition-colors group-hover/feat:text-[color:var(--color-accent)]"
+                  style={{ color: "var(--color-accent)" }}
+                >
+                  Read dispatch <span aria-hidden className="transition-transform group-hover/feat:translate-x-1">→</span>
+                </span>
               </div>
             </div>
-          </article>
+          </Link>
         </Reveal>
 
         {/* REMAINING posts — cult-ui SheenCards, each with a real photo, date,
@@ -121,11 +96,12 @@ export default function NewsPage() {
         {rest.length > 0 && (
           <div className="mt-[var(--space-xl)] grid gap-6 sm:grid-cols-2">
             {rest.map((p, i) => {
-              const m = media(p.title);
+              const m = postMedia(p.title);
               return (
                 <Reveal key={p.title} delay={(i % 2) * 0.06}>
                   <SheenCard
                     className="h-full"
+                    href={`/news/${p.slug}`}
                     eyebrow={fmtDate(p.date)}
                     index={String(posts.length - 1 - i).padStart(2, "0")}
                     title={p.title}
