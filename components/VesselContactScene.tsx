@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useGLTF, Environment, AdaptiveDpr, ContactShadows } from "@react-three/drei";
+import { useGLTF, Environment, AdaptiveDpr, ContactShadows, Line } from "@react-three/drei";
 import { EffectComposer, Bloom, ToneMapping } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
 import { Suspense, useEffect, useMemo, useRef } from "react";
@@ -10,24 +10,23 @@ import type { Group, Mesh, MeshStandardMaterial, Object3D } from "three";
 import { scrollState, motionState, sceneState } from "@/lib/scroll";
 
 /* ════════════════════════════════════════════════════════════════
-   VESSEL CONTACT SHOWCASE — explode → assemble (2026-06).
+   VESSEL HERO SCENE — dark CAD visualization (2026-06).
 
-   The contact band carries a DIFFERENT hero than the home jack-up rig:
-   the 11-part support-vessel GLB authored in Blender (Hull · Deck ·
-   Bridge · Funnel · Mast · Crane · Bulwark · BootTopping · twin Props ·
-   Rudder). Honest exploded view — every part drifts along its real axis
-   off the measured geometry, never a faked cross-section.
+   Dark technical aesthetic matching Rj's concept video:
+   • deep ink background with blue grid floor
+   • explode → assemble with neon blue connection lines
+   • post-assembly: slow rotation + pulsating blue target ring
+   • teal inspection scan retained as secondary accent
 
-   Axis (Y-up GLB, measured from the file):
+   Axis (Y-up GLB):
      X = ship length   (stern −X, bow +X)
      Y = up            (mast peaks ~4.9)
      Z = beam          (port −Z, starboard +Z)
 
-   Scroll maps to assembly, the reverse of an explode:
-     scroll 0.0   fully exploded — the parts hang apart, a diagram
-     scroll 1.0   assembled into one hull, slow turntable
-   A continuous slow turntable keeps it alive; a teal inspection scan
-   (the AM brand accent) climbs the hull on a loop.
+   Scroll maps to assembly:
+     scroll 0.0   fully exploded — parts hang apart, connection lines visible
+     scroll 0.85  assembled — connection lines fade, rotation + ring begin
+     scroll 1.0   full showcase — slow turntable + pulsating ring
    ════════════════════════════════════════════════════════════════ */
 
 const MODEL_URL = "/models/vessel.glb";
@@ -35,41 +34,45 @@ const smoothstep = (t: number) => t * t * (3 - 2 * t);
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+/* Dark CAD color palette */
+const DARK_BG = "#080c14";
+const GRID_BLUE = "#1a3a5c";
+const LINE_BLUE = "#4fc3f7";
+const RING_BLUE = "#29b6f6";
+
+/* PBR materials — adjusted for dark stage (slightly lighter values so they
+   read against the dark bg without blowing out). */
+function paint(name: string): { color: string; metalness: number; roughness: number; emissive?: string } {
+  if (name === "Hull") return { color: "#2a3d5c", metalness: 0.45, roughness: 0.4 };
+  if (name === "Funnel") return { color: "#2a3d5c", metalness: 0.45, roughness: 0.45 };
+  if (name === "Bridge") return { color: "#d8ddd6", metalness: 0.15, roughness: 0.55 };
+  if (name === "Deck") return { color: "#9ba0a6", metalness: 0.5, roughness: 0.5 };
+  if (name === "Bulwark") return { color: "#7a8088", metalness: 0.6, roughness: 0.4 };
+  if (name === "Mast") return { color: "#7a8088", metalness: 0.65, roughness: 0.35 };
+  if (name === "Crane") return { color: "#f0852a", metalness: 0.4, roughness: 0.4 };
+  if (name === "BootTopping") return { color: "#f0852a", metalness: 0.25, roughness: 0.55 };
+  if (name === "Prop-P" || name === "Prop-S") return { color: "#c9a86c", metalness: 0.95, roughness: 0.25, emissive: "#1a1205" };
+  if (name === "Rudder") return { color: "#60666d", metalness: 0.75, roughness: 0.38 };
+  return { color: "#7a8088", metalness: 0.55, roughness: 0.45 };
+}
+
 type Part = { node: Object3D; base: THREE.Vector3; offset: THREE.Vector3 };
 type Box = { c: THREE.Vector3; sx: number; sy: number; sz: number; maxDim: number; cy: number };
 
-/* honest exploded vectors in MODEL units — each part moves along the axis it
-   actually comes off the hull on. Lift the superstructure, split the running
-   gear aft-and-down, drop the waterline strake. Hull is the anchor. */
+/* explode vectors — same as before, each part moves along its real axis */
 const EXPLODE: Record<string, [number, number, number]> = {
   Hull: [0, 0, 0],
-  BootTopping: [0, -1.4, 0], // waterline strake drops clear of the hull
+  BootTopping: [0, -1.4, 0],
   Deck: [0, 1.8, 0],
-  Bulwark: [0, 2.6, 0], // rail cage lifts off the deck edge
+  Bulwark: [0, 2.6, 0],
   Bridge: [0, 3.6, 0],
   Funnel: [-0.4, 4.4, 0],
   Mast: [0, 5.8, 0],
-  Crane: [1.9, 4.6, 0], // forward + up, the orange A-frame leads
-  "Prop-P": [-3.4, -1.7, -1.3], // aft + down + port
-  "Prop-S": [-3.4, -1.7, 1.3], // aft + down + starboard
-  Rudder: [-4.0, -1.1, 0], // aft + down on centreline
+  Crane: [1.9, 4.6, 0],
+  "Prop-P": [-3.4, -1.7, -1.3],
+  "Prop-S": [-3.4, -1.7, 1.3],
+  Rudder: [-4.0, -1.1, 0],
 };
-
-/* honest marine PBR on the warm-cream stage — navy hull, white wheelhouse,
-   grey deck/rail/mast, bronze screws, the AM warm accent on crane + waterline. */
-function paint(name: string): { color: string; metalness: number; roughness: number } {
-  if (name === "Hull") return { color: "#21304a", metalness: 0.35, roughness: 0.46 };
-  if (name === "Funnel") return { color: "#21304a", metalness: 0.35, roughness: 0.5 };
-  if (name === "Bridge") return { color: "#eef0ec", metalness: 0.1, roughness: 0.62 };
-  if (name === "Deck") return { color: "#8b9096", metalness: 0.4, roughness: 0.55 };
-  if (name === "Bulwark") return { color: "#717880", metalness: 0.55, roughness: 0.45 };
-  if (name === "Mast") return { color: "#6c747b", metalness: 0.6, roughness: 0.4 };
-  if (name === "Crane") return { color: "#e8701f", metalness: 0.35, roughness: 0.45 };
-  if (name === "BootTopping") return { color: "#e8701f", metalness: 0.2, roughness: 0.6 };
-  if (name === "Prop-P" || name === "Prop-S") return { color: "#b08d57", metalness: 0.95, roughness: 0.28 };
-  if (name === "Rudder") return { color: "#565c63", metalness: 0.7, roughness: 0.42 };
-  return { color: "#6c747b", metalness: 0.5, roughness: 0.5 };
-}
 
 function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
   const group = useRef<Group>(null);
@@ -90,6 +93,7 @@ function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
       mat.color = new THREE.Color(p.color);
       mat.metalness = p.metalness;
       mat.roughness = p.roughness;
+      if (p.emissive) mat.emissive = new THREE.Color(p.emissive);
       mat.needsUpdate = true;
       m.material = mat;
       m.castShadow = true;
@@ -124,7 +128,6 @@ function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
   const camTgt = useRef(new THREE.Vector3());
   const damped = useRef(0);
   const { camera, size } = useThree();
-  // 3/4 bow-quarter view — front-starboard, raised. Ship runs along X.
   const DIR = useMemo(() => new THREE.Vector3(0.62, 0.42, 1.0).normalize(), []);
 
   useFrame((state) => {
@@ -133,10 +136,9 @@ function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
     const p = damped.current;
     const { c, maxDim, cy } = box.current;
 
-    // explode → assemble: exploded at top (p=0), assembled at bottom (p=1)
     const ex = motionState.reduced ? 0.5 : 1 - smoothstep(clamp01(p));
 
-    // continuous slow turntable — always alive (idle showcase)
+    // continuous slow turntable — always alive
     if (group.current) {
       group.current.rotation.y = motionState.reduced ? 0.45 : 0.45 + state.clock.elapsedTime * 0.06;
     }
@@ -149,7 +151,6 @@ function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
       );
     }
 
-    // frame the whole thing; pull back a touch while exploded so nothing clips
     const aspect = size.width / Math.max(size.height, 1);
     const distMul = aspect < 1 ? 1 + (1 - aspect) * 0.6 : 1;
     const R = maxDim * lerp(1.18, 1.5, ex) * distMul;
@@ -168,7 +169,123 @@ function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
   );
 }
 
-/* teal inspection scan ring climbing the hull on a slow continuous loop */
+/* Blue grid floor — glowing CAD-style grid */
+function GridFloor() {
+  const gridRef = useRef<THREE.GridHelper>(null);
+  useFrame((state) => {
+    if (!gridRef.current) return;
+    // subtle pulse on grid opacity
+    const m = gridRef.current.material as THREE.MeshBasicMaterial;
+    m.opacity = 0.15 + Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
+  });
+  return (
+    <gridHelper
+      ref={gridRef}
+      args={[80, 80, GRID_BLUE, GRID_BLUE]}
+      position={[0, -2.5, 0]}
+    >
+      <meshBasicMaterial color={GRID_BLUE} transparent opacity={0.15} depthWrite={false} />
+    </gridHelper>
+  );
+}
+
+/* Connection lines — neon blue traces from each part to its assembled position.
+   Visible during explode (scroll 0→0.7), fade out as assembly completes. */
+function ConnectionLines({ parts }: { parts: React.MutableRefObject<Part[]> }) {
+  const linesRef = useRef<THREE.Group>(null);
+  const lineMeshes = useRef<THREE.Line[]>([]);
+
+  useFrame(() => {
+    const p = scrollState.progress;
+    const ex = 1 - smoothstep(clamp01(p));
+    const lineOpacity = clamp01((ex - 0.1) / 0.5); // fade as parts come together
+
+    lineMeshes.current.forEach((line, i) => {
+      const part = parts.current[i];
+      if (!part || !line) return;
+      const mat = line.material as THREE.LineBasicMaterial;
+      mat.opacity = lineOpacity * 0.6;
+      mat.needsUpdate = true;
+
+      // update geometry to track moving part
+      const pos = (line.geometry as THREE.BufferGeometry).attributes.position as THREE.BufferAttribute;
+      pos.setXYZ(0, part.base.x, part.base.y, part.base.z);
+      pos.setXYZ(
+        1,
+        part.base.x + part.offset.x * ex,
+        part.base.y + part.offset.y * ex,
+        part.base.z + part.offset.z * ex,
+      );
+      pos.needsUpdate = true;
+    });
+  });
+
+  return (
+    <group ref={linesRef}>
+      {Object.entries(EXPLODE).map(([name, offset], i) => {
+        if (name === "Hull") return null; // anchor doesn't get a line
+        const pts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(offset[0], offset[1], offset[2])];
+        return (
+          <line key={name} ref={(el) => { if (el) lineMeshes.current[i] = el; }}>
+            <bufferGeometry>
+              <bufferAttribute
+                attach="attributes-position"
+                count={2}
+                array={new Float32Array([pts[0].x, pts[0].y, pts[0].z, pts[1].x, pts[1].y, pts[1].z])}
+                itemSize={3}
+              />
+            </bufferGeometry>
+            <lineBasicMaterial color={LINE_BLUE} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+          </line>
+        );
+      })}
+    </group>
+  );
+}
+
+/* Pulsating blue target ring — appears post-assembly (scroll > 0.85) */
+function TargetRing({ box }: { box: React.MutableRefObject<Box> }) {
+  const ref = useRef<THREE.Mesh>(null!);
+  useFrame((state) => {
+    if (!ref.current) return;
+    const p = scrollState.progress;
+    const visible = smoothstep(clamp01((p - 0.75) / 0.15));
+    if (visible <= 0.01) {
+      ref.current.visible = false;
+      return;
+    }
+    ref.current.visible = true;
+
+    const t = state.clock.elapsedTime;
+    const { c, sx } = box.current;
+    ref.current.position.set(c.x, -2.4, c.z);
+
+    // pulsating scale
+    const pulse = 1 + Math.sin(t * 2.5) * 0.08;
+    const baseScale = sx * 0.45 * pulse;
+    ref.current.scale.set(baseScale, baseScale, baseScale);
+
+    const m = ref.current.material as THREE.MeshBasicMaterial;
+    m.opacity = visible * (0.5 + Math.sin(t * 3) * 0.2);
+  });
+
+  return (
+    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} visible={false} renderOrder={2}>
+      <ringGeometry args={[0.85, 1.0, 96]} />
+      <meshBasicMaterial
+        color={RING_BLUE}
+        transparent
+        opacity={0}
+        side={THREE.DoubleSide}
+        toneMapped={false}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </mesh>
+  );
+}
+
+/* Teal inspection scan ring — secondary accent, continuous loop */
 function ScanBand({ box }: { box: React.MutableRefObject<Box> }) {
   const ref = useRef<THREE.Mesh>(null!);
   useFrame((state) => {
@@ -202,6 +319,37 @@ function ScanBand({ box }: { box: React.MutableRefObject<Box> }) {
   );
 }
 
+/* Particles / data dots floating in the background — subtle tech feel */
+function DataParticles() {
+  const ref = useRef<THREE.Points>(null);
+  const count = 120;
+  const positions = useMemo(() => {
+    const arr = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      arr[i * 3] = (Math.random() - 0.5) * 60;
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 40 + 5;
+      arr[i * 3 + 2] = (Math.random() - 0.5) * 60;
+    }
+    return arr;
+  }, []);
+
+  useFrame((state) => {
+    if (!ref.current) return;
+    ref.current.rotation.y = state.clock.elapsedTime * 0.02;
+    const m = ref.current.material as THREE.PointsMaterial;
+    m.opacity = 0.3 + Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
+  });
+
+  return (
+    <points ref={ref}>
+      <bufferGeometry>
+        <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
+      </bufferGeometry>
+      <pointsMaterial color={LINE_BLUE} size={0.08} transparent opacity={0.3} depthWrite={false} blending={THREE.AdditiveBlending} />
+    </points>
+  );
+}
+
 export default function VesselContactScene({
   onContextLost,
   active = true,
@@ -210,6 +358,8 @@ export default function VesselContactScene({
   active?: boolean;
 }) {
   const box = useRef<Box>({ c: new THREE.Vector3(), sx: 12, sy: 5, sz: 3, maxDim: 12, cy: 2 });
+  const partsRef = useRef<Part[]>([]);
+
   return (
     <Canvas
       dpr={[1, 1.8]}
@@ -219,7 +369,7 @@ export default function VesselContactScene({
       onCreated={({ gl, invalidate }) => {
         gl.outputColorSpace = THREE.SRGBColorSpace;
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.0;
+        gl.toneMappingExposure = 1.2; // slightly brighter for dark scene
         sceneState.invalidate = invalidate;
         gl.domElement.addEventListener(
           "webglcontextlost",
@@ -231,25 +381,32 @@ export default function VesselContactScene({
         );
       }}
     >
-      {/* warm sailcloth-cream studio — same stage as the home hero */}
-      <color attach="background" args={["#F6EFE1"]} />
-      <fog attach="fog" args={["#F6EFE1", 40, 120]} />
+      {/* Dark ink background — CAD visualization stage */}
+      <color attach="background" args={[DARK_BG]} />
+      <fog attach="fog" args={[DARK_BG, 30, 90]} />
 
       <Suspense fallback={null}>
-        <hemisphereLight args={["#ffffff", "#ECDFC7", 0.85]} />
-        <directionalLight position={[10, 18, 9]} intensity={1.6} color="#fff6e6" castShadow shadow-mapSize={[1024, 1024]} />
-        <directionalLight position={[-10, 6, -8]} intensity={0.4} color="#cfe7e2" />
-        <Environment preset="warehouse" environmentIntensity={0.7} />
+        {/* Cooler, more dramatic lighting for dark stage */}
+        <hemisphereLight args={["#1a3a5c", "#080c14", 0.6]} />
+        <directionalLight position={[10, 18, 9]} intensity={1.4} color="#d4e4f0" castShadow shadow-mapSize={[1024, 1024]} />
+        <directionalLight position={[-10, 6, -8]} intensity={0.35} color="#2a4a6c" />
+        <directionalLight position={[0, 4, -12]} intensity={0.25} color={RING_BLUE} />
+        <Environment preset="city" environmentIntensity={0.5} />
 
         <Vessel onMeasured={(b) => (box.current = b)} />
+        <GridFloor />
+        <ConnectionLines parts={partsRef} />
+        <TargetRing box={box} />
         <ScanBand box={box} />
+        <DataParticles />
 
-        <ContactShadows position={[0, -0.02, 0]} scale={36} far={24} blur={2.6} opacity={0.32} color="#5b5347" resolution={1024} />
+        {/* Darker contact shadow for the grid floor */}
+        <ContactShadows position={[0, -2.48, 0]} scale={36} far={24} blur={2.6} opacity={0.45} color="#040608" resolution={1024} />
         <AdaptiveDpr pixelated />
 
-        {/* Bloom only on the raw-HDR teal scan ring. ToneMapping LAST (skill §2). */}
+        {/* Bloom on the neon blue elements + teal scan */}
         <EffectComposer multisampling={4}>
-          <Bloom intensity={0.8} luminanceThreshold={1.0} luminanceSmoothing={0.12} radius={0.6} mipmapBlur />
+          <Bloom intensity={1.2} luminanceThreshold={0.8} luminanceSmoothing={0.1} radius={0.7} mipmapBlur />
           <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
         </EffectComposer>
       </Suspense>
