@@ -13,58 +13,51 @@ import * as THREE from "three";
 import { scrollState, motionState, sceneState, window01, smooth } from "@/lib/scroll";
 
 /* ════════════════════════════════════════════════════════════════
-   VESSEL — CONSTRUCTION SWEEP on a single fused mesh.
-   The GLB is one fused hull (~245k verts, no sub-meshes), so there
-   are no real parts to "explode". Faking it with vertex noise read
-   as the hull disintegrating. Instead we BUILD the vessel along its
-   own length with a moving clip plane — bow draws on first, the cut
-   sweeps stern-ward, a thin teal edge rides the build line:
-     scroll 0.00 → only the bow is present
-     scroll 0.60 → full hull revealed, settles to hero
-     scroll 0.60+ → slow showcase orbit + waterline bob
-   Reads as "the vessel is assembled / surveyed section by section",
-   honest to a fused hull and on-message with "joint by joint".
+   VESSEL — IN-WATER INSPECTION SHOWCASE (reel-tier).
+
+   Redesign (2026-06): the GLB is ONE fused hull (~245k verts, no
+   sub-meshes). The previous build CLIPPED it on along its length —
+   but cutting a fused hull exposes a hollow cross-section, which read
+   as the vessel slicing apart / "disintegrating". A fused object has
+   no honest "assembly", so we stop faking one.
+
+   Instead the whole vessel is always present, sitting on reflective
+   cream water, and scroll drives a slow CINEMATIC ORBIT (the reel's
+   showcase turntable) while a teal SCAN plane sweeps the hull bow→
+   stern — Advantage Marine's actual job: in-water inspection / NDT.
+   Honest to the geometry, on-brand, and it can never read as broken.
+
+     scroll 0.00 → 3/4 establishing, vessel whole on the waterline
+     scroll 0→0.45 → camera eases to the hero quarter, tag fades in
+     scroll 0.45→1 → slow orbit reveals the far side; scan keeps sweeping
    ════════════════════════════════════════════════════════════════ */
 
-const ASSEMBLE_END = 0.6; // progress where the hull is fully built
-const FIT_SIZE = 3.2; // longest axis fit, world units (fixed → scale never tracks viewport)
+const FIT_SIZE = 3.2; // longest-axis fit, world units (fixed → never tracks viewport)
 const MODEL_URL = "/models/vessel.glb";
-const EDGE_PAD = 0.06; // clip margin so the cut never hard-pops at the extremes
-
-// easeInOutCubic — cinematic build, no bounce
-const easeInOut = (x: number) =>
-  x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 
 function Vessel() {
   const { scene } = useGLTF(MODEL_URL);
   const groupRef = useRef<THREE.Group>(null!);
-  const edgeRef = useRef<THREE.Mesh>(null!);
+  const scanRef = useRef<THREE.Mesh>(null!);
 
-  // build-axis state, filled once the model is measured
+  // build axis (hull length) + half-extent, filled once measured
   const axis = useRef<{ idx: 0 | 1 | 2; half: number; normal: THREE.Vector3 }>({
     idx: 0,
     half: FIT_SIZE / 2,
-    normal: new THREE.Vector3(-1, 0, 0),
+    normal: new THREE.Vector3(1, 0, 0),
   });
 
-  // one moving clip plane — points "ahead" of the build line get clipped away
-  const clip = useMemo(() => new THREE.Plane(new THREE.Vector3(-1, 0, 0), FIT_SIZE / 2), []);
-
-  // brushed marine-steel; clipped by the moving plane. DoubleSide so the
-  // swept cross-section reads solid (a cutaway), not a hollow shell.
+  // brushed marine-steel — whole hull, no clipping (no hollow cross-section)
   const material = useMemo(() => {
     return new THREE.MeshStandardMaterial({
       color: new THREE.Color("#8fa6a3"), // cool steel, faint teal
-      metalness: 0.8,
-      roughness: 0.4,
-      envMapIntensity: 1.15,
-      side: THREE.DoubleSide,
-      clippingPlanes: [clip],
-      clipShadows: false,
+      metalness: 0.82,
+      roughness: 0.38,
+      envMapIntensity: 1.2,
     });
-  }, [clip]);
+  }, []);
 
-  // normalize: recenter + scale longest axis to FIT_SIZE, find the build axis, apply steel
+  // normalize: recenter + scale longest axis to FIT_SIZE, find the long axis, apply steel
   useEffect(() => {
     const box = new THREE.Box3().setFromObject(scene);
     const size = new THREE.Vector3();
@@ -86,47 +79,44 @@ function Vessel() {
       }
     });
 
-    // build along the model's longest world axis (hull length for a vessel)
+    // long world axis = hull length → the scan sweeps along it
     const dims = [size.x, size.y, size.z];
     const idx = (dims.indexOf(Math.max(...dims)) as 0 | 1 | 2) ?? 0;
     const normal = new THREE.Vector3(0, 0, 0);
-    normal.setComponent(idx, -1); // reveal from the negative end toward positive
+    normal.setComponent(idx, 1);
     axis.current = { idx, half: FIT_SIZE / 2, normal };
-    clip.normal.copy(normal);
-    clip.constant = FIT_SIZE / 2; // start fully clipped (nothing shown)
 
-    // GLB loaded + positioned → tell the loader it can clear.
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("am:scene-ready"));
     }
-  }, [scene, material, clip]);
+  }, [scene, material]);
 
   useFrame((state, dt) => {
     const p = scrollState.progress;
-    // build: 0 (only bow) at p=0 → 1 (full hull) at p=ASSEMBLE_END
-    const build = motionState.reduced ? 1 : easeInOut(window01(p, 0, ASSEMBLE_END));
     const { half, normal } = axis.current;
-    // constant goes +half (all clipped) → -half (all shown); pad so it overshoots
-    const reveal = half + EDGE_PAD - build * (2 * half + 2 * EDGE_PAD);
-    clip.constant = reveal;
 
-    // ride the thin teal build edge at the current cut line, fade out once built
-    if (edgeRef.current) {
-      const pos = normal.clone().multiplyScalar(-reveal); // world point on the plane
-      edgeRef.current.position.copy(pos);
-      // orient the edge quad to face along the build axis
-      edgeRef.current.lookAt(pos.clone().add(normal));
-      const visible = !motionState.reduced && build > 0.02 && build < 0.985;
-      edgeRef.current.visible = visible;
-      const mat = edgeRef.current.material as THREE.MeshBasicMaterial;
-      mat.opacity = visible ? 0.5 * Math.sin(Math.min(build, 1) * Math.PI) + 0.18 : 0;
+    // ── inspection scan: a teal plane travels bow→stern on a slow loop,
+    //    reading as an in-water survey pass over the hull ──
+    if (scanRef.current) {
+      if (motionState.reduced) {
+        scanRef.current.visible = false;
+      } else {
+        const t = (state.clock.elapsedTime * 0.16) % 1; // ~6.3s per sweep
+        const along = -half + t * (2 * half); // bow → stern
+        scanRef.current.position.copy(normal.clone().multiplyScalar(along));
+        scanRef.current.lookAt(scanRef.current.position.clone().add(normal));
+        scanRef.current.visible = true;
+        const mat = scanRef.current.material as THREE.MeshBasicMaterial;
+        // brighten mid-sweep, fade at the ends so it never hard-pops
+        mat.opacity = 0.42 * Math.sin(t * Math.PI) + 0.05;
+      }
     }
 
     if (groupRef.current) {
       if (!motionState.reduced) {
-        // slow showcase rotation, easing in only once the hull is mostly built
-        const spin = window01(p, 0.45, 1);
-        groupRef.current.rotation.y += dt * (0.03 + 0.12 * spin);
+        // slow showcase orbit, easing in once past the establishing beat
+        const spin = window01(p, 0.2, 1);
+        groupRef.current.rotation.y += dt * (0.05 + 0.16 * spin);
         // gentle bob "in the water"
         groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.6) * 0.04;
         state.invalidate();
@@ -140,9 +130,9 @@ function Vessel() {
   return (
     <group ref={groupRef} rotation={[0, -0.5, 0]}>
       <primitive object={scene} />
-      {/* thin emissive build edge that rides the sweep line */}
-      <mesh ref={edgeRef} visible={false} renderOrder={2}>
-        <planeGeometry args={[FIT_SIZE * 1.25, FIT_SIZE * 0.9]} />
+      {/* teal inspection-scan plane sweeping the hull length */}
+      <mesh ref={scanRef} visible={false} renderOrder={2}>
+        <planeGeometry args={[FIT_SIZE * 1.3, FIT_SIZE * 0.95]} />
         <meshBasicMaterial
           color="#39b9ac"
           transparent
@@ -177,16 +167,14 @@ function Ocean() {
   );
 }
 
-/* ---------- billboarded ADVANTAGE MARINE tag (fades in as it assembles) ----------
-   Rendered via drei <Html> with the real .font-display (Cinzel) class so the
-   wordmark matches the page type — billboards automatically (transform mode). */
+/* ---------- billboarded ADVANTAGE MARINE tag (fades in once settled) ---------- */
 function AdvantageTag() {
   const wrapRef = useRef<HTMLDivElement>(null!);
 
   useFrame(() => {
     const p = scrollState.progress;
-    // fade in once the vessel is mostly assembled
-    const o = smooth(window01(p, 0.5, 0.72));
+    // fade in once the camera settles to the hero quarter
+    const o = smooth(window01(p, 0.18, 0.4));
     if (wrapRef.current) wrapRef.current.style.opacity = String(o);
   });
 
@@ -229,27 +217,27 @@ function AdvantageTag() {
   );
 }
 
-/* ---------- scroll-driven camera: cinematic push as the hull builds → settle → slight orbit ---------- */
+/* ---------- scroll-driven camera: 3/4 establishing → settle → slow orbit reveal ---------- */
 function Rig() {
   const { camera, size } = useThree();
   const target = useRef(new THREE.Vector3(0, 0.1, 0));
   const kpos = useMemo(
     () => [
-      new THREE.Vector3(1.4, 1.2, 7.6), // 0.00 — 3/4 establishing, watch the build sweep
-      new THREE.Vector3(0.0, 0.5, 6.0), // 0.60 — settled hero, hull mid-frame
-      new THREE.Vector3(-1.3, 0.95, 6.1), // 1.00 — slight orbit for the tag reveal
+      new THREE.Vector3(1.4, 1.2, 7.6), // 0.00 — 3/4 establishing
+      new THREE.Vector3(-0.2, 0.7, 6.4), // 0.45 — settled hero quarter
+      new THREE.Vector3(-2.2, 1.1, 6.2), // 1.00 — orbit reveals the far side
     ],
     []
   );
-  const stops = useMemo(() => [0, ASSEMBLE_END, 1], []);
+  const stops = useMemo(() => [0, 0.45, 1], []);
 
   useFrame(() => {
     const p = scrollState.progress;
     let seg = 0;
     while (seg < stops.length - 2 && p > stops[seg + 1]) seg++;
     const t = smooth(window01(p, stops[seg], stops[seg + 1]));
-    // portrait phones have a narrow horizontal FOV — back the camera off so the
-    // long horizontal hull fits the frame instead of being cropped / oversized.
+    // portrait phones have a narrow horizontal FOV — back off so the long
+    // horizontal hull fits instead of being cropped / oversized.
     const aspect = size.width / Math.max(size.height, 1);
     const distMul = aspect < 1 ? 1 + (1 - aspect) * 0.9 : 1;
     const pos = kpos[seg].clone().lerp(kpos[seg + 1], t).multiplyScalar(distMul);
@@ -271,17 +259,15 @@ export default function VesselScene({
     <Canvas
       dpr={[1, 1.8]}
       frameloop={active ? "always" : "never"}
-      gl={{ antialias: true, powerPreference: "high-performance", localClippingEnabled: true }}
+      gl={{ antialias: true, powerPreference: "high-performance" }}
       camera={{ position: [1.4, 1.2, 7.6], fov: 40, near: 0.1, far: 200 }}
       onCreated={({ gl, invalidate }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
         gl.outputColorSpace = THREE.SRGBColorSpace;
-        gl.localClippingEnabled = true;
-        // bridge: GSAP ScrollTrigger onUpdate calls this to re-render on scroll
         sceneState.invalidate = invalidate;
         // Hardening: if the GPU drops the WebGL context (driver reset, OOM,
-        // shader-program failure) the canvas would otherwise stay a blank void.
-        // Surface it so the host can swap in the static poster hero instead.
+        // shader-program failure) surface it so the host swaps in the static
+        // poster hero instead of leaving a blank void.
         gl.domElement.addEventListener(
           "webglcontextlost",
           (e) => {
