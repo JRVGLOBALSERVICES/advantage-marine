@@ -53,6 +53,10 @@ function paint(name: string): { color: string; metalness: number; roughness: num
   if (name === "BootTopping") return { color: "#f0852a", metalness: 0.25, roughness: 0.55 };
   if (name === "Prop-P" || name === "Prop-S") return { color: "#c9a86c", metalness: 0.95, roughness: 0.25, emissive: "#1a1205" };
   if (name === "Rudder") return { color: "#60666d", metalness: 0.75, roughness: 0.38 };
+  // engine-room interior machinery — revealed when the assembly explodes
+  if (name === "GEO-engineroom-deck") return { color: "#1a2530", metalness: 0.85, roughness: 0.45 };
+  if (name.endsWith("-trim") || name.endsWith("-hub")) return { color: "#f0c542", metalness: 0.5, roughness: 0.4, emissive: "#3a2c00" };
+  if (name.startsWith("GEO-")) return { color: "#2f9e8f", metalness: 0.45, roughness: 0.4, emissive: "#06231f" };
   return { color: "#7a8088", metalness: 0.55, roughness: 0.45 };
 }
 
@@ -72,6 +76,23 @@ const EXPLODE: Record<string, [number, number, number]> = {
   "Prop-P": [-3.4, -1.7, -1.3],
   "Prop-S": [-3.4, -1.7, 1.3],
   Rudder: [-4.0, -1.1, 0],
+  // engine-room interior — drops below the hull on explode (the video's "look inside" reveal),
+  // nests back inside when assembled. Each part-group shares its body's vector so trim/hubs stay attached.
+  "GEO-engineroom-deck": [0, -2.0, 0],
+  "GEO-engine-main-port": [0, -2.5, -0.7],
+  "GEO-engine-main-stbd": [0, -2.5, 0.7],
+  "GEO-genset-A": [1.4, -2.9, -1.0],
+  "GEO-genset-A-trim": [1.4, -2.9, -1.0],
+  "GEO-genset-B": [1.4, -2.9, 1.0],
+  "GEO-genset-B-trim": [1.4, -2.9, 1.0],
+  "GEO-azimuth-thruster-port-strut": [-3.2, -2.7, -1.0],
+  "GEO-azimuth-thruster-port-bulb": [-3.2, -2.7, -1.0],
+  "GEO-azimuth-thruster-port-hub": [-3.2, -2.7, -1.0],
+  "GEO-azimuth-thruster-stbd-strut": [-3.2, -2.7, 1.0],
+  "GEO-azimuth-thruster-stbd-bulb": [-3.2, -2.7, 1.0],
+  "GEO-azimuth-thruster-stbd-hub": [-3.2, -2.7, 1.0],
+  "GEO-bow-thruster": [3.8, -2.5, 0],
+  "GEO-bow-thruster-hub": [3.8, -2.5, 0],
 };
 
 function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
@@ -224,6 +245,7 @@ function ConnectionLines({ parts }: { parts: React.MutableRefObject<Part[]> }) {
     <group ref={linesRef}>
       {Object.entries(EXPLODE).map(([name, offset], i) => {
         if (name === "Hull") return null; // anchor doesn't get a line
+        if (name.startsWith("GEO-")) return null; // interior machinery — no traces, keeps the reveal clean
         const pts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(offset[0], offset[1], offset[2])];
         return (
           <line key={name} ref={(el) => { if (el) lineMeshes.current[i] = el as unknown as THREE.Line; }}>
