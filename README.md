@@ -9,10 +9,16 @@ The site's signature is a scroll-narrative hero: a **Blender-authored 11-part
 support vessel** (Hull · Deck · Bridge · Funnel · Mast · Crane · Bulwark ·
 BootTopping · twin Props · Rudder) reads as an exploded technical diagram at
 scroll-top and **assembles into the complete hull** as you scroll — on a slow
-turntable, lit by a teal inspection scan. Three capability beats (whole-of-vessel
-→ read underwater → cleared by class) latch to the assembly progress. The whole
-site runs a **warm sailcloth-cream light theme — no dark surfaces anywhere**; the
-vessel reads as a marine-PBR model on the cream.
+turntable. The home hero runs a **dark CAD-visualization stage** matching the
+client's concept video: deep ink backdrop (`#080c14`), a cyan grid floor, neon
+**connection lines** tracing each part to its assembled position, a pulsating
+target ring, and a **one-shot expanding scan-pulse** that bursts from the vessel
+and fades as assembly completes (scroll 0.86→1.0). A single bright cyan
+(`#22eeff`, the video's accent) carries the lines, ring, pulse and the hero
+eyebrow + stat. Three capability beats (whole-of-vessel → read underwater →
+cleared by class) latch to the assembly progress. The **rest of the site** keeps
+the warm sailcloth-cream light theme; the dark CAD treatment is scoped to the
+home hero stage only.
 
 The scroll mechanic is **iOS-safe `position: sticky`** (a 340lvh section with a
 sticky 100lvh stage), never `ScrollTrigger pin:true` — with a full static-photo
@@ -138,7 +144,7 @@ components/
   SiteFooter.tsx        Footer — "Site by JRV"
   PageHeader.tsx        Inner-page header band
   VesselHero.tsx        CURRENT home hero — iOS-safe sticky narrative + 3 beats
-  VesselContactScene.tsx R3F scene — 11-part vessel, scroll explode→assemble + teal scan
+  VesselContactScene.tsx R3F scene — 11-part vessel, scroll explode→assemble; dark CAD stage (cyan grid + connection lines + target ring + one-shot scan-pulse), teal scan as secondary accent
   VesselShowcase.tsx    Showcase wrapper (vessel scene + copy)
   RigShowcase.tsx       (retained, unused) prior jack-up rig hero
   RigHeroScene.tsx      (retained, unused) R3F jack-up rig scene + Bloom FX
