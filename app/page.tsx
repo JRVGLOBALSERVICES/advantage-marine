@@ -9,10 +9,10 @@ import {
   StickyStackCards,
   type StickyStackItem,
 } from "@/components/ui/StickyStackCards";
-import SelectedWorksLog, { type WorkRecord } from "@/components/SelectedWorksLog";
+import { ProjectCard, type ProjectCardData } from "@/components/ProjectCard";
 import { CertOrbit } from "@/components/about/CertOrbit";
 import { type Cert } from "@/components/about/CertWall";
-import { parseYear, reportHref } from "@/lib/projectMeta";
+import { parseYear, parsePeriod, reportHref } from "@/lib/projectMeta";
 import { MovingBorderButton } from "@/components/ui/MovingBorderButton";
 import { MagneticLink } from "@/components/ui/MagneticLink";
 import { LottieIcon } from "@/components/ui/LottieIcon";
@@ -91,20 +91,22 @@ const DECK_SRC: { match: string; image: string }[] = [
   { match: "ENSCO 67", image: "/media/projects/blog-02.jpg" },
   { match: "Hengyuan Refinery", image: "/media/projects/blog-03.jpg" },
 ];
-/* Six fully-documented records surfaced as the homepage "Selected work" log —
-   rendered as a survey logbook (SelectedWorksLog) that surfaces each project
-   from under the waterline on hover. Real titles, disciplines, years and
-   report links only — no fabricated entries. */
-const HOME_RECORDS: WorkRecord[] = DECK_SRC.map(({ match, image }) => {
+/* Six fully-documented records surfaced as the homepage "Selected work" grid —
+   the SAME ProjectCard used on /projects (real photo, title, discipline,
+   summary, year, deep-linked report). Real entries only — no fabrication. */
+const HOME_PROJECTS: ProjectCardData[] = DECK_SRC.map(({ match, image }, i) => {
   const p = projectsData.projects.find((x) => x.title.startsWith(match))!;
-  const idx = projectsData.projects.indexOf(p) + 1;
   return {
-    idx: String(idx).padStart(2, "0"),
     title: p.title,
     category: p.category,
-    year: parseYear(p.summary ?? null),
+    summary: p.summary ?? null,
     image,
-    href: reportHref((p as { pdf?: string | null }).pdf) ?? undefined,
+    idx: String(projectsData.projects.indexOf(p) + 1).padStart(2, "0"),
+    client: (p as { client?: string | null }).client ?? null,
+    year: parseYear(p.summary ?? null),
+    period: parsePeriod(p.summary ?? null),
+    pdfHref: reportHref((p as { pdf?: string | null }).pdf) ?? undefined,
+    delayIndex: i,
   };
 });
 
@@ -288,7 +290,7 @@ export default function Home() {
                 className="font-display font-bold leading-[1.08] tracking-[-0.02em] max-w-[18ch]"
                 style={{ fontSize: "var(--text-h2)" }}
               >
-                <WordReveal text="Rigs kept on station, on schedule." />
+                <WordReveal text="A record under the waterline." />
               </h2>
               <Reveal>
                 <p
@@ -308,9 +310,13 @@ export default function Home() {
             </Reveal>
           </div>
 
-          {/* survey logbook — six records on file, each surfacing its photo
-              from under the waterline on hover (SelectedWorksLog) */}
-          <SelectedWorksLog records={HOME_RECORDS} />
+          {/* six documented records — the same ProjectCard as /projects,
+              real photo + parsed metadata, responsive 1/2/3-up grid */}
+          <div className="mt-[var(--space-xl)] grid items-stretch gap-[var(--space-lg)] sm:grid-cols-2 lg:grid-cols-3">
+            {HOME_PROJECTS.map((p) => (
+              <ProjectCard key={p.title} {...p} />
+            ))}
+          </div>
         </div>
       </section>
 
