@@ -24,7 +24,7 @@ import { scrollState, motionState, sceneState } from "@/lib/scroll";
    the "go-subsea" motion): the page literally DESCENDS into Advantage
    Marine's worksite. A recognizable assembled jack-up on warm cream,
    then the camera dives THROUGH the waterline; below it ONLY the
-   genuinely submerged steel — the four legs + spud-cans — separates
+   genuinely submerged steel — the three legs + spud-cans — separates
    into a readable in-water NDT inspection diagram, while a world-Y
    shader band cools the submerged steel to teal depth-scan. The hull
    and derrick NEVER move (honest: nothing above the waterline detaches).
@@ -47,32 +47,24 @@ import { scrollState, motionState, sceneState } from "@/lib/scroll";
 
 const MODEL_URL = "/models/jackup-rig.glb";
 
-/* corner unit-directions (x,z) matched to authored spud-can layout */
-const CORNER: Record<string, [number, number]> = {
-  A: [-1, 1],
-  B: [1, 1],
-  C: [-1, -1],
-  D: [1, -1],
-};
-
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 /* In-water NDT findings — real survey language, grounded in AM's scope
    (cathodic protection, UT wall-thickness, scour, weld NDT). Anchored to the
-   4 spud-cans on desktop; suppressed on a narrow frame (labels would overlap). */
+   3 spud-cans on desktop; suppressed on a narrow frame (labels would overlap). */
 const FINDINGS: Record<string, { code: string; spec: string }> = {
-  A: { code: "SpudCan_A", spec: "scour survey · CLEAN" },
-  B: { code: "SpudCan_B", spec: "CP anode −0.92V · OK" },
-  C: { code: "SpudCan_C", spec: "UT wall 18.4mm · PASS" },
-  D: { code: "SpudCan_D", spec: "weld NDT · NO INDIC." },
+  A: { code: "SpudCan-A", spec: "scour survey · CLEAN" },
+  B: { code: "SpudCan-B", spec: "CP anode −0.92V · OK" },
+  C: { code: "SpudCan-C", spec: "UT wall 18.4mm · PASS" },
 };
 
 type Part = {
   node: Object3D;
   base: THREE.Vector3;
   offset: THREE.Vector3;
+  dir: THREE.Vector2; // outward (x,z) unit dir from rig centre — drives splay + leader-line
   corner?: string; // set for spud-cans → callout anchor
 };
 
@@ -203,23 +195,27 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
         else if (o.name.startsWith("GEO-SpudCan")) patchSteel(m, "#3A4046", 0.55);
         else if (o.name.startsWith("GEO-")) patchSteel(m, "#4E565C", 0.4);
       }
-      // submerged teardown plan — ONLY legs + spud-cans translate
-      const leg = o.name.match(/GEO-Leg_([A-D])/);
-      const can = o.name.match(/GEO-SpudCan_([A-D])/);
-      if (leg) {
-        const [x, z] = CORNER[leg[1]];
+      // submerged teardown plan — ONLY legs + spud-cans translate. Layout-agnostic:
+      // the outward splay direction is MEASURED from each part's world-space centre,
+      // so it works for the authored 3-leg triangle (or any leg count) with no
+      // hard-coded corner map.
+      const leg = m.isMesh && /GEO-Leg-[A-C]$/.test(o.name);
+      const can = m.isMesh && o.name.match(/GEO-SpudCan-([A-C])$/);
+      if (leg || can) {
+        const ctr = new THREE.Vector3();
+        new THREE.Box3().setFromObject(o).getCenter(ctr);
+        const dir = new THREE.Vector2(ctr.x, ctr.z);
+        if (dir.lengthSq() < 1e-4) dir.set(0, 1);
+        dir.normalize();
+        const isCan = !!can;
         collected.push({
           node: o,
           base: o.position.clone(),
-          offset: new THREE.Vector3(x, -0.35, z).normalize().multiplyScalar(span * 0.16),
-        });
-      } else if (can) {
-        const [x, z] = CORNER[can[1]];
-        collected.push({
-          node: o,
-          base: o.position.clone(),
-          offset: new THREE.Vector3(x, -0.7, z).normalize().multiplyScalar(span * 0.22),
-          corner: can[1],
+          dir: dir.clone(),
+          offset: new THREE.Vector3(dir.x, isCan ? -0.7 : -0.35, dir.y)
+            .normalize()
+            .multiplyScalar(span * (isCan ? 0.22 : 0.16)),
+          corner: isCan ? can[1] : undefined,
         });
       }
     });
@@ -240,7 +236,6 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
   // proven viewing azimuth (x,z direction) kept constant — the dive varies
   // camera elevation, target Y and orbit radius, all relative to measured anchors.
   const DIR = useMemo(() => new THREE.Vector2(42, 48).normalize(), []);
-  const RBASE = 63.8; // sqrt(42²+48²) — proven assembled horizontal distance
 
   useFrame((state) => {
     const target = motionState.reduced ? 0.32 : scrollState.progress; // reduced → static above-surface frame
@@ -283,8 +278,12 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
 
     // ── camera dive, scale-relative ──
     const dive = smoothstep(clamp01((p - 0.1) / 0.5)); // 0 above → 1 settled subsea
+    // assembled framing distance derived from the MEASURED rig size (no hard-coded
+    // unit-scale): fits both the horizontal footprint and the vertical span, so a
+    // smaller/larger authored model self-frames.
+    const fitR = Math.max(span * 2.0, anchors.current.foot * 2.6);
     const R =
-      RBASE *
+      fitR *
       lerp(1.0, 0.8, dive) *
       (p > 0.85 ? lerp(1, 1.06, clamp01((p - 0.85) / 0.15)) : 1);
     const camY = lerp(top * 1.04, water - span * 0.16, dive);
@@ -344,13 +343,12 @@ function Callout({
 }) {
   const lineRef = useRef<THREE.Object3D & { material: THREE.Material & { opacity: number } }>(null!);
   const htmlWrap = useRef<HTMLDivElement>(null!);
-  const [x, z] = CORNER[part.corner as string];
   const reach = foot * 0.5;
 
   const start = useMemo(() => part.base.clone(), [part]);
   const end = useMemo(
-    () => new THREE.Vector3(x, 0, z).normalize().multiplyScalar(reach),
-    [x, z, reach],
+    () => new THREE.Vector3(part.dir.x, 0, part.dir.y).normalize().multiplyScalar(reach),
+    [part.dir, reach],
   );
   const elbow = useMemo(
     () => start.clone().add(end).add(new THREE.Vector3(0, -reach * 0.1, 0)),
