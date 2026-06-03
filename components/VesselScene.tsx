@@ -13,70 +13,58 @@ import * as THREE from "three";
 import { scrollState, motionState, sceneState, window01, smooth } from "@/lib/scroll";
 
 /* ════════════════════════════════════════════════════════════════
-   VESSEL — EXPLODE → ASSEMBLE on a single fused mesh.
-   The GLB is one mesh / one node / no materials (~245k verts), so
-   there are no sub-meshes to detach. Instead we displace each vertex
-   outward (along its normal + a per-triangle pseudo-random vector
-   seeded from position) by a single uniform `uExplode`:
-     scroll 0.00 → uExplode 1  (fully exploded / detached cloud)
-     scroll 0.60 → uExplode 0  (fully assembled vessel)
-   Reads as "parts fly together into the vessel".
+   VESSEL — CONSTRUCTION SWEEP on a single fused mesh.
+   The GLB is one fused hull (~245k verts, no sub-meshes), so there
+   are no real parts to "explode". Faking it with vertex noise read
+   as the hull disintegrating. Instead we BUILD the vessel along its
+   own length with a moving clip plane — bow draws on first, the cut
+   sweeps stern-ward, a thin teal edge rides the build line:
+     scroll 0.00 → only the bow is present
+     scroll 0.60 → full hull revealed, settles to hero
+     scroll 0.60+ → slow showcase orbit + waterline bob
+   Reads as "the vessel is assembled / surveyed section by section",
+   honest to a fused hull and on-message with "joint by joint".
    ════════════════════════════════════════════════════════════════ */
 
-const ASSEMBLE_END = 0.6; // progress where the vessel is fully assembled
+const ASSEMBLE_END = 0.6; // progress where the hull is fully built
 const FIT_SIZE = 3.2; // longest axis fit, world units (fixed → scale never tracks viewport)
 const MODEL_URL = "/models/vessel.glb";
+const EDGE_PAD = 0.06; // clip margin so the cut never hard-pops at the extremes
 
-// easeOutCubic — clean settle, no bounce
-const easeOut = (x: number) => 1 - Math.pow(1 - x, 3);
+// easeInOutCubic — cinematic build, no bounce
+const easeInOut = (x: number) =>
+  x < 0.5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2;
 
 function Vessel() {
   const { scene } = useGLTF(MODEL_URL);
-  const explodeRef = useRef({ value: 1 });
   const groupRef = useRef<THREE.Group>(null!);
+  const edgeRef = useRef<THREE.Mesh>(null!);
 
-  // brushed marine-steel material, cool tinted slightly teal
+  // build-axis state, filled once the model is measured
+  const axis = useRef<{ idx: 0 | 1 | 2; half: number; normal: THREE.Vector3 }>({
+    idx: 0,
+    half: FIT_SIZE / 2,
+    normal: new THREE.Vector3(-1, 0, 0),
+  });
+
+  // one moving clip plane — points "ahead" of the build line get clipped away
+  const clip = useMemo(() => new THREE.Plane(new THREE.Vector3(-1, 0, 0), FIT_SIZE / 2), []);
+
+  // brushed marine-steel; clipped by the moving plane. DoubleSide so the
+  // swept cross-section reads solid (a cutaway), not a hollow shell.
   const material = useMemo(() => {
-    const m = new THREE.MeshStandardMaterial({
+    return new THREE.MeshStandardMaterial({
       color: new THREE.Color("#8fa6a3"), // cool steel, faint teal
       metalness: 0.8,
       roughness: 0.4,
       envMapIntensity: 1.15,
+      side: THREE.DoubleSide,
+      clippingPlanes: [clip],
+      clipShadows: false,
     });
-    // patch the shader: outward vertex displacement driven by uExplode
-    m.onBeforeCompile = (shader) => {
-      shader.uniforms.uExplode = explodeRef.current;
-      shader.vertexShader = shader.vertexShader
-        .replace(
-          "#include <common>",
-          `#include <common>
-           uniform float uExplode;
-           // cheap hash → per-triangle pseudo-random unit-ish vector
-           vec3 hash3(vec3 p){
-             p = vec3(
-               dot(p, vec3(127.1, 311.7, 74.7)),
-               dot(p, vec3(269.5, 183.3, 246.1)),
-               dot(p, vec3(113.5, 271.9, 124.6))
-             );
-             return fract(sin(p) * 43758.5453123) * 2.0 - 1.0;
-           }`
-        )
-        .replace(
-          "#include <begin_vertex>",
-          `#include <begin_vertex>
-           // seed from quantized position so neighbouring verts move together
-           vec3 seed = floor(position * 6.0);
-           vec3 rnd = normalize(hash3(seed) + 0.0001);
-           // expand outward mostly along the normal (hull "breathes apart") with a
-           // mild random bias so it reads as the vessel loosening, not disintegrating
-           vec3 dir = normalize(normal + rnd * 0.5);
-           transformed += dir * uExplode * (0.55 + 0.45 * length(rnd)) * 0.8;`
-        );
-    };
-    return m;
-  }, []);
+  }, [clip]);
 
-  // normalize: recenter to origin + scale longest axis to FIT_SIZE, apply steel
+  // normalize: recenter + scale longest axis to FIT_SIZE, find the build axis, apply steel
   useEffect(() => {
     const box = new THREE.Box3().setFromObject(scene);
     const size = new THREE.Vector3();
@@ -97,28 +85,53 @@ function Vessel() {
         if (!g.attributes.normal) g.computeVertexNormals();
       }
     });
+
+    // build along the model's longest world axis (hull length for a vessel)
+    const dims = [size.x, size.y, size.z];
+    const idx = (dims.indexOf(Math.max(...dims)) as 0 | 1 | 2) ?? 0;
+    const normal = new THREE.Vector3(0, 0, 0);
+    normal.setComponent(idx, -1); // reveal from the negative end toward positive
+    axis.current = { idx, half: FIT_SIZE / 2, normal };
+    clip.normal.copy(normal);
+    clip.constant = FIT_SIZE / 2; // start fully clipped (nothing shown)
+
     // GLB loaded + positioned → tell the loader it can clear.
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("am:scene-ready"));
     }
-  }, [scene, material]);
+  }, [scene, material, clip]);
 
   useFrame((state, dt) => {
     const p = scrollState.progress;
-    // uExplode: 1 (exploded) at p=0 → 0 (assembled) at p=ASSEMBLE_END
-    const assembled = easeOut(window01(p, 0, ASSEMBLE_END));
-    explodeRef.current.value = motionState.reduced ? 0 : 1 - assembled;
+    // build: 0 (only bow) at p=0 → 1 (full hull) at p=ASSEMBLE_END
+    const build = motionState.reduced ? 1 : easeInOut(window01(p, 0, ASSEMBLE_END));
+    const { half, normal } = axis.current;
+    // constant goes +half (all clipped) → -half (all shown); pad so it overshoots
+    const reveal = half + EDGE_PAD - build * (2 * half + 2 * EDGE_PAD);
+    clip.constant = reveal;
+
+    // ride the thin teal build edge at the current cut line, fade out once built
+    if (edgeRef.current) {
+      const pos = normal.clone().multiplyScalar(-reveal); // world point on the plane
+      edgeRef.current.position.copy(pos);
+      // orient the edge quad to face along the build axis
+      edgeRef.current.lookAt(pos.clone().add(normal));
+      const visible = !motionState.reduced && build > 0.02 && build < 0.985;
+      edgeRef.current.visible = visible;
+      const mat = edgeRef.current.material as THREE.MeshBasicMaterial;
+      mat.opacity = visible ? 0.5 * Math.sin(Math.min(build, 1) * Math.PI) + 0.18 : 0;
+    }
 
     if (groupRef.current) {
-      // slow showcase rotation once assembled; settle, no spin while scattered
       if (!motionState.reduced) {
-        const spin = window01(p, 0.35, 1);
-        groupRef.current.rotation.y += dt * (0.04 + 0.12 * spin);
+        // slow showcase rotation, easing in only once the hull is mostly built
+        const spin = window01(p, 0.45, 1);
+        groupRef.current.rotation.y += dt * (0.03 + 0.12 * spin);
         // gentle bob "in the water"
         groupRef.current.position.y = Math.sin(state.clock.elapsedTime * 0.6) * 0.04;
-        // keep the demand loop alive while ambient motion plays
         state.invalidate();
       } else {
+        groupRef.current.rotation.y = -0.5;
         groupRef.current.position.y = 0;
       }
     }
@@ -127,6 +140,18 @@ function Vessel() {
   return (
     <group ref={groupRef} rotation={[0, -0.5, 0]}>
       <primitive object={scene} />
+      {/* thin emissive build edge that rides the sweep line */}
+      <mesh ref={edgeRef} visible={false} renderOrder={2}>
+        <planeGeometry args={[FIT_SIZE * 1.25, FIT_SIZE * 0.9]} />
+        <meshBasicMaterial
+          color="#39b9ac"
+          transparent
+          opacity={0}
+          side={THREE.DoubleSide}
+          depthWrite={false}
+          blending={THREE.AdditiveBlending}
+        />
+      </mesh>
     </group>
   );
 }
@@ -204,15 +229,15 @@ function AdvantageTag() {
   );
 }
 
-/* ---------- scroll-driven camera: wide on the scatter → settle on the vessel ---------- */
+/* ---------- scroll-driven camera: cinematic push as the hull builds → settle → slight orbit ---------- */
 function Rig() {
   const { camera, size } = useThree();
-  const target = useRef(new THREE.Vector3(0, 0.2, 0));
+  const target = useRef(new THREE.Vector3(0, 0.1, 0));
   const kpos = useMemo(
     () => [
-      new THREE.Vector3(0.2, 1.5, 8.4), // 0.00 wide — see the scattered cloud
-      new THREE.Vector3(0.0, 0.6, 6.2), // 0.60 settled hero, vessel mid-frame
-      new THREE.Vector3(-1.1, 0.9, 6.0), // 1.00 slight orbit for the tag reveal
+      new THREE.Vector3(1.4, 1.2, 7.6), // 0.00 — 3/4 establishing, watch the build sweep
+      new THREE.Vector3(0.0, 0.5, 6.0), // 0.60 — settled hero, hull mid-frame
+      new THREE.Vector3(-1.3, 0.95, 6.1), // 1.00 — slight orbit for the tag reveal
     ],
     []
   );
@@ -246,11 +271,12 @@ export default function VesselScene({
     <Canvas
       dpr={[1, 1.8]}
       frameloop={active ? "always" : "never"}
-      gl={{ antialias: true, powerPreference: "high-performance" }}
-      camera={{ position: [0.2, 1.5, 8.4], fov: 40, near: 0.1, far: 200 }}
+      gl={{ antialias: true, powerPreference: "high-performance", localClippingEnabled: true }}
+      camera={{ position: [1.4, 1.2, 7.6], fov: 40, near: 0.1, far: 200 }}
       onCreated={({ gl, invalidate }) => {
         gl.toneMapping = THREE.ACESFilmicToneMapping;
         gl.outputColorSpace = THREE.SRGBColorSpace;
+        gl.localClippingEnabled = true;
         // bridge: GSAP ScrollTrigger onUpdate calls this to re-render on scroll
         sceneState.invalidate = invalidate;
         // Hardening: if the GPU drops the WebGL context (driver reset, OOM,
