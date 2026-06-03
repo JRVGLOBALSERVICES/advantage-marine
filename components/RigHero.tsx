@@ -6,6 +6,7 @@ import Image from "next/image";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { scrollState, motionState, sceneState } from "@/lib/scroll";
+import CanvasErrorBoundary from "./ui/CanvasErrorBoundary";
 import BlurText from "./ui/BlurText";
 import { NumberTicker } from "./ui/NumberTicker";
 import ScrollCue from "./ScrollCue";
@@ -261,7 +262,11 @@ export default function RigHero() {
         {/* 3D layer — rig assembles on scroll; onContextLost swaps to the static
             poster so it can never go blank. */}
         <div className="absolute inset-0">
-          {mounted && <RigHeroScene onContextLost={() => setCanvasFailed(true)} />}
+          {mounted && (
+            <CanvasErrorBoundary onError={() => setCanvasFailed(true)}>
+              <RigHeroScene onContextLost={() => setCanvasFailed(true)} />
+            </CanvasErrorBoundary>
+          )}
         </div>
 
         {/* readability wash — cream, anchored bottom-left for the copy.

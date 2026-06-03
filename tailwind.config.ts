@@ -29,7 +29,7 @@ const config: Config = {
         },
       },
       fontFamily: {
-        display: ["var(--font-space-grotesk)", "ui-sans-serif", "system-ui", "sans-serif"],
+        display: ["var(--font-cinzel)", "ui-serif", "Georgia", "serif"],
         body: ["var(--font-inter)", "ui-sans-serif", "system-ui", "sans-serif"],
       },
       animation: {

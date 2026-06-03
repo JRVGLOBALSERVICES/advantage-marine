@@ -28,14 +28,23 @@ export default function FooterWordmark() {
         fontSize: "clamp(3rem, 13vw, 11rem)",
         backgroundImage: `linear-gradient(90deg, var(--color-accent) 0%, var(--color-accent) 45%, ${GHOST} 55%, ${GHOST} 100%)`,
         backgroundSize: "230% 100%",
-        backgroundPositionX: "100%",
+        backgroundRepeat: "no-repeat",
+        backgroundPosition: "100% 0%",
         WebkitBackgroundClip: "text",
         backgroundClip: "text",
         color: "transparent",
         WebkitTextFillColor: "transparent",
+        // iOS FIX: WebKit caches the clip-text raster and skips the repaint when
+        // only background-position(-x) changes — so the sweep ran on desktop
+        // (Blink) but never on mobile Safari. Animate the `backgroundPosition`
+        // SHORTHAND and force a GPU re-raster each frame via translateZ(0) +
+        // willChange so the clipped glyphs actually re-render.
+        willChange: "background-position",
+        transform: "translateZ(0)",
+        WebkitTransform: "translateZ(0)",
       }}
-      initial={reduce ? false : { backgroundPositionX: "100%" }}
-      whileInView={reduce ? undefined : { backgroundPositionX: "0%" }}
+      initial={reduce ? false : { backgroundPosition: "100% 0%" }}
+      whileInView={reduce ? undefined : { backgroundPosition: "0% 0%" }}
       viewport={{ once: false, margin: "0px 0px 120px 0px" }}
       transition={{ duration: 1.2, ease: EASE }}
     >

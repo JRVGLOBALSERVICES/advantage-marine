@@ -132,7 +132,7 @@ export const ExpandingCards = React.forwardRef<
               </span>
               <h3
                 className="max-w-[34ch] font-display leading-[1.1] text-white opacity-0 transition-opacity delay-75 duration-300 group-data-[active=true]/expand:opacity-100"
-                style={{ fontSize: "var(--text-h)" }}
+                style={{ fontSize: "var(--text-h2)" }}
               >
                 {item.title}
               </h3>
