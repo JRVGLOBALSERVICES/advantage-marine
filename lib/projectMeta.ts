@@ -20,6 +20,22 @@ export function parsePeriod(summary: string | null): string | null {
   return m[1].replace(/\.$/, "").trim();
 }
 
+/**
+ * Resolve a project's "View report" link to the REAL source PDF.
+ * The report PDFs live in the original AMS WordPress media library under one
+ * uploads folder; projects.json carries only the bare filename. We deep-link
+ * straight to the verified PDF (all return 200 application/pdf) instead of
+ * dumping the visitor on the generic homepage. encodeURI handles the one
+ * filename containing an en-dash. Returns null when a record has no pdf.
+ */
+const REPORT_BASE =
+  "https://www.advantagemarine.com.my/wp-content/uploads/2021/03";
+
+export function reportHref(pdf: string | null | undefined): string | null {
+  if (!pdf) return null;
+  return encodeURI(`${REPORT_BASE}/${pdf}`);
+}
+
 /** Year(s) only, for a compact chip. */
 export function parseYear(summary: string | null): string | null {
   if (!summary) return null;

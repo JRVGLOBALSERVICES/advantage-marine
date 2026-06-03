@@ -18,7 +18,7 @@ import { SlideFillButton } from "@/components/ui/uiverse/SlideFillButton";
 import { ExpandIconButton } from "@/components/ui/uiverse/ExpandIconButton";
 import { SelectedWorks } from "@/components/ui/ExpandingCards";
 import { ProjectCard } from "@/components/ProjectCard";
-import { parsePeriod, parseYear } from "@/lib/projectMeta";
+import { parsePeriod, parseYear, reportHref } from "@/lib/projectMeta";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -245,9 +245,9 @@ export default function ProjectsView({ projects, images, heroImage }: Props) {
           >
             {filtered.map((p, i) => {
               const img = photos[i % photos.length];
-              // Report PDFs are not bundled in the repo — they are filenames from
-              // the source site. Link out to the live company site (honest, no 404).
-              const pdfHref = p.pdf ? "https://advantagemarine.com.my/" : undefined;
+              // Deep-link "View report" straight to the REAL source PDF
+              // (verified 200 application/pdf), not the generic homepage.
+              const pdfHref = reportHref(p.pdf) ?? undefined;
 
               return (
                 <ProjectCard

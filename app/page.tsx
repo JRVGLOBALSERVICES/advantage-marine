@@ -16,7 +16,7 @@ import {
 import { ProjectCard, type ProjectCardData } from "@/components/ProjectCard";
 import { CertOrbit } from "@/components/about/CertOrbit";
 import { type Cert } from "@/components/about/CertWall";
-import { parsePeriod, parseYear } from "@/lib/projectMeta";
+import { parsePeriod, parseYear, reportHref } from "@/lib/projectMeta";
 import { MovingBorderButton } from "@/components/ui/MovingBorderButton";
 import { MagneticLink } from "@/components/ui/MagneticLink";
 import { LottieIcon } from "@/components/ui/LottieIcon";
@@ -88,6 +88,7 @@ const HOME_PROJECTS: ProjectCardData[] = DECK_SRC.slice(0, 3).map(
       client: (p as { client?: string | null }).client ?? null,
       year: parseYear(p.summary ?? null),
       period: parsePeriod(p.summary ?? null),
+      pdfHref: reportHref((p as { pdf?: string | null }).pdf) ?? undefined,
       delayIndex: i,
     };
   },
