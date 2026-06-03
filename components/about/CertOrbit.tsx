@@ -1,38 +1,74 @@
 "use client";
 
 /**
- * CertOrbit — the class-society + ISO credentials as a slow orbital constellation.
+ * CertOrbit — the class-society + ISO credentials as a slow orbital
+ * constellation of TEXT badges (no external logo hotlinks).
  *
- * Adapted from a generic "orbiting tech-logo" pattern, but the freelance
- * React/AWS/Docker icon set is exactly the AI-slop this brand must avoid — a
- * marine / offshore NDT specialist orbits the 12 REAL class-society + ISO marks
- * it actually carries (ABS, DNV GL, Bureau Veritas, Lloyd's, ClassNK, ISO 9001/
- * 14001, OHSAS …), pulled from media-manifest.certs — never invented logos.
+ * Rebuilt to the pasted ORBIT layout: a centre node + 3 dotted, counter-
+ * rotating rings, with badges spaced evenly around each ring at
+ * angle = idx · (2π / perRing), positioned left/top = 50 ± 50·cos/sin(angle)
+ * and pulled back to centre with translate(-50%,-50%). The generic
+ * React/AWS/Docker icon set from the paste is off-brand for a marine /
+ * offshore NDT specialist, so each badge instead carries the SHORT NAME of a
+ * real class society / ISO mark the firm actually carries (ABS, DNV GL,
+ * Bureau Veritas, Lloyd's Register, ClassNK, ISO 9001/14001, OHSAS …),
+ * distributed across the rings from the `certs` prop.
  *
- * Motion contract (AM design.md + design-3d-stack §3, §11):
- *  - Dotted teal rings rotate slowly; each tile counter-rotates the SAME
- *    duration so the logo stays upright (ring spin cancels at the tile).
- *  - Reduced-motion → no rotation at all, tiles sit in a static radial spread.
- *  - In-view gated AND retriggering: the orbit only spins while on screen and
- *    re-enters paused→running each time it scrolls back (once:false parity with
- *    the rest of the site).
+ * AM theme (single light theme — no next-themes anywhere):
+ *  - Cream page; rings = dotted teal (var(--color-accent) at low alpha).
+ *  - Centre node = teal radial fill with "AMS" in Cinzel.
+ *  - Badges = cream pill (var(--color-paper-2)) + var(--color-rule) border,
+ *    ink text; teal fill + on-teal text on hover.
+ *
+ * Motion contract:
+ *  - Each ring spins; its badges counter-spin the SAME duration/direction so
+ *    the text stays upright (ring spin cancels at the badge inner wrapper).
+ *  - prefers-reduced-motion → every ring frozen (no spin at all).
+ *  - In-view gated and retriggering (paused → running on each re-entry).
  *
  * Pure-% geometry (radius as % of an aspect-square container) so it scales to
- * the viewport instead of overflowing on mobile — the fan-deck cutoff lesson.
+ * the viewport. On narrow screens the diameters shrink and the badge sizing
+ * clamps down, so it never overflows a phone.
  */
 
 import { useEffect, useRef, useState } from "react";
+import { cn } from "@/lib/utils";
 import type { Cert } from "@/components/about/CertWall";
 
-/** Ring config: [share of tiles, diameter %, seconds/rev, direction]. */
+/** Ring config: [diameter %, seconds/rev, direction]. Outermost first. */
 const RINGS: { diameter: number; seconds: number; dir: 1 | -1 }[] = [
   { diameter: 100, seconds: 46, dir: 1 },
-  { diameter: 66, seconds: 36, dir: -1 },
-  { diameter: 34, seconds: 28, dir: 1 },
+  { diameter: 64, seconds: 36, dir: -1 },
+  { diameter: 30, seconds: 28, dir: 1 },
 ];
 
+/** Render Lloyd's apostrophe + ampersand entities cleanly. */
 function stripEntities(s: string): string {
   return s.replace(/&#8217;/g, "’").replace(/&amp;/g, "&");
+}
+
+/**
+ * A short, upright-readable badge label for each credential. The Cert type
+ * only carries { slug, title, file }, so map the known marine class-society /
+ * ISO slugs to their conventional abbreviation; fall back to the title.
+ */
+const ABBR: Record<string, string> = {
+  abs: "ABS",
+  "dnv-gl": "DNV GL",
+  "bureau-veritas": "BV",
+  "lloyds-register": "LR",
+  "class-nk": "ClassNK",
+  "china-register": "CCS",
+  "ir-class": "IRS",
+  "kr-register": "KR",
+  rina: "RINA",
+  "iso-9001": "ISO 9001",
+  "iso-14001": "ISO 14001",
+  ohsas: "OHSAS",
+};
+
+function badgeLabel(cert: Cert): string {
+  return ABBR[cert.slug] ?? stripEntities(cert.title);
 }
 
 /** Split the certs across the three rings, outer-heaviest. */
@@ -40,7 +76,7 @@ function partition(certs: Cert[]): Cert[][] {
   const n = certs.length;
   const inner = Math.max(1, Math.round(n * 0.18));
   const middle = Math.max(2, Math.round(n * 0.34));
-  const outer = n - inner - middle;
+  const outer = Math.max(0, n - inner - middle);
   return [
     certs.slice(0, outer),
     certs.slice(outer, outer + middle),
@@ -84,7 +120,7 @@ export function CertOrbit({ certs }: { certs: Cert[] }) {
         .map((c) => stripEntities(c.title))
         .join(", ")}`}
     >
-      {/* faint radial wash so the constellation reads as one object, not floating tiles */}
+      {/* faint radial wash so the constellation reads as one object */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0 rounded-full"
@@ -96,24 +132,28 @@ export function CertOrbit({ certs }: { certs: Cert[] }) {
 
       {RINGS.map((ring, ri) => {
         const tiles = rings[ri] ?? [];
-        const count = tiles.length;
+        const count = Math.max(tiles.length, 1);
         return (
           <div
             key={ri}
-            className="absolute left-1/2 top-1/2 rounded-full border border-dotted"
+            className="absolute left-1/2 top-1/2 rounded-full border-2 border-dotted"
             style={{
               width: `${ring.diameter}%`,
               height: `${ring.diameter}%`,
               transform: "translate(-50%, -50%)",
-              borderColor: "color-mix(in oklch, var(--color-accent) 38%, transparent)",
+              borderColor:
+                "color-mix(in oklch, var(--color-accent) 34%, transparent)",
               animation: reduce
                 ? undefined
-                : `am-orbit-spin ${ring.seconds}s linear infinite ${ring.dir === -1 ? "reverse" : "normal"}`,
+                : `am-orbit-spin ${ring.seconds}s linear infinite ${
+                    ring.dir === -1 ? "reverse" : "normal"
+                  }`,
               animationPlayState: running ? "running" : "paused",
             }}
           >
             {tiles.map((cert, ti) => {
-              const angle = (ti / count) * 360 + ri * 18; // stagger rings so tiles don't align
+              // angle = idx · (2π / perRing); ring stagger so tiles don't align
+              const angle = (ti / count) * 360 + ri * 18;
               const rad = (angle * Math.PI) / 180;
               const x = 50 + 50 * Math.cos(rad);
               const y = 50 + 50 * Math.sin(rad);
@@ -127,33 +167,38 @@ export function CertOrbit({ certs }: { certs: Cert[] }) {
                     transform: "translate(-50%, -50%)",
                   }}
                 >
-                  {/* counter-rotation wrapper — cancels the ring spin so the tile stays upright */}
+                  {/* counter-rotation wrapper — cancels the ring spin so the
+                      badge text stays upright */}
                   <div
                     style={{
                       animation: reduce
                         ? undefined
-                        : `am-orbit-spin-plain ${ring.seconds}s linear infinite ${ring.dir === -1 ? "normal" : "reverse"}`,
+                        : `am-orbit-spin-plain ${ring.seconds}s linear infinite ${
+                            ring.dir === -1 ? "normal" : "reverse"
+                          }`,
                       animationPlayState: running ? "running" : "paused",
                     }}
                   >
-                    <div
-                      className="group flex items-center justify-center rounded-[calc(var(--radius-card)*0.7)] border border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)] shadow-[0_1px_0_color-mix(in_oklch,var(--color-ink)_8%,transparent)] transition-colors duration-500 hover:bg-[color:var(--color-paper-3)]"
+                    <span
+                      className={cn(
+                        "group inline-flex select-none items-center justify-center whitespace-nowrap rounded-[var(--radius-pill)] border font-display",
+                        "border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)] text-[color:var(--color-ink)]",
+                        "transition-colors duration-300 hover:border-[color:var(--color-accent)] hover:bg-[color:var(--color-accent)] hover:text-[color:var(--color-accent-ink)]",
+                      )}
                       style={{
-                        width: "clamp(3rem, 9vw, 4.75rem)",
-                        height: "clamp(3rem, 9vw, 4.75rem)",
+                        padding: "clamp(0.3rem, 1.2vw, 0.5rem) clamp(0.6rem, 2vw, 0.95rem)",
+                        fontSize: "clamp(0.62rem, 1.7vw, 0.82rem)",
+                        letterSpacing: "0.1em",
+                        textTransform: "uppercase",
+                        lineHeight: 1,
                         transitionTimingFunction: "var(--ease-out)",
+                        boxShadow:
+                          "0 1px 0 color-mix(in oklch, var(--color-ink) 8%, transparent)",
                       }}
                       title={stripEntities(cert.title)}
                     >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={cert.file}
-                        alt={`${stripEntities(cert.title)} mark`}
-                        className="max-h-[64%] max-w-[72%] object-contain mix-blend-multiply"
-                        loading="lazy"
-                        decoding="async"
-                      />
-                    </div>
+                      {badgeLabel(cert)}
+                    </span>
                   </div>
                 </div>
               );

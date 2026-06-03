@@ -1,26 +1,16 @@
 "use client";
 
 // Beat 3 of the reel — "Global Reach. Proven Performance." — rebuilt as a real
-// section from registry components: Aceternity WorldMap (animated great-circle
-// arcs), Aceternity BackgroundBeams (cyan→violet airflow), Magic UI Marquee
-// (class-society marks) and NumberTicker (count-up stats), React Bits BlurText.
+// section from registry components: OfficeMap (real interactive MapLibre basemap
+// framing AMS's three Malaysian offices), Aceternity BackgroundBeams (cyan→violet
+// airflow), Magic UI Marquee (class-society marks) and NumberTicker (count-up
+// stats), React Bits BlurText.
 
 import BlurText from "./ui/BlurText";
 import { NumberTicker } from "./ui/NumberTicker";
 import { Marquee } from "./ui/Marquee";
-import WorldMap from "./ui/WorldMap";
+import OfficeMap from "./ui/OfficeMap";
 import { BackgroundBeams } from "./ui/BackgroundBeams";
-
-// Routes radiating from the Johor facility (1.49, 103.76) across the region's
-// offshore fields and ports.
-const JOHOR = { lat: 1.4854, lng: 103.7618, label: "Johor HQ" };
-const ROUTES = [
-  { start: JOHOR, end: { lat: 5.2831, lng: 115.2308, label: "Labuan" } },
-  { start: JOHOR, end: { lat: 4.5482, lng: 103.426, label: "Kerteh" } },
-  { start: JOHOR, end: { lat: 3.1701, lng: 113.0411, label: "Bintulu" } },
-  { start: JOHOR, end: { lat: 1.2897, lng: 103.8501, label: "Singapore" } },
-  { start: JOHOR, end: { lat: 25.276, lng: 55.2962, label: "Gulf" } },
-];
 
 const SOCIETIES = ["ABS", "DNV", "BV", "LR", "ClassNK", "KR", "IRS", "CCS", "RINA"];
 
@@ -55,9 +45,9 @@ export default function GlobalReach() {
           facility across the region&rsquo;s offshore fields.
         </p>
 
-        {/* animated great-circle arcs from Johor */}
-        <div className="mt-[var(--space-xl)]">
-          <WorldMap dots={ROUTES} lineColor="#30837b" />
+        {/* real interactive MapLibre basemap framing AMS's three Malaysian offices */}
+        <div className="mt-[var(--space-xl)] h-[clamp(20rem,46vh,30rem)] overflow-hidden rounded-[var(--radius-card)] border border-[color:color-mix(in_oklch,var(--color-cyan)_18%,transparent)]">
+          <OfficeMap />
         </div>
 
         {/* count-up stats */}

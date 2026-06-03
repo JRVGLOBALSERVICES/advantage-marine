@@ -2,6 +2,7 @@ import Link from "next/link";
 import RigHero from "@/components/RigHero";
 import SceneBuildLoader from "@/components/SceneBuildLoader";
 import GlobalReach from "@/components/GlobalReach";
+import { DottedSurface } from "@/components/ui/DottedSurface";
 import Reveal from "@/components/Reveal";
 import { WordReveal } from "@/components/ui/WordReveal";
 import {
@@ -338,9 +339,12 @@ export default function Home() {
         </div>
       </section>
 
-      {/* (8) ── final CTA ───────────────────────────────────────────────── */}
-      <section className="border-t border-[color:var(--color-rule)]">
-        <div className="mx-auto max-w-[min(1000px,92vw)] px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)] text-center">
+      {/* (8) ── final CTA — closing hero slug over a quiet teal survey field ─ */}
+      <section className="relative isolate overflow-hidden border-t border-[color:var(--color-rule)]">
+        {/* DottedSurface: faint teal sine-wave point grid on cream, scroll-parallax
+            + reduced-motion gated. Ambient texture behind the closing slug only. */}
+        <DottedSurface className="opacity-70" />
+        <div className="relative z-10 mx-auto max-w-[min(1000px,92vw)] px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)] text-center">
           <p className="eyebrow mb-[var(--space-md)]">Talk to the yard</p>
           <h2
             className="font-display font-bold leading-[1.1] tracking-[-0.02em]"

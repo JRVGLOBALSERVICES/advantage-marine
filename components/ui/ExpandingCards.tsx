@@ -63,11 +63,11 @@ export const ExpandingCards = React.forwardRef<
       ref={ref}
       className={cn(
         "grid w-full gap-2",
-        "h-[560px] md:h-[460px]",
-        "transition-[grid-template-columns,grid-template-rows] duration-[600ms]",
+        "h-[600px] md:h-[500px]",
+        "transition-[grid-template-columns,grid-template-rows] duration-500 ease-out",
         className,
       )}
-      style={{ ...gridStyle, transitionTimingFunction: "var(--ease-out)" }}
+      style={gridStyle}
       {...props}
     >
       {items.map((item, index) => {
@@ -81,11 +81,12 @@ export const ExpandingCards = React.forwardRef<
             onFocus={() => setActiveIndex(index)}
             onClick={() => setActiveIndex(index)}
             className={cn(
+              // bg-card → AM paper-2 ; border → AM rule ; text-card-foreground → AM ink
               "group/expand relative min-h-0 min-w-0 cursor-pointer overflow-hidden",
-              "rounded-[var(--radius-card)] border border-rule md:min-w-[72px]",
+              "rounded-lg border border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)] text-[color:var(--color-ink)]",
+              "md:min-w-[72px]",
               "outline-none focus-visible:ring-2 focus-visible:ring-[color:var(--color-accent)]",
             )}
-            style={{ transitionTimingFunction: "var(--ease-out)" }}
           >
             {/* Real project photo — grayscale at rest, colour when active */}
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -93,51 +94,45 @@ export const ExpandingCards = React.forwardRef<
               src={item.imgSrc}
               alt={`${item.title} — Advantage Marine project`}
               className={cn(
-                "absolute inset-0 h-full w-full object-cover transition-all duration-700",
-                "scale-105 grayscale group-data-[active=true]/expand:scale-100 group-data-[active=true]/expand:grayscale-0",
+                "absolute inset-0 h-full w-full object-cover transition-all duration-300",
+                "scale-110 grayscale group-data-[active=true]/expand:scale-100 group-data-[active=true]/expand:grayscale-0",
               )}
-              style={{ transitionTimingFunction: "var(--ease-out)" }}
               loading="lazy"
               decoding="async"
             />
-            {/* ink gradient grounding the type */}
+            {/* dark photo gradient grounding the type (white text reads on this) */}
             <span
               aria-hidden
-              className="pointer-events-none absolute inset-0"
-              style={{
-                background:
-                  "linear-gradient(to top, color-mix(in oklch, var(--color-ink) 86%, transparent) 0%, color-mix(in oklch, var(--color-ink) 32%, transparent) 42%, transparent 78%)",
-              }}
+              className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent"
             />
 
-            {/* Collapsed spine label (desktop only) */}
+            {/* Collapsed spine label — rotate-90 uppercase, desktop only, fades when active */}
             <span
               className={cn(
-                "absolute bottom-5 left-1/2 hidden -translate-x-1/2 rotate-180 font-display uppercase tracking-[0.14em] text-white/85 transition-opacity duration-300 md:block",
-                "[writing-mode:vertical-rl] group-data-[active=true]/expand:opacity-0",
+                "absolute bottom-5 left-1/2 hidden -translate-x-1/2 rotate-90 whitespace-nowrap font-display uppercase tracking-wider text-white/85 transition-opacity duration-300 md:block",
+                "group-data-[active=true]/expand:opacity-0",
               )}
               style={{ fontSize: "var(--text-eyebrow)" }}
             >
               {item.category}
             </span>
 
-            {/* Expanded content */}
+            {/* Expanded content — staggers in (delay 75/150/225) when active */}
             <article className="absolute inset-0 flex flex-col justify-end gap-2 p-6">
               <span
-                className="font-display uppercase tracking-[0.1em] text-[color:var(--color-accent-2)] opacity-0 transition-opacity duration-300 group-data-[active=true]/expand:opacity-100"
+                className="font-display uppercase tracking-[0.1em] text-[color:var(--color-accent-2)] opacity-0 transition-opacity delay-75 duration-300 group-data-[active=true]/expand:opacity-100"
                 style={{ fontSize: "var(--text-eyebrow)" }}
               >
                 {item.category}
                 {item.period ? ` · ${item.period}` : ""}
               </span>
               <h3
-                className="max-w-[34ch] font-display leading-[1.1] text-white opacity-0 transition-opacity delay-75 duration-300 group-data-[active=true]/expand:opacity-100"
-                style={{ fontSize: "var(--text-h2)" }}
+                className="max-w-[34ch] font-display text-xl font-bold leading-[1.1] text-white opacity-0 transition-opacity delay-150 duration-300 group-data-[active=true]/expand:opacity-100"
               >
                 {item.title}
               </h3>
               <p
-                className="max-w-[46ch] text-white/80 opacity-0 transition-opacity delay-150 duration-300 group-data-[active=true]/expand:opacity-100"
+                className="max-w-[46ch] text-white/80 opacity-0 transition-opacity delay-[225ms] duration-300 group-data-[active=true]/expand:opacity-100"
                 style={{ fontSize: "var(--text-card)" }}
               >
                 {item.summary}
@@ -148,10 +143,9 @@ export const ExpandingCards = React.forwardRef<
             <span
               aria-hidden
               className={cn(
-                "pointer-events-none absolute left-0 top-0 z-10 origin-left bg-[color:var(--color-accent)] transition-transform duration-500",
+                "pointer-events-none absolute left-0 top-0 z-10 origin-left bg-[color:var(--color-accent)] transition-transform duration-500 ease-out",
                 "h-1 w-full scale-x-0 group-data-[active=true]/expand:scale-x-100",
               )}
-              style={{ transitionTimingFunction: "var(--ease-out)" }}
             />
           </li>
         );
