@@ -5,17 +5,26 @@
 **Live (Vercel):** https://advantage-marine.vercel.app
 **Content source (client's production site):** https://www.advantagemarine.com.my/ (WordPress + Elementor — scraped, real copy/images only)
 
-The site's signature is a pinned scroll-narrative hero: a **Blender-authored
-jack-up rig** assembles part-by-part on scroll — hull drops and settles, four
-legs seat, spud-cans drive into the seabed, the derrick tops out — then a
-showcase tail fires aqua sonar rings + a teal waterline glow (HDR-emissive,
-Bloom-lit) while the camera settles to a hero 3/4. The narrative continues into
-the capability beats. The whole site runs a **warm sailcloth-cream light theme —
-no dark surfaces anywhere**; the rig reads as a dark gunmetal model on the cream.
+The site's signature is a scroll-narrative hero: a **Blender-authored 11-part
+support vessel** (Hull · Deck · Bridge · Funnel · Mast · Crane · Bulwark ·
+BootTopping · twin Props · Rudder) reads as an exploded technical diagram at
+scroll-top and **assembles into the complete hull** as you scroll — on a slow
+turntable, lit by a teal inspection scan. Three capability beats (whole-of-vessel
+→ read underwater → cleared by class) latch to the assembly progress. The whole
+site runs a **warm sailcloth-cream light theme — no dark surfaces anywhere**; the
+vessel reads as a marine-PBR model on the cream.
 
-> The earlier ducted-azimuth-thruster hero (`PropellerHero` / `PlatformHeroScene`)
-> is retained in the repo, unused, for history — the rig hero replaced it
-> 2026-06-02.
+The scroll mechanic is **iOS-safe `position: sticky`** (a 340lvh section with a
+sticky 100lvh stage), never `ScrollTrigger pin:true` — with a full static-photo
+fallback for reduced-motion / no-WebGL / context-lost.
+
+> **Hero history (kept, not deleted):** the ducted-azimuth-thruster hero
+> (`PropellerHero` / `PropellerScene`) → the jack-up rig hero (`RigHero` /
+> `RigHeroScene`, now `RigShowcase`) → the **vessel hero** (`VesselHero` /
+> `VesselContactScene`), current as of 2026-06-03. Each prior hero is retained
+> in the repo for history. The **contact page** is slated for its own DIFFERENT
+> model (a work-class ROV) — its 3D band is currently a placeholder; the page is
+> otherwise fully functional (hero + enquiry form + key contacts).
 
 ## Stack
 
@@ -96,8 +105,10 @@ Services · Projects · News · Contact), verified against `wp-sitemap.xml` + re
 header — not a guess.
 
 Patterns implemented:
-- **Scroll-scrubbed assembly 3D mechanic** — `jackup-rig.glb` (Blender-authored, Draco-compressed 131KB, 14 baked clips) mounts via `useGLTF` + DRACOLoader; scroll scrubs the baked hull→legs→spud-cans→derrick timeline (0→58%), then the showcase tail (58→100%) drives the sonar-ring + waterline FX. Clips stay paused and we set each action's absolute `.time` per frame (three.js won't advance a paused action via `setTime`).
-- **Pinned scroll-narrative hero** — sticky `100lvh` canvas, copy beats driven off scroll progress (`RigHero.tsx`), keyframed camera replacing the scene-only Blender orbit, portrait pull-back so the tall rig fits
+- **Scroll-driven explode→assemble 3D mechanic** — `vessel.glb` (Blender-authored, Draco-compressed ~24KB, 11 named meshes) mounts via `useGLTF` + DRACOLoader; scroll maps `p=0` exploded technical diagram → `p=1` assembled hull. Each part drifts along the axis it really comes off the hull on, keyed to the GLB's true axis (X=length, stern −X / bow +X; Y=up; Z=beam, twin props split ∓0.69m) — no faked cross-section.
+- **iOS-safe sticky scroll-narrative hero** — a 340lvh section with a `sticky top-0 h-[100lvh]` stage (NOT `ScrollTrigger pin:true`), three copy beats trapezoid-faded off scroll progress via `gsap.ticker` (no React re-render per frame), full static-photo fallback (`VesselHero.tsx`).
+- **SEO infrastructure** — `app/robots.ts`, `app/sitemap.ts` (6 routes), `app/manifest.ts`; sitewide `Organization` + `LocalBusiness` + `WebSite` JSON-LD (`@id`-linked, real Gelang Patah / Johor facts) in the root layout; per-page canonical + `summary_large_image` twitter card + `en_MY` locale.
+- **Honest per-discipline imagery (no repeated photos)** — the original WordPress scrape dumped ONE shared underwater-welding gallery (md5-identical) into 8 service folders, so iccp/rov/salvage/ovolifts/trading all showed the SAME photos as diving. `ServicesContent` now maps each discipline to an explicit curated gallery so no image repeats anywhere; Ovolifts uses the real manufacturer product shot (AMS is the authorized SE-Asia distributor).
 - **Material + FX contrast** — cool gunmetal steel (`#586068`) so the rig reads on cream + `ContactShadows` grounding; `@react-three/postprocessing` Bloom catches only the raw-HDR emissive FX (`luminanceThreshold 1.0`), `ToneMapping` last in the chain
 - **Registry components, not hand-rolled**: `BlurText` (reactbits) · `NumberTicker` + `Marquee` (magicui) · `WorldMap` + `BackgroundBeams` (aceternity, recolored to brand teal) · `ScrollCue` (uiverse)
 - **N5 floating-pill nav** with the real AMS logo **image** (not a text wordmark)
@@ -107,9 +118,12 @@ Patterns implemented:
 
 ```
 app/
-  layout.tsx            Root layout, fonts (Cinzel + Kaushan + Inter), metadata, <SmoothScroll>
+  layout.tsx            Root layout, fonts (Cinzel + Kaushan + Inter), metadata, sitewide JSON-LD, <SmoothScroll>
   globals.css           OKLCH cream tokens + Hallmark stamp
-  page.tsx              Home — hero + capability beats + reach
+  robots.ts             robots.txt (blocks none public; sitemap ref)
+  sitemap.ts            6-route XML sitemap
+  manifest.ts           PWA web manifest
+  page.tsx              Home — VesselHero + capability beats + reach
   about/page.tsx        About Us — AMS since 2014, IMCA/OGP, Johor facility
   services/page.tsx     Services hub — Marine & Diving · NDT · Engineering/Steel · Trading
   projects/page.tsx     Projects portfolio
@@ -119,10 +133,14 @@ components/
   SiteNav.tsx           N5 floating-pill nav, AMS logo image
   SiteFooter.tsx        Footer — "Site by JRV"
   PageHeader.tsx        Inner-page header band
-  RigHero.tsx           Pinned scroll narrative + copy beats (current hero)
-  RigHeroScene.tsx      R3F scene — jack-up rig, scroll-scrubbed baked assembly + Bloom FX
+  VesselHero.tsx        CURRENT home hero — iOS-safe sticky narrative + 3 beats
+  VesselContactScene.tsx R3F scene — 11-part vessel, scroll explode→assemble + teal scan
+  VesselShowcase.tsx    Showcase wrapper (vessel scene + copy)
+  RigShowcase.tsx       (retained, unused) prior jack-up rig hero
+  RigHeroScene.tsx      (retained, unused) R3F jack-up rig scene + Bloom FX
   PropellerHero.tsx     (retained, unused) prior thruster hero shell
   PropellerScene.tsx    (retained, unused) prior R3F ducted-azimuth-thruster scene
+  ServicesContent.tsx   Services body — curated per-discipline galleries (deduped)
   GlobalReach.tsx       WorldMap arcs + BackgroundBeams + class-society Marquee
   ContactForm.tsx       Contact form
   Reveal.tsx            Predictive whileInView reveal wrapper
@@ -159,13 +177,23 @@ No environment variables required — the site is fully static (no backend, no S
 
 ## Known gaps / follow-on
 
-- **Real AMS photography → Cloudinary CDN** across pages — logos are in place; the full
-  photo set from `wp-content/uploads` is not yet migrated (push to Cloudinary to dodge
-  Vercel anti-bot 403s on `/public` fetches).
-- **Component extras parked**: cult-ui / watermelon-ui card stacks, more aceternity pieces,
-  gsapify-generated motion, Lottie hero/feature accents + animated icons.
-- The thruster centerpiece is **procedural geometry** (required for the labelled explode
-  mechanic) — not a Meshy GLB.
+- **Contact page 3D model** — the contact page needs its own DIFFERENT hero model
+  (planned: a work-class ROV, Blender-authored part-by-part). The 3D band is a
+  placeholder; the page is otherwise complete.
+- **Chasing M2 ROV product photo** — the M2 specialty card currently uses a subsea
+  context photo. Swap in AMS's official Chasing M2 product image (held as the
+  authorized SE-Asia distributor) — the manufacturer site is a JS-walled SPA, so
+  it couldn't be scraped cleanly.
+- **Real AMS photography → Cloudinary CDN** across pages — logos + a clean set of
+  live-site category photos (`public/media/_live/`) are in place; the full
+  `wp-content/uploads` set is not yet migrated (push to Cloudinary to dodge Vercel
+  anti-bot 403s on `/public` fetches).
+- **Seagull-parity sections** still to port from the seagull homepage (Stats /
+  Testimonials / CertStrip / ClientLogoStrip / StatusPulse / a real /privacy page).
+- **OG-image + favicon visuals** — the SEO *infra* is shipped; the icon / apple-icon /
+  opengraph-image visuals still route through hallmark.
+- **Device audit** (iPhone 11 / iPad / MacBook 13) against the skill + reference MDs
+  is the final gate before "done".
 - The live 3D settle/timing hasn't been eyeballed in a real browser (headless WebGL is
   unreliable on the build box) — preview on the Vercel URL to tune feel.
 
