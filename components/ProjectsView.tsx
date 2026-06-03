@@ -17,6 +17,8 @@ import { cn } from "@/lib/utils";
 import { SlideFillButton } from "@/components/ui/uiverse/SlideFillButton";
 import { ExpandIconButton } from "@/components/ui/uiverse/ExpandIconButton";
 import { SelectedWorks } from "@/components/ui/ExpandingCards";
+import { ProjectCard } from "@/components/ProjectCard";
+import { parsePeriod, parseYear } from "@/lib/projectMeta";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -36,29 +38,6 @@ type Props = {
 };
 
 const ALL = "All work" as const;
-
-// Parse a trailing date phrase out of the real summary so cards can surface a
-// "year" chip without inventing anything. Returns the matched span text or null.
-function parsePeriod(summary: string | null): string | null {
-  if (!summary) return null;
-  // matches "..., September 2016." / "...; 18 January to 14 March 2021" / "2017"
-  const m = summary.match(
-    /((?:\d{1,2}\s+)?(?:January|February|March|April|May|June|July|August|September|October|November|December)?\s*(?:to\s+(?:\d{1,2}\s+)?(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+)?\d{4})\b\.?\s*$/,
-  );
-  if (!m) return null;
-  return m[1].replace(/\.$/, "").trim();
-}
-
-// Extract the year(s) only, for a compact chip.
-function parseYear(summary: string | null): string | null {
-  if (!summary) return null;
-  const years = Array.from(summary.matchAll(/\b(20\d{2})\b/g)).map((x) => x[1]);
-  if (years.length === 0) return null;
-  const unique = Array.from(new Set(years));
-  return unique.length > 1
-    ? `${unique[0]}–${unique[unique.length - 1]}`
-    : unique[0];
-}
 
 export default function ProjectsView({ projects, images, heroImage }: Props) {
   const reduce = useReducedMotion() ?? false;
@@ -266,167 +245,24 @@ export default function ProjectsView({ projects, images, heroImage }: Props) {
           >
             {filtered.map((p, i) => {
               const img = photos[i % photos.length];
-              const period = parsePeriod(p.summary);
-              const year = parseYear(p.summary);
-              const idx = String(projects.indexOf(p) + 1).padStart(2, "0");
               // Report PDFs are not bundled in the repo — they are filenames from
               // the source site. Link out to the live company site (honest, no 404).
               const pdfHref = p.pdf ? "https://advantagemarine.com.my/" : undefined;
 
               return (
-                <motion.article
+                <ProjectCard
                   key={p.title}
-                  layout
-                  initial={reduce ? false : { opacity: 0, y: 26 }}
-                  whileInView={reduce ? undefined : { opacity: 1, y: 0 }}
-                  viewport={{ once: false, margin: "120px" }}
-                  transition={{
-                    duration: 0.55,
-                    ease: EASE,
-                    delay: Math.min(i, 5) * 0.05,
-                  }}
-                  className={cn(
-                    "group/card relative flex h-full flex-col overflow-hidden rounded-[var(--radius-card)] border border-rule bg-paper-2",
-                    "shadow-[0_1px_2px_rgba(48,131,123,0.06)] transition-[transform,box-shadow,border-color] duration-500",
-                    !reduce && "hover:-translate-y-1.5",
-                    "hover:border-[color:color-mix(in_oklch,var(--color-accent)_40%,var(--color-rule))]",
-                    "hover:shadow-[0_22px_48px_-16px_rgba(48,131,123,0.30)]",
-                  )}
-                  style={{ transitionTimingFunction: "var(--ease-out)" }}
-                >
-                  {/* cult-ui diagonal sheen sweep on hover */}
-                  {!reduce && (
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute inset-0 z-20 -translate-x-[120%] -skew-x-12 transition-transform duration-[1100ms] group-hover/card:translate-x-[120%]"
-                      style={{
-                        background:
-                          "linear-gradient(90deg, transparent 0%, color-mix(in oklch, var(--color-paper-2) 92%, transparent) 45%, color-mix(in oklch, var(--color-accent-2) 22%, transparent) 50%, transparent 100%)",
-                        transitionTimingFunction: "var(--ease-out)",
-                      }}
-                    />
-                  )}
-
-                  {/* Real project image — never a placeholder */}
-                  <div className="relative aspect-[16/10] w-full overflow-hidden">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={img}
-                      alt={`${p.title} — Advantage Marine project`}
-                      className={cn(
-                        "h-full w-full object-cover transition-transform duration-700",
-                        !reduce && "group-hover/card:scale-[1.04]",
-                      )}
-                      style={{ transitionTimingFunction: "var(--ease-out)" }}
-                      loading="lazy"
-                      decoding="async"
-                    />
-                    {/* category overlay chip on the image */}
-                    <span
-                      className="absolute left-3 top-3 z-10 rounded-full px-2.5 py-1 font-display uppercase tracking-[0.08em]"
-                      style={{
-                        fontSize: "var(--text-eyebrow)",
-                        background: "var(--color-accent)",
-                        color: "var(--color-accent-ink)",
-                      }}
-                    >
-                      {p.category}
-                    </span>
-                    {/* paper feather grounding the image into the panel */}
-                    <span
-                      aria-hidden
-                      className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3"
-                      style={{
-                        background:
-                          "linear-gradient(to top, var(--color-paper-2) 0%, transparent 100%)",
-                      }}
-                    />
-                  </div>
-
-                  <div className="relative z-10 flex flex-1 flex-col gap-3 p-6">
-                    <div className="flex items-center justify-between">
-                      <span className="eyebrow">Project</span>
-                      <span
-                        className="font-display tabular-nums"
-                        style={{
-                          fontSize: "var(--text-eyebrow)",
-                          letterSpacing: "0.08em",
-                          color: "color-mix(in oklch, var(--color-ink) 50%, transparent)",
-                        }}
-                      >
-                        {idx}
-                      </span>
-                    </div>
-
-                    <h3
-                      className="font-display leading-[1.12] text-[color:var(--color-ink)] [text-wrap:balance]"
-                      style={{ fontSize: "var(--text-h3)" }}
-                    >
-                      {p.title}
-                    </h3>
-
-                    <p
-                      className="leading-relaxed"
-                      style={{
-                        fontSize: "var(--text-card)",
-                        color: "color-mix(in oklch, var(--color-ink) 66%, transparent)",
-                      }}
-                    >
-                      {p.summary ??
-                        "Project record on file — full scope and report available on request."}
-                    </p>
-
-                    {/* footer meta + report link */}
-                    <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-[color:var(--color-rule)] pt-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        {p.client && (
-                          <span
-                            className="rounded-full border px-2.5 py-1 font-display tracking-[0.04em]"
-                            style={{
-                              fontSize: "var(--text-eyebrow)",
-                              borderColor: "var(--color-rule)",
-                              color: "color-mix(in oklch, var(--color-ink) 70%, transparent)",
-                            }}
-                          >
-                            {p.client}
-                          </span>
-                        )}
-                        {(year || period) && (
-                          <span
-                            className="rounded-full px-2.5 py-1 font-display tabular-nums tracking-[0.06em]"
-                            style={{
-                              fontSize: "var(--text-eyebrow)",
-                              background:
-                                "color-mix(in oklch, var(--color-aqua) 55%, transparent)",
-                              color: "var(--color-accent)",
-                            }}
-                            title={period ?? undefined}
-                          >
-                            {year ?? period}
-                          </span>
-                        )}
-                      </div>
-
-                      {pdfHref && (
-                        <a
-                          href={pdfHref}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="group/pdf relative z-30 inline-flex items-center gap-1.5 font-display tracking-[0.04em] transition-colors duration-300"
-                          style={{
-                            fontSize: "var(--text-eyebrow)",
-                            color: "var(--color-accent)",
-                            transitionTimingFunction: "var(--ease-out)",
-                          }}
-                          aria-label={`View report (PDF): ${p.title}`}
-                        >
-                          <span className="uppercase">View report</span>
-                          <DocArrow />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </motion.article>
+                  title={p.title}
+                  category={p.category}
+                  summary={p.summary}
+                  image={img}
+                  idx={String(projects.indexOf(p) + 1).padStart(2, "0")}
+                  client={p.client}
+                  year={parseYear(p.summary)}
+                  period={parsePeriod(p.summary)}
+                  pdfHref={pdfHref}
+                  delayIndex={i}
+                />
               );
             })}
           </motion.div>
@@ -454,23 +290,5 @@ export default function ProjectsView({ projects, images, heroImage }: Props) {
         </div>
       </section>
     </main>
-  );
-}
-
-function DocArrow() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={1.7}
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className="h-3.5 w-3.5 transition-transform duration-300 group-hover/pdf:translate-x-0.5"
-      aria-hidden
-    >
-      <path d="M5 12h14" />
-      <path d="M13 6l6 6-6 6" />
-    </svg>
   );
 }

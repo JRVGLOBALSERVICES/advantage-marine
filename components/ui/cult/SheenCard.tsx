@@ -20,6 +20,7 @@
 import { cn } from "@/lib/utils";
 import { useReducedMotion } from "motion/react";
 import type { ReactNode } from "react";
+import { ClampText } from "@/components/ui/ClampText";
 
 interface SheenCardProps {
   /** Small eyebrow / category label above the title (e.g. service category). */
@@ -179,9 +180,12 @@ export function SheenCard({
         </h3>
 
         {description && (
-          <p className="leading-relaxed" style={{ ...muted, fontSize: "var(--text-card)" }}>
-            {description}
-          </p>
+          <ClampText
+            text={description}
+            lines={4}
+            className="leading-relaxed"
+            style={{ ...muted, fontSize: "var(--text-card)" }}
+          />
         )}
 
         {/* Animated accent rule — grows from a short seam to full width on hover.

@@ -13,7 +13,10 @@ import {
   ScrollVelocityContainer,
   ScrollVelocityRow,
 } from "@/components/ui/magic/ScrollBasedVelocity";
-import { FanCardDeck, type FanCard } from "@/components/ui/aceternity/FanCardDeck";
+import { ProjectCard, type ProjectCardData } from "@/components/ProjectCard";
+import { CertOrbit } from "@/components/about/CertOrbit";
+import { type Cert } from "@/components/about/CertWall";
+import { parsePeriod, parseYear } from "@/lib/projectMeta";
 import { MovingBorderButton } from "@/components/ui/MovingBorderButton";
 import { MagneticLink } from "@/components/ui/MagneticLink";
 import { LottieIcon } from "@/components/ui/LottieIcon";
@@ -69,15 +72,26 @@ const DECK_SRC: { match: string; image: string }[] = [
   { match: "ENSCO 67", image: "/media/projects/blog-02.jpg" },
   { match: "Hengyuan Refinery", image: "/media/projects/blog-03.jpg" },
 ];
-const DECK: FanCard[] = DECK_SRC.map(({ match, image }) => {
-  const p = projectsData.projects.find((x) => x.title.startsWith(match))!;
-  return {
-    title: p.title,
-    src: image,
-    category: p.category,
-    summary: p.summary ?? "Documented marine & offshore case file.",
-  };
-});
+/* The three flagship records surfaced as the homepage "Selected projects" band
+   — rendered through the SAME ProjectCard component as /projects, so the cards
+   are identical in size + behaviour. */
+const HOME_PROJECTS: ProjectCardData[] = DECK_SRC.slice(0, 3).map(
+  ({ match, image }, i) => {
+    const p = projectsData.projects.find((x) => x.title.startsWith(match))!;
+    const idx = projectsData.projects.indexOf(p) + 1;
+    return {
+      title: p.title,
+      category: p.category,
+      summary: p.summary ?? "Documented marine & offshore case file.",
+      image,
+      idx: String(idx).padStart(2, "0"),
+      client: (p as { client?: string | null }).client ?? null,
+      year: parseYear(p.summary ?? null),
+      period: parsePeriod(p.summary ?? null),
+      delayIndex: i,
+    };
+  },
+);
 
 export default function Home() {
   const buckets = servicesData.buckets;
@@ -278,33 +292,20 @@ export default function Home() {
           </Reveal>
         </div>
 
-        <ul className="grid grid-cols-2 gap-px overflow-hidden rounded-[var(--radius-card)] border border-[color:var(--color-rule)] bg-[color:var(--color-rule)] sm:grid-cols-3 lg:grid-cols-6">
-          {CERTS.map((c) => (
-            <li
-              key={c.slug}
-              className="group flex aspect-[4/3] items-center justify-center bg-[color:var(--color-paper-2)] p-5 transition-colors duration-300 hover:bg-[color:var(--color-paper-3)]"
-              title={c.title.replace("&#8217;", "’")}
-            >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={c.file}
-                alt={`${c.title.replace("&#8217;", "’")} accreditation`}
-                loading="lazy"
-                decoding="async"
-                className="max-h-16 w-auto max-w-full object-contain mix-blend-multiply grayscale transition-all duration-500 group-hover:grayscale-0"
-              />
-            </li>
-          ))}
-        </ul>
+        {/* orbit accreditations — the same constellation as /about, the real
+            class-society + ISO logos orbiting the AMS hub */}
+        <div className="flex items-center justify-center">
+          <CertOrbit certs={CERTS as Cert[]} />
+        </div>
       </section>
 
-      {/* (7) ── selected projects — fanned case-file deck + moving-border CTA ─ */}
+      {/* (7) ── selected projects — real ProjectCard grid (same component as /projects) ─ */}
       <section
         id="projects"
-        className="overflow-x-clip border-t border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)]"
+        className="border-t border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)]"
       >
         <div className="mx-auto max-w-[min(1280px,92vw)] px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)]">
-          <div className="grid items-center gap-[var(--space-2xl)] md:grid-cols-[1fr_auto]">
+          <div className="grid items-end gap-[var(--space-lg)] md:grid-cols-[1fr_auto]">
             {/* editorial column */}
             <div className="max-w-[42ch]">
               <p className="eyebrow mb-[var(--space-md)]">Selected work</p>
@@ -319,23 +320,24 @@ export default function Home() {
                   className="measure mt-[var(--space-lg)] leading-[1.6]"
                   style={muted(66)}
                 >
-                  A dealt deck of documented case files — UWILDs in lieu of
-                  drydock, structural steel renewals and seawater piping
-                  change-outs, delivered afloat across the region. Tap a card
-                  to deal the next.
+                  Documented case files — UWILDs in lieu of drydock, structural
+                  steel renewals and seawater piping change-outs, delivered
+                  afloat across the region.
                 </p>
               </Reveal>
-              <Reveal className="mt-[var(--space-xl)]">
-                <MovingBorderButton as={Link} href="/projects" duration={3600}>
-                  See the project log
-                </MovingBorderButton>
-              </Reveal>
             </div>
+            <Reveal className="md:pb-2">
+              <MovingBorderButton as={Link} href="/projects" duration={3600}>
+                See the project log
+              </MovingBorderButton>
+            </Reveal>
+          </div>
 
-            {/* the fanned deck — Aceternity Card Stack, re-worked to fan */}
-            <div className="flex justify-center py-[var(--space-lg)] md:justify-end md:pr-[var(--space-lg)]">
-              <FanCardDeck items={DECK} rotate={4} interval={5200} />
-            </div>
+          {/* uniform card grid — every card same width + height, summary clamped with read-more */}
+          <div className="mt-[var(--space-xl)] grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {HOME_PROJECTS.map((p) => (
+              <ProjectCard key={p.title} {...p} />
+            ))}
           </div>
         </div>
       </section>

@@ -8,12 +8,28 @@ import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(ScrollTrigger);
 
-const LINKS = [
+type NavLink = {
+  href: string;
+  label: string;
+  children?: { href: string; label: string }[];
+};
+
+// Services carries a child nav to the four real disciplines (anchors that
+// exist as section ids in ServicesContent).
+const SERVICE_CHILDREN = [
+  { href: "/services#marine-diving", label: "Commercial Diving" },
+  { href: "/services#ndt", label: "Inspection & NDT" },
+  { href: "/services#engineering-steelwork", label: "Engineering & Steelwork" },
+  { href: "/services#trading-others", label: "Trading & Support" },
+];
+
+const LINKS: NavLink[] = [
   { href: "/", label: "Home" },
   { href: "/about", label: "About" },
-  { href: "/services", label: "Services" },
+  { href: "/services", label: "Services", children: SERVICE_CHILDREN },
   { href: "/projects", label: "Projects" },
   { href: "/news", label: "News" },
+  { href: "/contact", label: "Contact" },
 ];
 
 export default function SiteNav() {
@@ -137,12 +153,72 @@ export default function SiteNav() {
         <div className="hidden md:flex items-center gap-[var(--space-lg)] text-sm">
           {LINKS.map((l) => {
             const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
+            const linkColor = active
+              ? "var(--color-accent)"
+              : "color-mix(in oklch, var(--color-ink) 70%, transparent)";
+
+            if (l.children) {
+              return (
+                <div key={l.href} className="group/dd relative">
+                  <Link
+                    href={l.href}
+                    aria-haspopup="true"
+                    className="group relative inline-flex items-center gap-1 font-body font-medium transition-colors whitespace-nowrap"
+                    style={{ color: linkColor }}
+                  >
+                    {l.label}
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.7"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="h-3 w-3 transition-transform duration-300 group-hover/dd:rotate-180"
+                      aria-hidden
+                    >
+                      <path d="M6 9l6 6 6-6" />
+                    </svg>
+                    <span
+                      aria-hidden
+                      className="pointer-events-none absolute -bottom-1 inset-x-0 h-px origin-left bg-[color:var(--color-accent)] transition-transform duration-300 group-hover:scale-x-100"
+                      style={{ transform: active ? "scaleX(1)" : "scaleX(0)" }}
+                    />
+                  </Link>
+
+                  {/* dropdown — bridged with pt-2 so the hover gap doesn't drop it */}
+                  <div className="invisible absolute left-1/2 top-full z-50 -translate-x-1/2 translate-y-1 pt-2 opacity-0 transition-[opacity,transform] duration-200 group-hover/dd:visible group-hover/dd:translate-y-0 group-hover/dd:opacity-100 group-focus-within/dd:visible group-focus-within/dd:translate-y-0 group-focus-within/dd:opacity-100">
+                    <div
+                      className="min-w-[16rem] rounded-[14px] p-1.5"
+                      style={{
+                        background: "color-mix(in oklch, var(--color-paper) 96%, transparent)",
+                        backdropFilter: "blur(12px)",
+                        border: "1px solid var(--color-rule)",
+                        boxShadow: "0 18px 40px -22px var(--color-ink)",
+                      }}
+                    >
+                      {l.children.map((c) => (
+                        <Link
+                          key={c.href}
+                          href={c.href}
+                          className="block rounded-[10px] px-3 py-2.5 font-body transition-colors hover:bg-[color:var(--color-aqua)]"
+                          style={{ color: "color-mix(in oklch, var(--color-ink) 78%, transparent)", fontSize: "0.9rem" }}
+                        >
+                          {c.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+
             return (
               <Link
                 key={l.href}
                 href={l.href}
                 className="group relative font-body font-medium transition-colors whitespace-nowrap"
-                style={{ color: active ? "var(--color-accent)" : "color-mix(in oklch, var(--color-ink) 70%, transparent)" }}
+                style={{ color: linkColor }}
               >
                 {l.label}
                 {/* animated underline — grows from the left on hover / active */}
@@ -193,17 +269,32 @@ export default function SiteNav() {
         {LINKS.map((l, i) => {
           const active = l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
           return (
-            <Link
-              key={l.href}
-              ref={(el) => {
-                sheetLinksRef.current[i] = el;
-              }}
-              href={l.href}
-              className="px-[var(--space-sm)] py-3 rounded-[12px] font-body font-medium transition-colors hover:bg-[color:var(--color-aqua)]"
-              style={{ color: active ? "var(--color-accent)" : "var(--color-ink)" }}
-            >
-              {l.label}
-            </Link>
+            <div key={l.href}>
+              <Link
+                ref={(el) => {
+                  sheetLinksRef.current[i] = el;
+                }}
+                href={l.href}
+                className="block px-[var(--space-sm)] py-3 rounded-[12px] font-body font-medium transition-colors hover:bg-[color:var(--color-aqua)]"
+                style={{ color: active ? "var(--color-accent)" : "var(--color-ink)" }}
+              >
+                {l.label}
+              </Link>
+              {l.children && (
+                <div className="mb-1 ml-[var(--space-sm)] mt-0.5 flex flex-col border-l border-[color:var(--color-rule)] pl-3">
+                  {l.children.map((c) => (
+                    <Link
+                      key={c.href}
+                      href={c.href}
+                      className="rounded-[10px] px-3 py-2 font-body transition-colors hover:bg-[color:var(--color-aqua)]"
+                      style={{ color: "color-mix(in oklch, var(--color-ink) 66%, transparent)", fontSize: "0.85rem" }}
+                    >
+                      {c.label}
+                    </Link>
+                  ))}
+                </div>
+              )}
+            </div>
           );
         })}
       </div>
