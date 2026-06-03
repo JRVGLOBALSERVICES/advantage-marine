@@ -5,15 +5,20 @@
 **Live (Vercel):** https://advantage-marine.vercel.app
 **Content source (client's production site):** https://www.advantagemarine.com.my/ (WordPress + Elementor — scraped, real copy/images only)
 
-The site's signature is a scroll-narrative hero: a **Blender-authored 11-part
-support vessel** (Hull · Deck · Bridge · Funnel · Mast · Crane · Bulwark ·
-BootTopping · twin Props · Rudder) reads as an exploded technical diagram at
-scroll-top and **assembles into the complete hull** as you scroll — on a slow
-turntable. The home hero runs a **dark CAD-visualization stage** matching the
-client's concept video: deep ink backdrop (`#080c14`), a cyan grid floor, neon
-**connection lines** tracing each part to its assembled position, a pulsating
-target ring, and a **one-shot expanding scan-pulse** that bursts from the vessel
-and fades as assembly completes (scroll 0.86→1.0). A single bright cyan
+The site's signature is a scroll-narrative hero: a **Blender-authored 26-part
+support vessel** — 11 exterior parts (Hull · Deck · Bridge · Funnel · Mast ·
+Crane · Bulwark · BootTopping · twin Props · Rudder) plus a **15-part engine-room
+interior** (twin main diesels · two gensets + yellow trim · port/stbd azimuth
+Z-drives · a forward tunnel bow-thruster · the engine-room deck) — reads as an
+exploded technical diagram at scroll-top and **assembles into the complete hull**
+as you scroll, on a slow turntable. The interior machinery (teal bodies, yellow
+highlights, dark-steel deck) **drops out below the hull on explode and nests back
+inside when assembled** — the concept video's "look inside" reveal. The home hero
+runs a **dark CAD-visualization stage** matching the client's concept video: deep
+ink backdrop (`#080c14`), a cyan grid floor, neon **connection lines** (exterior
+parts only, to keep the interior read clean) tracing each part to its assembled
+position, a pulsating target ring, and a **one-shot expanding scan-pulse** that
+bursts from the vessel and fades as assembly completes (scroll 0.86→1.0). A single bright cyan
 (`#22eeff`, the video's accent) carries the lines, ring, pulse and the hero
 eyebrow + stat. Three capability beats (whole-of-vessel → read underwater →
 cleared by class) latch to the assembly progress. The **rest of the site** keeps
@@ -111,7 +116,7 @@ Services · Projects · News · Contact), verified against `wp-sitemap.xml` + re
 header — not a guess.
 
 Patterns implemented:
-- **Scroll-driven explode→assemble 3D mechanic** — `vessel.glb` (Blender-authored, Draco-compressed ~24KB, 11 named meshes) mounts via `useGLTF` + DRACOLoader; scroll maps `p=0` exploded technical diagram → `p=1` assembled hull. Each part drifts along the axis it really comes off the hull on, keyed to the GLB's true axis (X=length, stern −X / bow +X; Y=up; Z=beam, twin props split ∓0.69m) — no faked cross-section.
+- **Scroll-driven explode→assemble 3D mechanic** — `vessel.glb` (Blender-authored, Draco-compressed ~87KB, 26 named meshes — 11 exterior + 15 engine-room interior) mounts via `useGLTF` + DRACOLoader; scroll maps `p=0` exploded technical diagram → `p=1` assembled hull. Each exterior part drifts along the axis it really comes off the hull on, keyed to the GLB's true axis (X=length, stern −X / bow +X; Y=up; Z=beam, twin props split ∓0.69m); interior machinery drops out below the hull on explode (negative-Y offsets) for the "look inside" reveal and nests back when assembled — no faked cross-section.
 - **iOS-safe sticky scroll-narrative hero** — a 340lvh section with a `sticky top-0 h-[100lvh]` stage (NOT `ScrollTrigger pin:true`), three copy beats trapezoid-faded off scroll progress via `gsap.ticker` (no React re-render per frame), full static-photo fallback (`VesselHero.tsx`).
 - **SEO infrastructure** — `app/robots.ts`, `app/sitemap.ts` (6 static routes + one URL per news post + one URL per service), `app/manifest.ts`; sitewide `Organization` + `LocalBusiness` + `WebSite` JSON-LD (`@id`-linked, real Gelang Patah / Johor facts) in the root layout; per-page canonical + `summary_large_image` twitter card + `en_MY` locale.
 - **News slug/detail pages** — `app/news/[slug]/page.tsx` pre-renders one SSG article per post (`generateStaticParams` from `lib/news.ts`), mirroring the live WordPress per-post sitemap structure. Editorial layout (Cinzel display headline, hero photo, lead + body, prev/next, closing CTA), `NewsArticle` JSON-LD + `og:type=article` + self-canonical. Index featured panel and cards link through to the detail pages. The live `em_event` theme-demo posts (overcome-nonprofit etc.) are excluded as fake; class-society `post` slugs are cert logos, not news.
@@ -144,7 +149,7 @@ components/
   SiteFooter.tsx        Footer — "Site by JRV"
   PageHeader.tsx        Inner-page header band
   VesselHero.tsx        CURRENT home hero — iOS-safe sticky narrative + 3 beats
-  VesselContactScene.tsx R3F scene — 11-part vessel, scroll explode→assemble; dark CAD stage (cyan grid + connection lines + target ring + one-shot scan-pulse), teal scan as secondary accent
+  VesselContactScene.tsx R3F scene — 26-part vessel (11 exterior + 15 engine-room interior), scroll explode→assemble with interior "look inside" reveal; dark CAD stage (cyan grid + exterior-only connection lines + target ring + one-shot scan-pulse), teal scan as secondary accent
   VesselShowcase.tsx    Showcase wrapper (vessel scene + copy)
   RigShowcase.tsx       (retained, unused) prior jack-up rig hero
   RigHeroScene.tsx      (retained, unused) R3F jack-up rig scene + Bloom FX
