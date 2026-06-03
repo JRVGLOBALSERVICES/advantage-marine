@@ -193,6 +193,18 @@ a { color: inherit; }
 }
 @keyframes sbl-scan-move { from { background-position-y: 0; } to { background-position-y: 12px; } }
 
+/* CertOrbit — credential constellation. Rings spin; each tile counter-spins
+   the same duration to stay upright. Gated to in-view + no-reduced-motion in JS. */
+@keyframes am-orbit-spin {
+  from { transform: translate(-50%, -50%) rotate(0deg); }
+  to   { transform: translate(-50%, -50%) rotate(360deg); }
+}
+/* counter-rotation for the tile wrapper — pure rotate, no centering offset */
+@keyframes am-orbit-spin-plain {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
 /* scroll lock while the loader holds the frame — released on hero reveal.
    Covers native + iOS-touch scroll; Lenis (desktop smooth) is stopped via the
    am:lock-scroll event in SmoothScroll. We only lock during initial load when

@@ -15,7 +15,8 @@ import {
   ScrollVelocityContainer,
   ScrollVelocityRow,
 } from "@/components/ui/magic/ScrollBasedVelocity";
-import { CertWall, type Cert } from "@/components/about/CertWall";
+import { type Cert } from "@/components/about/CertWall";
+import { CertOrbit } from "@/components/about/CertOrbit";
 
 export const metadata: Metadata = {
   title: "About — Advantage Marine Services (Malaysia) Sdn Bhd",
@@ -392,7 +393,9 @@ export default function AboutPage() {
               backed by an ISO 9001, ISO 14001 and OHSAS management system.
             </p>
           </div>
-          <CertWall certs={certs} />
+          <div className="flex items-center justify-center">
+            <CertOrbit certs={certs} />
+          </div>
         </div>
       </section>
 
