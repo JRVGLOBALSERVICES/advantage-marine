@@ -7,6 +7,7 @@ import {
   Environment,
   AdaptiveDpr,
   ContactShadows,
+  Html,
 } from "@react-three/drei";
 import { EffectComposer, Bloom, ToneMapping } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
@@ -77,6 +78,17 @@ function explodePlan(name: string): { dir: THREE.Vector3; dist: number } | null 
   return null;
 }
 
+/* Technical-diagram callouts — the reel's signature. Each anchors to one
+   representative part node and fades in as the rig explodes, so the teardown
+   reads as an engineered parts diagram, not just a model coming apart. The
+   `up`/`side` nudge lifts the label clear of its part along the explode frame. */
+const ANNO: { match: RegExp; label: string; sub: string; up: number; side: number }[] = [
+  { match: /^GEO-Derrick/, label: "DERRICK", sub: "drilling mast", up: 2.4, side: 0 },
+  { match: /^GEO-Hull/, label: "HULL · DECK", sub: "main platform", up: 1.6, side: 2.2 },
+  { match: /^GEO-Leg_B/, label: "JACK-UP LEGS", sub: "lattice × 4", up: 1.4, side: 1.6 },
+  { match: /^GEO-SpudCan_B/, label: "SPUD CANS", sub: "seabed footings × 4", up: 0, side: 2.0 },
+];
+
 /* Camera path — keyframes lerped by (damped) scroll. Restraint-framed: the
    assembled rig occupies ~55–65% of frame height as ONE vertical object in
    generous cream air; pulled slightly wider than the pre-explode build so the
@@ -128,6 +140,10 @@ function Rig() {
   const { scene, animations } = useGLTF(MODEL_URL, true);
   const { actions, names } = useAnimations(animations, group);
   const parts = useRef<Part[]>([]);
+  // annotation anchors: matched part node + its callout config (built alongside parts)
+  const annos = useRef<{ node: Object3D; conf: (typeof ANNO)[number] }[]>([]);
+  const annoGroups = useRef<(Group | null)[]>([]);
+  const annoLabels = useRef<(HTMLDivElement | null)[]>([]);
 
   const sonarNames = useMemo(
     () => names.filter((n) => n.startsWith("FX-Sonar")),
@@ -197,6 +213,12 @@ function Rig() {
     });
     parts.current = collected;
 
+    // match each callout to a representative part node (first hit wins)
+    annos.current = ANNO.map((conf) => {
+      const hit = collected.find((c) => conf.match.test(c.node.name));
+      return hit ? { node: hit.node, conf } : null;
+    }).filter(Boolean) as { node: Object3D; conf: (typeof ANNO)[number] }[];
+
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("am:scene-ready"));
     }
@@ -204,6 +226,7 @@ function Rig() {
 
   const camPos = useRef(new THREE.Vector3());
   const camTgt = useRef(new THREE.Vector3());
+  const scratch = useRef(new THREE.Vector3());
   const damped = useRef(0);
   const { camera, size } = useThree();
 
@@ -232,6 +255,26 @@ function Rig() {
       );
     }
 
+    // Annotation callouts: ride each part to its exploded position and fade in
+    // with the teardown (hidden when assembled / reduced-motion). The label
+    // lifts clear of its part along the outward explode frame.
+    const tmp = scratch.current;
+    for (let i = 0; i < annos.current.length; i++) {
+      const { node, conf } = annos.current[i];
+      const g = annoGroups.current[i];
+      if (g) {
+        tmp.set(node.position.x, 0, node.position.z);
+        if (tmp.lengthSq() > 1e-4) tmp.normalize();
+        g.position.set(
+          node.position.x + tmp.x * conf.side,
+          node.position.y + conf.up,
+          node.position.z + tmp.z * conf.side,
+        );
+      }
+      const l = annoLabels.current[i];
+      if (l) l.style.opacity = String(e * e); // ease-in, lags the spread slightly
+    }
+
     // Sonar tail: 0.62→1 scrubs the ring clips so they expand as the showcase
     // dwells on the exploded diagram.
     const sp = p <= EXPLODE_SCROLL ? 0 : (p - EXPLODE_SCROLL) / (1 - EXPLODE_SCROLL);
@@ -251,6 +294,73 @@ function Rig() {
   return (
     <group ref={group}>
       <primitive object={scene} />
+
+      {/* technical-diagram callouts — billboarded, non-occluded, fade in on explode */}
+      {ANNO.map((conf, i) => (
+        <group key={conf.label} ref={(el) => { annoGroups.current[i] = el; }}>
+          <Html
+            center
+            sprite
+            transform
+            distanceFactor={26}
+            occlude={false}
+            zIndexRange={[10, 0]}
+            style={{ pointerEvents: "none", userSelect: "none" }}
+          >
+            <div
+              ref={(el) => { annoLabels.current[i] = el; }}
+              style={{ opacity: 0, whiteSpace: "nowrap", transform: "translateX(8px)" }}
+            >
+              <div style={{ display: "flex", alignItems: "center", gap: "7px" }}>
+                <span
+                  style={{
+                    width: "7px",
+                    height: "7px",
+                    borderRadius: "999px",
+                    background: "#34c6b4",
+                    boxShadow: "0 0 8px #5cf0d8",
+                    flex: "0 0 auto",
+                  }}
+                />
+                <span
+                  style={{
+                    height: "1px",
+                    width: "26px",
+                    background: "linear-gradient(90deg,#34c6b4,transparent)",
+                  }}
+                />
+                <span>
+                  <span
+                    style={{
+                      display: "block",
+                      color: "#234b47",
+                      fontFamily: "var(--font-display), Georgia, serif",
+                      fontWeight: 700,
+                      fontSize: "13px",
+                      letterSpacing: "0.08em",
+                      lineHeight: 1.1,
+                    }}
+                  >
+                    {conf.label}
+                  </span>
+                  <span
+                    style={{
+                      display: "block",
+                      color: "#30837b",
+                      fontSize: "8.5px",
+                      letterSpacing: "0.26em",
+                      textTransform: "uppercase",
+                      marginTop: "2px",
+                    }}
+                  >
+                    {conf.sub}
+                  </span>
+                </span>
+              </div>
+            </div>
+          </Html>
+        </group>
+      ))}
     </group>
   );
 }

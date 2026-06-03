@@ -8,7 +8,7 @@ import {
   MeshReflectorMaterial,
   Html,
 } from "@react-three/drei";
-import { Suspense, useMemo, useRef, useEffect } from "react";
+import { Suspense, useMemo, useRef, useEffect, useState } from "react";
 import * as THREE from "three";
 import { scrollState, motionState, sceneState, window01, smooth } from "@/lib/scroll";
 
@@ -27,8 +27,14 @@ import { scrollState, motionState, sceneState, window01, smooth } from "@/lib/sc
    stern — Advantage Marine's actual job: in-water inspection / NDT.
    Honest to the geometry, on-brand, and it can never read as broken.
 
-     scroll 0.00 → 3/4 establishing, vessel whole on the waterline
-     scroll 0→0.45 → camera eases to the hero quarter, tag fades in
+   Creative upgrade (2026-06): the vessel now ARRIVES as a holographic
+   teal BLUEPRINT (wireframe over the fused hull) and MATERIALISES into
+   solid brushed steel across the first ~45% of scroll — a survey
+   "rendering" the hull into reality. Honest to a single fused mesh (no
+   faked parts), and it reads as engineered, not decorative.
+
+     scroll 0.00 → teal wireframe blueprint on the waterline
+     scroll 0→0.45 → hull materialises to solid steel; camera eases in
      scroll 0.45→1 → slow orbit reveals the far side; scan keeps sweeping
    ════════════════════════════════════════════════════════════════ */
 
@@ -39,6 +45,9 @@ function Vessel() {
   const { scene } = useGLTF(MODEL_URL);
   const groupRef = useRef<THREE.Group>(null!);
   const scanRef = useRef<THREE.Mesh>(null!);
+  // holographic blueprint overlay (a wireframe clone) that fades out as the
+  // solid steel fades in — built once the hull is normalised.
+  const [wireScene, setWireScene] = useState<THREE.Object3D | null>(null);
 
   // build axis (hull length) + half-extent, filled once measured
   const axis = useRef<{ idx: 0 | 1 | 2; half: number; normal: THREE.Vector3 }>({
@@ -47,15 +56,32 @@ function Vessel() {
     normal: new THREE.Vector3(1, 0, 0),
   });
 
-  // brushed marine-steel — whole hull, no clipping (no hollow cross-section)
+  // brushed marine-steel — whole hull, no clipping (no hollow cross-section).
+  // transparent so it can fade UP from the blueprint pass.
   const material = useMemo(() => {
     return new THREE.MeshStandardMaterial({
       color: new THREE.Color("#8fa6a3"), // cool steel, faint teal
       metalness: 0.82,
       roughness: 0.38,
       envMapIntensity: 1.2,
+      transparent: true,
+      opacity: 0,
     });
   }, []);
+
+  // teal blueprint wireframe — additive so the hull edges read as a hologram
+  const wireMat = useMemo(
+    () =>
+      new THREE.MeshBasicMaterial({
+        color: new THREE.Color("#46d8c6"),
+        wireframe: true,
+        transparent: true,
+        opacity: 0.55,
+        depthWrite: false,
+        blending: THREE.AdditiveBlending,
+      }),
+    [],
+  );
 
   // normalize: recenter + scale longest axis to FIT_SIZE, find the long axis, apply steel
   useEffect(() => {
@@ -86,14 +112,29 @@ function Vessel() {
     normal.setComponent(idx, 1);
     axis.current = { idx, half: FIT_SIZE / 2, normal };
 
+    // blueprint pass: clone the (already-normalised) hull, swap to the teal
+    // wireframe material. clone() shares geometry buffers — no memory doubling.
+    const wire = scene.clone(true);
+    wire.traverse((o) => {
+      const mesh = o as THREE.Mesh;
+      if (mesh.isMesh) mesh.material = wireMat;
+    });
+    setWireScene(wire);
+
     if (typeof window !== "undefined") {
       window.dispatchEvent(new Event("am:scene-ready"));
     }
-  }, [scene, material]);
+  }, [scene, material, wireMat]);
 
   useFrame((state, dt) => {
     const p = scrollState.progress;
     const { half, normal } = axis.current;
+
+    // ── materialise: blueprint (wireframe) → solid steel over the first 45%.
+    //    reduced-motion lands solid immediately (no scroll-driven reveal). ──
+    const mat = motionState.reduced ? 1 : smooth(window01(p, 0.0, 0.45));
+    material.opacity = mat;
+    wireMat.opacity = (1 - mat) * 0.55 + 0.04; // keep a faint edge sheen on steel
 
     // ── inspection scan: a teal plane travels bow→stern on a slow loop,
     //    reading as an in-water survey pass over the hull ──
@@ -130,6 +171,8 @@ function Vessel() {
   return (
     <group ref={groupRef} rotation={[0, -0.5, 0]}>
       <primitive object={scene} />
+      {/* holographic blueprint pass — fades out as the steel fades in */}
+      {wireScene && <primitive object={wireScene} />}
       {/* teal inspection-scan plane sweeping the hull length */}
       <mesh ref={scanRef} visible={false} renderOrder={2}>
         <planeGeometry args={[FIT_SIZE * 1.3, FIT_SIZE * 0.95]} />
