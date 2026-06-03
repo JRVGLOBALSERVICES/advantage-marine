@@ -16,6 +16,7 @@ import { motion, useReducedMotion } from "motion/react";
 import { cn } from "@/lib/utils";
 import { SlideFillButton } from "@/components/ui/uiverse/SlideFillButton";
 import { ExpandIconButton } from "@/components/ui/uiverse/ExpandIconButton";
+import { SelectedWorks } from "@/components/ui/ExpandingCards";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 
@@ -79,6 +80,28 @@ export default function ProjectsView({ projects, images, heroImage }: Props) {
     () => projects.filter((p) => active === ALL || p.category === active),
     [projects, active],
   );
+
+  // Selected Works band — one flagship job per distinct discipline, real
+  // photo + parsed period. Drives the expanding-cards accordion.
+  const selectedWorks = useMemo(() => {
+    const pool = images.filter((s) => /\.(jpe?g|png|webp)$/i.test(s));
+    const seen = new Set<string>();
+    const picks: typeof projects = [];
+    for (const p of projects) {
+      if (seen.has(p.category)) continue;
+      seen.add(p.category);
+      picks.push(p);
+      if (picks.length >= 6) break;
+    }
+    return picks.map((p, i) => ({
+      id: p.title,
+      title: p.title,
+      category: p.category,
+      summary: p.summary ?? "",
+      period: parsePeriod(p.summary),
+      imgSrc: pool[i % pool.length],
+    }));
+  }, [projects, images]);
 
   return (
     <main>
@@ -154,6 +177,11 @@ export default function ProjectsView({ projects, images, heroImage }: Props) {
             />
           </motion.div>
         </div>
+      </section>
+
+      {/* ───────────────────────── SELECTED WORKS (expanding accordion) ───────────────────────── */}
+      <section className="border-t border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)]">
+        <SelectedWorks items={selectedWorks} />
       </section>
 
       {/* ───────────────────────── FILTER + GRID ───────────────────────── */}
