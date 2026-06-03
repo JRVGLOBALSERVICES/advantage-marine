@@ -8,11 +8,8 @@
 
 import BlurText from "./ui/BlurText";
 import { NumberTicker } from "./ui/NumberTicker";
-import { Marquee } from "./ui/Marquee";
 import OfficeMap from "./ui/OfficeMap";
 import { BackgroundBeams } from "./ui/BackgroundBeams";
-
-const SOCIETIES = ["ABS", "DNV", "BV", "LR", "ClassNK", "KR", "IRS", "CCS", "RINA"];
 
 export default function GlobalReach() {
   return (
@@ -67,23 +64,6 @@ export default function GlobalReach() {
               </p>
             </div>
           ))}
-        </div>
-
-        {/* class-society marquee */}
-        <div className="mt-[var(--space-xl)] relative">
-          <Marquee pauseOnHover className="[--duration:26s]">
-            {SOCIETIES.map((m) => (
-              <span
-                key={m}
-                className="font-display font-medium text-base tracking-[0.14em] px-5 py-2 mx-1 border border-[color:color-mix(in_oklch,var(--color-cyan)_30%,transparent)] rounded-full text-[color:var(--color-cyan-hi)]"
-              >
-                {m}
-              </span>
-            ))}
-          </Marquee>
-          {/* fade-mask edges */}
-          <div className="pointer-events-none absolute inset-y-0 left-0 w-1/6 bg-gradient-to-r from-[color:var(--color-abyss)] to-transparent" />
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-1/6 bg-gradient-to-l from-[color:var(--color-abyss)] to-transparent" />
         </div>
       </div>
     </section>

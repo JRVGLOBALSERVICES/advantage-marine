@@ -18,10 +18,34 @@ import { MagneticLink } from "@/components/ui/MagneticLink";
 import { LottieIcon } from "@/components/ui/LottieIcon";
 import { SlideFillButton } from "@/components/ui/uiverse/SlideFillButton";
 import { NumberTicker } from "@/components/ui/NumberTicker";
+import { SheenCard } from "@/components/ui/cult/SheenCard";
 import servicesData from "@/lib/content/services.json";
 import aboutData from "@/lib/content/about.json";
 import projectsData from "@/lib/content/projects.json";
 import certsData from "@/lib/content/media-manifest.json";
+import newsData from "@/lib/content/news.json";
+
+/* ── homepage news rail — three most-recent real posts, real photos ──────── */
+type NewsPost = { title: string; date: string; excerpt: string | null };
+const NEWS_MEDIA: Record<string, string> = {
+  "Oil & Gas Asia 2025": "/media/csr/WhatsApp-Image-2025-10-15-at-2.54.59-PM.jpeg",
+  "Oil & Gas Asia 2024": "/media/home/photo_6305331321802710100_y.jpg",
+  "Discover the AMS difference": "/media/csr/AMS-DIVER-3-scaled-e1616042912140.jpg",
+};
+const NEWS_FALLBACK_EXCERPT: Record<string, string> = {
+  "Discover the AMS difference":
+    "Our promise as a one-stop solution provider for underwater and topside repair, inspection, NDT, engineering and rope access across the oil, gas, marine and petrochemical sector.",
+};
+const fmtNewsDate = (iso: string) =>
+  new Date(iso + "T00:00:00").toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+const HOME_NEWS = (newsData.posts as NewsPost[])
+  .slice()
+  .sort((a, b) => b.date.localeCompare(a.date))
+  .slice(0, 3);
 
 /* ── token helpers ─────────────────────────────────────────────────────── */
 const muted = (pct: number) => ({
@@ -287,6 +311,46 @@ export default function Home() {
           {/* survey logbook — six records on file, each surfacing its photo
               from under the waterline on hover (SelectedWorksLog) */}
           <SelectedWorksLog records={HOME_RECORDS} />
+        </div>
+      </section>
+
+      {/* (7b) ── from the field — three most-recent news posts, vertical cards ─ */}
+      <section
+        id="news"
+        className="mx-auto max-w-[min(1280px,92vw)] px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)]"
+      >
+        <div className="mb-[var(--space-xl)] grid items-end gap-[var(--space-md)] md:grid-cols-[1fr_auto]">
+          <div>
+            <p className="eyebrow mb-[var(--space-md)]">From the field</p>
+            <h2
+              className="font-display font-bold leading-[1.08] tracking-[-0.02em] max-w-[18ch]"
+              style={{ fontSize: "var(--text-h2)" }}
+            >
+              <WordReveal text="News, events and yard dispatches." />
+            </h2>
+          </div>
+          <Reveal className="md:pb-2">
+            <MagneticLink href="/news" className="cta-secondary">
+              All news
+            </MagneticLink>
+          </Reveal>
+        </div>
+
+        <div className="grid gap-[var(--space-lg)] sm:grid-cols-2 lg:grid-cols-3">
+          {HOME_NEWS.map((post, i) => (
+            <Reveal key={post.title} delay={Math.min(i, 3) * 0.06}>
+              <SheenCard
+                className="h-full"
+                eyebrow={fmtNewsDate(post.date)}
+                index={String(i + 1).padStart(2, "0")}
+                title={post.title}
+                description={post.excerpt ?? NEWS_FALLBACK_EXCERPT[post.title] ?? ""}
+                imageSrc={NEWS_MEDIA[post.title]}
+                imageAlt={post.title}
+                href="/news"
+              />
+            </Reveal>
+          ))}
         </div>
       </section>
 
