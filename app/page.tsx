@@ -18,7 +18,7 @@ import { MagneticLink } from "@/components/ui/MagneticLink";
 import { LottieIcon } from "@/components/ui/LottieIcon";
 import { SlideFillButton } from "@/components/ui/uiverse/SlideFillButton";
 import { NumberTicker } from "@/components/ui/NumberTicker";
-import { SheenCard } from "@/components/ui/cult/SheenCard";
+import { FanCardDeck, type FanCard } from "@/components/ui/aceternity/FanCardDeck";
 import servicesData from "@/lib/content/services.json";
 import aboutData from "@/lib/content/about.json";
 import projectsData from "@/lib/content/projects.json";
@@ -42,10 +42,25 @@ const fmtNewsDate = (iso: string) =>
     month: "long",
     year: "numeric",
   });
+const NEWS_CATEGORY: Record<string, string> = {
+  "Oil & Gas Asia 2025": "Exhibition",
+  "Oil & Gas Asia 2024": "Exhibition",
+  "Discover the AMS difference": "Company",
+};
+const newsSummary = (post: NewsPost) => {
+  const body = post.excerpt ?? NEWS_FALLBACK_EXCERPT[post.title] ?? "";
+  return body.length > 180 ? `${body.slice(0, 177).trimEnd()}…` : body;
+};
 const HOME_NEWS = (newsData.posts as NewsPost[])
   .slice()
   .sort((a, b) => b.date.localeCompare(a.date))
-  .slice(0, 3);
+  .slice(0, 5);
+const NEWS_CARDS: FanCard[] = HOME_NEWS.map((post) => ({
+  title: post.title,
+  src: NEWS_MEDIA[post.title],
+  category: `${NEWS_CATEGORY[post.title] ?? "News"} · ${fmtNewsDate(post.date)}`,
+  summary: newsSummary(post),
+}));
 
 /* ── token helpers ─────────────────────────────────────────────────────── */
 const muted = (pct: number) => ({
@@ -337,22 +352,12 @@ export default function Home() {
           </Reveal>
         </div>
 
-        <div className="grid gap-[var(--space-lg)] sm:grid-cols-2 lg:grid-cols-3">
-          {HOME_NEWS.map((post, i) => (
-            <Reveal key={post.title} delay={Math.min(i, 3) * 0.06}>
-              <SheenCard
-                className="h-full"
-                eyebrow={fmtNewsDate(post.date)}
-                index={String(i + 1).padStart(2, "0")}
-                title={post.title}
-                description={post.excerpt ?? NEWS_FALLBACK_EXCERPT[post.title] ?? ""}
-                imageSrc={NEWS_MEDIA[post.title]}
-                imageAlt={post.title}
-                href="/news"
-              />
-            </Reveal>
-          ))}
-        </div>
+        <Reveal className="flex flex-col items-center gap-[var(--space-lg)] pt-[var(--space-md)]">
+          <FanCardDeck items={NEWS_CARDS} />
+          <p className="eyebrow" style={muted(55)}>
+            {String(NEWS_CARDS.length).padStart(2, "0")} dispatches · tap a card to advance
+          </p>
+        </Reveal>
       </section>
 
       {/* (8) ── final CTA — closing hero slug over a quiet teal survey field ─ */}
