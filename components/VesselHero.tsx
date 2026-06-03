@@ -100,7 +100,7 @@ function BeatBlock({
       style={stacked ? { gridArea: "1 / 1" } : undefined}
       className="max-w-[42rem] will-change-[opacity,transform]"
     >
-      <p className="eyebrow mb-[var(--space-md)]" style={{ color: "#4fc3f7" }}>
+      <p className="eyebrow mb-[var(--space-md)]" style={{ color: "#22eeff" }}>
         {beat.kicker}
       </p>
       <div className="mb-[var(--space-md)]" style={{ fontSize: "var(--text-display)" }}>
@@ -128,13 +128,13 @@ function BeatBlock({
       <div className="mt-[var(--space-lg)] flex items-end gap-[var(--space-md)] flex-wrap">
         <span
           className="font-display font-bold leading-none flex items-baseline"
-          style={{ fontSize: "var(--text-stat)", color: "#29b6f6" }}
+          style={{ fontSize: "var(--text-stat)", color: "#22eeff" }}
         >
           <NumberTicker
             value={beat.stat.value}
             start={active}
             decimalPlaces={beat.stat.decimals ?? 0}
-            className="text-[#29b6f6]"
+            className="text-[#22eeff]"
           />
           <span>{beat.stat.suffix}</span>
         </span>

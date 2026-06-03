@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useGLTF, Environment, AdaptiveDpr, ContactShadows, Line } from "@react-three/drei";
+import { useGLTF, Environment, AdaptiveDpr, ContactShadows } from "@react-three/drei";
 import { EffectComposer, Bloom, ToneMapping } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
 import { Suspense, useEffect, useMemo, useRef } from "react";
@@ -34,11 +34,11 @@ const smoothstep = (t: number) => t * t * (3 - 2 * t);
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-/* Dark CAD color palette */
+/* Dark CAD color palette — cyan accent (matches concept video #22EEFF) */
 const DARK_BG = "#080c14";
-const GRID_BLUE = "#1a3a5c";
-const LINE_BLUE = "#4fc3f7";
-const RING_BLUE = "#29b6f6";
+const GRID_BLUE = "#1a4a5c";   // cyan-tinted CAD grid
+const LINE_BLUE = "#22eeff";   // video cyan — connection traces + particles
+const RING_BLUE = "#22eeff";   // video cyan — target ring + scan pulse
 
 /* PBR materials — adjusted for dark stage (slightly lighter values so they
    read against the dark bg without blowing out). */
@@ -175,7 +175,7 @@ function GridFloor() {
   useFrame((state) => {
     if (!gridRef.current) return;
     // subtle pulse on grid opacity
-    const m = gridRef.current.material as THREE.MeshBasicMaterial;
+    const m = gridRef.current.material as THREE.Material;
     m.opacity = 0.15 + Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
   });
   return (
@@ -226,7 +226,7 @@ function ConnectionLines({ parts }: { parts: React.MutableRefObject<Part[]> }) {
         if (name === "Hull") return null; // anchor doesn't get a line
         const pts = [new THREE.Vector3(0, 0, 0), new THREE.Vector3(offset[0], offset[1], offset[2])];
         return (
-          <line key={name} ref={(el) => { if (el) lineMeshes.current[i] = el; }}>
+          <line key={name} ref={(el) => { if (el) lineMeshes.current[i] = el as unknown as THREE.Line; }}>
             <bufferGeometry>
               <bufferAttribute
                 attach="attributes-position"
@@ -272,6 +272,47 @@ function TargetRing({ box }: { box: React.MutableRefObject<Box> }) {
   return (
     <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} visible={false} renderOrder={2}>
       <ringGeometry args={[0.85, 1.0, 96]} />
+      <meshBasicMaterial
+        color={RING_BLUE}
+        transparent
+        opacity={0}
+        side={THREE.DoubleSide}
+        toneMapped={false}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
+    </mesh>
+  );
+}
+
+/* One-shot expanding scan-pulse — the concept video's closing beat.
+   A ring that bursts outward from the vessel and fades as assembly completes.
+   Scroll-mapped (scrubbed) so it reads as the payoff at the bottom of the hero,
+   not a continuous loop. */
+function ScanPulse({ box }: { box: React.MutableRefObject<Box> }) {
+  const ref = useRef<THREE.Mesh>(null!);
+  useFrame(() => {
+    if (!ref.current) return;
+    const p = motionState.reduced ? 0.93 : scrollState.progress;
+    // active only across the assembly-complete window (0.86 → 1.0)
+    const t = clamp01((p - 0.86) / 0.14);
+    if (t <= 0.01 || t >= 0.999) {
+      ref.current.visible = false;
+      return;
+    }
+    ref.current.visible = true;
+    const { c, maxDim } = box.current;
+    ref.current.position.set(c.x, -2.42, c.z);
+    // expand tight → wide, fade as it grows (ease-out)
+    const e = smoothstep(t);
+    const radius = maxDim * lerp(0.18, 1.15, e);
+    ref.current.scale.set(radius, radius, radius);
+    const m = ref.current.material as THREE.MeshBasicMaterial;
+    m.opacity = (1 - e) * 0.85;
+  });
+  return (
+    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} visible={false} renderOrder={4}>
+      <ringGeometry args={[0.96, 1.0, 120]} />
       <meshBasicMaterial
         color={RING_BLUE}
         transparent
@@ -397,6 +438,7 @@ export default function VesselContactScene({
         <GridFloor />
         <ConnectionLines parts={partsRef} />
         <TargetRing box={box} />
+        <ScanPulse box={box} />
         <ScanBand box={box} />
         <DataParticles />
 
