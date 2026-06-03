@@ -2,17 +2,18 @@
 
 /**
  * CertOrbit — the class-society + ISO credentials as a slow orbital
- * constellation of TEXT badges (no external logo hotlinks).
+ * constellation of the firm's REAL accreditation LOGOS.
  *
  * Rebuilt to the pasted ORBIT layout: a centre node + 3 dotted, counter-
  * rotating rings, with badges spaced evenly around each ring at
  * angle = idx · (2π / perRing), positioned left/top = 50 ± 50·cos/sin(angle)
  * and pulled back to centre with translate(-50%,-50%). The generic
  * React/AWS/Docker icon set from the paste is off-brand for a marine /
- * offshore NDT specialist, so each badge instead carries the SHORT NAME of a
- * real class society / ISO mark the firm actually carries (ABS, DNV GL,
- * Bureau Veritas, Lloyd's Register, ClassNK, ISO 9001/14001, OHSAS …),
- * distributed across the rings from the `certs` prop.
+ * offshore NDT specialist, so each badge instead carries the ACTUAL logo
+ * image of a class society / ISO mark the firm carries (ABS, DNV GL, Bureau
+ * Veritas, Lloyd's Register, ClassNK, CCS, RINA, IRS, KR, ISO 9001/14001,
+ * OHSAS) — the same local /public/media/certs files the CertWall grid uses
+ * (NOT external hotlinks), distributed across the rings from the `certs` prop.
  *
  * AM theme (single light theme — no next-themes anywhere):
  *  - Cream page; rings = dotted teal (var(--color-accent) at low alpha).
@@ -38,37 +39,13 @@ import type { Cert } from "@/components/about/CertWall";
 /** Ring config: [diameter %, seconds/rev, direction]. Outermost first. */
 const RINGS: { diameter: number; seconds: number; dir: 1 | -1 }[] = [
   { diameter: 100, seconds: 46, dir: 1 },
-  { diameter: 64, seconds: 36, dir: -1 },
-  { diameter: 30, seconds: 28, dir: 1 },
+  { diameter: 66, seconds: 36, dir: -1 },
+  { diameter: 38, seconds: 28, dir: 1 },
 ];
 
 /** Render Lloyd's apostrophe + ampersand entities cleanly. */
 function stripEntities(s: string): string {
   return s.replace(/&#8217;/g, "’").replace(/&amp;/g, "&");
-}
-
-/**
- * A short, upright-readable badge label for each credential. The Cert type
- * only carries { slug, title, file }, so map the known marine class-society /
- * ISO slugs to their conventional abbreviation; fall back to the title.
- */
-const ABBR: Record<string, string> = {
-  abs: "ABS",
-  "dnv-gl": "DNV GL",
-  "bureau-veritas": "BV",
-  "lloyds-register": "LR",
-  "class-nk": "ClassNK",
-  "china-register": "CCS",
-  "ir-class": "IRS",
-  "kr-register": "KR",
-  rina: "RINA",
-  "iso-9001": "ISO 9001",
-  "iso-14001": "ISO 14001",
-  ohsas: "OHSAS",
-};
-
-function badgeLabel(cert: Cert): string {
-  return ABBR[cert.slug] ?? stripEntities(cert.title);
 }
 
 /** Split the certs across the three rings, outer-heaviest. */
@@ -181,23 +158,32 @@ export function CertOrbit({ certs }: { certs: Cert[] }) {
                   >
                     <span
                       className={cn(
-                        "group inline-flex select-none items-center justify-center whitespace-nowrap rounded-[var(--radius-pill)] border font-display",
-                        "border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)] text-[color:var(--color-ink)]",
-                        "transition-colors duration-300 hover:border-[color:var(--color-accent)] hover:bg-[color:var(--color-accent)] hover:text-[color:var(--color-accent-ink)]",
+                        "group flex select-none items-center justify-center rounded-[var(--radius-pill)] border",
+                        "border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)]",
+                        "transition-colors duration-300 hover:border-[color:var(--color-accent)] hover:bg-[color:var(--color-paper)]",
                       )}
                       style={{
-                        padding: "clamp(0.3rem, 1.2vw, 0.5rem) clamp(0.6rem, 2vw, 0.95rem)",
-                        fontSize: "clamp(0.62rem, 1.7vw, 0.82rem)",
-                        letterSpacing: "0.1em",
-                        textTransform: "uppercase",
-                        lineHeight: 1,
+                        width: "clamp(3.1rem, 9.4vw, 4.4rem)",
+                        height: "clamp(2.1rem, 6.2vw, 2.9rem)",
+                        padding: "clamp(0.28rem, 1vw, 0.46rem)",
                         transitionTimingFunction: "var(--ease-out)",
                         boxShadow:
                           "0 1px 0 color-mix(in oklch, var(--color-ink) 8%, transparent)",
                       }}
                       title={stripEntities(cert.title)}
                     >
-                      {badgeLabel(cert)}
+                      {/* the real class-society / ISO mark (local file in
+                          /public/media/certs). mix-blend-multiply drops the
+                          white JPG matte so the logo sits on the cream pill. */}
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={cert.file}
+                        alt={`${stripEntities(cert.title)} class-society / certification mark`}
+                        className="max-h-full max-w-full object-contain mix-blend-multiply"
+                        loading="lazy"
+                        decoding="async"
+                        draggable={false}
+                      />
                     </span>
                   </div>
                 </div>
