@@ -4,7 +4,10 @@ import SceneBuildLoader from "@/components/SceneBuildLoader";
 import GlobalReach from "@/components/GlobalReach";
 import Reveal from "@/components/Reveal";
 import { WordReveal } from "@/components/ui/WordReveal";
-import { FanCardDeck, type FanCard } from "@/components/ui/aceternity/FanCardDeck";
+import {
+  StickyStackCards,
+  type StickyStackItem,
+} from "@/components/ui/StickyStackCards";
 import {
   ScrollVelocityContainer,
   ScrollVelocityRow,
@@ -79,19 +82,33 @@ export default function Home() {
   const company = aboutData.company;
   const classCount = aboutData.classSocieties.length;
 
-  /* fan deck items — the four accountable disciplines, real images + summaries */
+  /* discipline stack items — the four accountable disciplines, real images +
+     summaries + Lottie icons, dealt as a vertical scroll-stack deck */
   const fanCategory: Record<string, string> = {
     "marine-diving": "Air & mixed-gas diving",
     ndt: "Inspection & integrity",
     "engineering-steelwork": "Design & fabrication",
     "trading-others": "Survey & supporting works",
   };
-  const fanItems: FanCard[] = buckets.map((b) => ({
-    title: b.title,
-    src: BUCKET_MEDIA[b.slug].image,
-    category: fanCategory[b.slug],
-    summary: b.summary,
-  }));
+  const stackItems: StickyStackItem[] = buckets.map((b, i) => {
+    const m = BUCKET_MEDIA[b.slug];
+    const capCount = Array.isArray(
+      (b as { capabilities?: unknown[] }).capabilities,
+    )
+      ? (b as { capabilities: unknown[] }).capabilities.length
+      : 0;
+    return {
+      key: b.slug,
+      eyebrow: `Discipline ${String(i + 1).padStart(2, "0")}`,
+      title: b.title,
+      summary: b.summary,
+      meta: capCount ? `${capCount} documented capabilities` : fanCategory[b.slug],
+      href: `/services#${b.slug}`,
+      image: m.image,
+      imageAlt: m.alt,
+      icon: <LottieIcon src={m.lottie} size={22} label={`${b.title} icon`} />,
+    };
+  });
 
   return (
     <main>
@@ -114,8 +131,8 @@ export default function Home() {
         id="services"
         className="mx-auto max-w-[min(1280px,92vw)] px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)]"
       >
-        <div className="grid items-end gap-[var(--space-xl)] lg:grid-cols-[1.05fr_0.95fr]">
-          {/* left — editorial header + the literal fanned deck */}
+        {/* editorial header — full width, deck sits beneath */}
+        <div className="grid items-end gap-[var(--space-md)] md:grid-cols-[1fr_auto]">
           <div>
             <p className="eyebrow mb-[var(--space-md)]">What we do</p>
             <h2
@@ -124,48 +141,19 @@ export default function Home() {
             >
               <WordReveal text="Four accountable disciplines, mobilised afloat." />
             </h2>
-            <Reveal>
-              <p
-                className="measure mt-[var(--space-lg)] leading-[1.6]"
-                style={muted(66)}
-              >
-                Diving, NDT, engineering and a broad supporting trade — run from
-                our 4,630&nbsp;m² Johor facility to OGP / IMCA standard.
-                Surveyed afloat, never dry-docked.
-              </p>
-            </Reveal>
-
-            <div className="mt-[var(--space-xl)] flex justify-center lg:justify-start">
-              <FanCardDeck items={fanItems} rotate={6} interval={6000} />
-            </div>
           </div>
+          <Reveal className="md:pb-2">
+            <p className="measure leading-[1.6]" style={muted(66)}>
+              Diving, NDT, engineering and a broad supporting trade — run from
+              our 4,630&nbsp;m² Johor facility to OGP / IMCA standard. Surveyed
+              afloat, never dry-docked.
+            </p>
+          </Reveal>
+        </div>
 
-          {/* right — the four buckets as real-image sheen cards w/ Lottie icons */}
-          <ul className="grid gap-[var(--space-lg)] sm:grid-cols-2">
-            {buckets.map((b, i) => {
-              const m = BUCKET_MEDIA[b.slug];
-              return (
-                <li key={b.slug}>
-                  <SheenCard
-                    eyebrow={`Discipline ${String(i + 1).padStart(2, "0")}`}
-                    title={b.title}
-                    description={b.summary}
-                    imageSrc={m.image}
-                    imageAlt={m.alt}
-                    href={`/services#${b.slug}`}
-                    icon={
-                      <LottieIcon
-                        src={m.lottie}
-                        size={26}
-                        label={`${b.title} icon`}
-                      />
-                    }
-                    className="h-full"
-                  />
-                </li>
-              );
-            })}
-          </ul>
+        {/* the four disciplines, dealt as a vertical scroll-stack deck */}
+        <div className="mx-auto mt-[var(--space-xl)] max-w-[min(960px,100%)]">
+          <StickyStackCards items={stackItems} />
         </div>
 
         <Reveal className="mt-[var(--space-xl)]">

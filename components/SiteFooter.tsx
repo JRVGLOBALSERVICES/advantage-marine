@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FooterJrvLogoReveal } from "@/components/FooterJrvLogoReveal";
 import FooterWordmark from "@/components/FooterWordmark";
+import { GlobeLogo } from "@/components/ui/GlobeLogo";
 import FooterVideo from "@/components/FooterVideo";
 import FooterWaveMorph from "@/components/FooterWaveMorph";
 import servicesData from "@/lib/content/services.json";
@@ -161,7 +162,10 @@ export default function SiteFooter() {
             © {new Date().getFullYear()} Advantage Marine Services (Malaysia) Sdn Bhd · Reg. 201401033925 (1110016-U)
           </p>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs" style={muted(55)}>
-            <span className="uppercase tracking-[0.16em]">MY · SG · OFFSHORE</span>
+            <span className="inline-flex items-center gap-2 uppercase tracking-[0.16em]">
+              <GlobeLogo size={28} label="Advantage Marine global reach — Johor HQ" />
+              MY · SG · OFFSHORE
+            </span>
             <FooterJrvLogoReveal />
           </div>
         </div>
