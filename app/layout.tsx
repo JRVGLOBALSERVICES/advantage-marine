@@ -59,7 +59,13 @@ export default function RootLayout({
       <body className={`${cinzel.variable} ${kaushan.variable} ${inter.variable}`}>
         <SmoothScroll>
           <SiteNav />
-          {children}
+          {/* Block-level horizontal clip: iOS Safari mishandles overflow-x:clip
+              on the html/body root, so stray over-wide content (pin halos,
+              decorative glows) leaks → right-side white space on inner pages.
+              Clipping on a normal in-body wrapper is reliable on iOS. `clip`
+              (not `hidden`) creates no scroll container, so the home hero's
+              sticky scroll-dive is unaffected. */}
+          <div className="overflow-x-clip">{children}</div>
           <SiteFooter />
         </SmoothScroll>
       </body>

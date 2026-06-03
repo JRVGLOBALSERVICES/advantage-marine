@@ -264,7 +264,7 @@ export default function ContactSections() {
                 key={o.tag}
                 {...reveal}
                 transition={reduce ? undefined : { duration: 0.8, ease: EASE, delay: i * 0.06 }}
-                className="flex h-[24rem] items-center justify-center"
+                className="flex h-[24rem] items-center justify-center overflow-x-clip"
               >
                 <PinContainer title={o.short} href={mapsHref(o.lines)}>
                   <div className="flex h-[13rem] w-[16rem] flex-col p-1">
