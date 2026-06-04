@@ -399,16 +399,40 @@ function ScanBand({ box }: { box: React.MutableRefObject<Box> }) {
   );
 }
 
-/* Particles / data dots floating in the background — subtle tech feel */
+/* Atmospheric data motes — soft ROUND dots kept well behind the vessel.
+   (Raw PointsMaterial renders SQUARE sprites that bloom into solid cubes and
+   read as stray editor gizmos — so we mask each point with a radial-gradient
+   alphaMap and push the field to the background so it never overlays the ship.) */
+function makeDotTexture(): THREE.Texture {
+  const s = 64;
+  const cv = document.createElement("canvas");
+  cv.width = cv.height = s;
+  const ctx = cv.getContext("2d")!;
+  const g = ctx.createRadialGradient(s / 2, s / 2, 0, s / 2, s / 2, s / 2);
+  g.addColorStop(0, "rgba(255,255,255,1)");
+  g.addColorStop(0.5, "rgba(255,255,255,0.5)");
+  g.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, s, s);
+  const tex = new THREE.CanvasTexture(cv);
+  tex.needsUpdate = true;
+  return tex;
+}
+
 function DataParticles() {
   const ref = useRef<THREE.Points>(null);
-  const count = 120;
+  const count = 70;
+  const dot = useMemo(() => (typeof document !== "undefined" ? makeDotTexture() : null), []);
   const positions = useMemo(() => {
     const arr = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
-      arr[i * 3] = (Math.random() - 0.5) * 60;
-      arr[i * 3 + 1] = (Math.random() - 0.5) * 40 + 5;
-      arr[i * 3 + 2] = (Math.random() - 0.5) * 60;
+      // ring the motes AROUND the stage (radius 22–40) and high/low, so none
+      // sit in the camera's line to the vessel (~12u) — pure background depth.
+      const a = Math.random() * Math.PI * 2;
+      const r = 22 + Math.random() * 18;
+      arr[i * 3] = Math.cos(a) * r;
+      arr[i * 3 + 1] = (Math.random() - 0.5) * 44 + 6;
+      arr[i * 3 + 2] = Math.sin(a) * r;
     }
     return arr;
   }, []);
@@ -417,15 +441,26 @@ function DataParticles() {
     if (!ref.current) return;
     ref.current.rotation.y = state.clock.elapsedTime * 0.02;
     const m = ref.current.material as THREE.PointsMaterial;
-    m.opacity = 0.3 + Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
+    m.opacity = 0.16 + Math.sin(state.clock.elapsedTime * 0.3) * 0.05;
   });
 
+  if (!dot) return null;
   return (
     <points ref={ref}>
       <bufferGeometry>
         <bufferAttribute attach="attributes-position" count={count} array={positions} itemSize={3} />
       </bufferGeometry>
-      <pointsMaterial color={LINE_BLUE} size={0.08} transparent opacity={0.3} depthWrite={false} blending={THREE.AdditiveBlending} />
+      <pointsMaterial
+        color={LINE_BLUE}
+        size={0.5}
+        map={dot}
+        alphaMap={dot}
+        sizeAttenuation
+        transparent
+        opacity={0.16}
+        depthWrite={false}
+        blending={THREE.AdditiveBlending}
+      />
     </points>
   );
 }
@@ -449,7 +484,7 @@ export default function VesselContactScene({
       onCreated={({ gl, invalidate }) => {
         gl.outputColorSpace = THREE.SRGBColorSpace;
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.2; // slightly brighter for dark scene
+        gl.toneMappingExposure = 1.35; // brighter so the vessel reads against the dark stage
         sceneState.invalidate = invalidate;
         gl.domElement.addEventListener(
           "webglcontextlost",
@@ -487,7 +522,7 @@ export default function VesselContactScene({
 
         {/* Bloom on the neon blue elements + teal scan */}
         <EffectComposer multisampling={4}>
-          <Bloom intensity={1.2} luminanceThreshold={0.8} luminanceSmoothing={0.1} radius={0.7} mipmapBlur />
+          <Bloom intensity={0.85} luminanceThreshold={0.88} luminanceSmoothing={0.12} radius={0.6} mipmapBlur />
           <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
         </EffectComposer>
       </Suspense>
