@@ -4,7 +4,7 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF, Environment, AdaptiveDpr, ContactShadows } from "@react-three/drei";
 import { EffectComposer, Bloom, ToneMapping } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
-import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { Group, Mesh, MeshStandardMaterial, Object3D } from "three";
 import { scrollState, motionState, sceneState } from "@/lib/scroll";
@@ -68,20 +68,24 @@ function paint(name: string): { color: string; metalness: number; roughness: num
   if (name === "BootTopping") return { color: "#f0852a", metalness: 0.25, roughness: 0.55 };
   if (name === "Prop-P" || name === "Prop-S") return { color: "#c9a86c", metalness: 0.95, roughness: 0.25, emissive: "#1a1205" };
   if (name === "Rudder") return { color: "#60666d", metalness: 0.75, roughness: 0.38 };
-  // engine-room interior machinery — revealed when the assembly explodes
-  if (name === "GEO-engineroom-deck") return { color: "#1a2530", metalness: 0.85, roughness: 0.45 };
-  if (name.endsWith("-trim") || name.endsWith("-hub")) return { color: "#f0c542", metalness: 0.5, roughness: 0.4, emissive: "#3a2c00" };
-  if (name.startsWith("GEO-")) return { color: "#2f9e8f", metalness: 0.45, roughness: 0.4, emissive: "#06231f" };
+  // deck detailing — real PSV colors, NOT the CAD teal. Cradle test must come
+  // before the broader liferaft test ("GEO-liferaft-cradle-*" also starts with
+  // "GEO-liferaft").
+  if (name.startsWith("GEO-liferaft-cradle")) return { color: "#5a626b", metalness: 0.6, roughness: 0.45 };
+  if (name.startsWith("GEO-liferaft")) return { color: "#f0852a", metalness: 0.2, roughness: 0.55 };  // orange canister
+  if (name.startsWith("GEO-bollard")) return { color: "#e0b020", metalness: 0.4, roughness: 0.5 };    // safety yellow
+  if (name === "GEO-railing") return { color: "#9aa0a8", metalness: 0.7, roughness: 0.35 };            // galvanised rail
+  if (name === "GEO-anchor") return { color: "#3a4048", metalness: 0.8, roughness: 0.4 };              // dark steel
   return { color: "#7a8088", metalness: 0.55, roughness: 0.45 };
 }
 
 type Part = { node: Object3D; base: THREE.Vector3; offset: THREE.Vector3 };
-type Box = { c: THREE.Vector3; sx: number; sy: number; sz: number; maxDim: number; cy: number };
+type Box = { c: THREE.Vector3; sx: number; sy: number; sz: number; maxDim: number; cy: number; floorY: number };
 
 /* explode vectors — same as before, each part moves along its real axis */
 const EXPLODE: Record<string, [number, number, number]> = {
   Hull: [0, 0, 0],
-  BootTopping: [0, -1.4, 0],
+  BootTopping: [0, -1.0, 0],
   Deck: [0, 1.8, 0],
   Bulwark: [0, 2.6, 0],
   Bridge: [0, 3.6, 0],
@@ -91,33 +95,26 @@ const EXPLODE: Record<string, [number, number, number]> = {
   "Prop-P": [-3.4, -1.7, -1.3],
   "Prop-S": [-3.4, -1.7, 1.3],
   Rudder: [-4.0, -1.1, 0],
-  // engine-room interior — drops just below the hull on explode (the video's
-  // "look inside" reveal) and nests back when assembled. Modest Y so the
-  // machinery stays ABOVE the grid floor (-2.5) instead of punching through it;
-  // lateral spread does the revealing as the exterior shells lift away. Each
-  // part-group shares its body's vector so trim/hubs stay attached.
-  "GEO-engineroom-deck": [0, -1.0, 0],
-  "GEO-engine-main-port": [0, -1.2, -0.8],
-  "GEO-engine-main-stbd": [0, -1.2, 0.8],
-  "GEO-genset-A": [1.5, -1.4, -1.2],
-  "GEO-genset-A-trim": [1.5, -1.4, -1.2],
-  "GEO-genset-B": [1.5, -1.4, 1.2],
-  "GEO-genset-B-trim": [1.5, -1.4, 1.2],
-  "GEO-azimuth-thruster-port-strut": [-3.0, -1.3, -1.2],
-  "GEO-azimuth-thruster-port-bulb": [-3.0, -1.3, -1.2],
-  "GEO-azimuth-thruster-port-hub": [-3.0, -1.3, -1.2],
-  "GEO-azimuth-thruster-stbd-strut": [-3.0, -1.3, 1.2],
-  "GEO-azimuth-thruster-stbd-bulb": [-3.0, -1.3, 1.2],
-  "GEO-azimuth-thruster-stbd-hub": [-3.0, -1.3, 1.2],
-  "GEO-bow-thruster": [3.4, -1.1, 0],
-  "GEO-bow-thruster-hub": [3.4, -1.1, 0],
+  // deck detailing — rides WITH the deck on explode so the railing, bollards,
+  // life-rafts and cradles lift away as one plate instead of orphan-floating
+  // where the deck used to be. The anchor stays seated on the hull bow.
+  "GEO-railing": [0, 1.8, 0],
+  "GEO-bollard-0": [0, 1.8, 0],
+  "GEO-bollard-1": [0, 1.8, 0],
+  "GEO-bollard-2": [0, 1.8, 0],
+  "GEO-bollard-3": [0, 1.8, 0],
+  "GEO-liferaft-P": [0, 1.8, 0],
+  "GEO-liferaft-S": [0, 1.8, 0],
+  "GEO-liferaft-cradle-P": [0, 1.8, 0],
+  "GEO-liferaft-cradle-S": [0, 1.8, 0],
+  "GEO-anchor": [0, 0, 0],
 };
 
 function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
   const group = useRef<Group>(null);
   const { scene } = useGLTF(MODEL_URL, true);
   const parts = useRef<Part[]>([]);
-  const box = useRef<Box>({ c: new THREE.Vector3(), sx: 12, sy: 5, sz: 3, maxDim: 12, cy: 2 });
+  const box = useRef<Box>({ c: new THREE.Vector3(), sx: 12, sy: 5, sz: 3, maxDim: 12, cy: 2, floorY: -2.5 });
 
   useEffect(() => {
     const collected: Part[] = [];
@@ -157,6 +154,7 @@ function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
       sz: size.z,
       maxDim: Math.max(size.x, size.y, size.z),
       cy: (bbox.max.y + bbox.min.y) / 2,
+      floorY: bbox.min.y - 0.05, // grid/shadows seat just under the hull
     };
     onMeasured(box.current);
 
@@ -191,8 +189,18 @@ function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
     }
 
     const aspect = size.width / Math.max(size.height, 1);
-    const distMul = aspect < 1 ? 1 + (1 - aspect) * 0.6 : 1;
-    const R = maxDim * lerp(1.18, 1.5, ex) * distMul;
+    // Frame distance. The desktop (landscape) framing keys off maxDim directly,
+    // but on a tall/narrow portrait viewport the HORIZONTAL fov is far smaller
+    // than the vertical one — so a long vessel overflows the frame and reads as
+    // an undifferentiated dark slab of hull ("can't see it on mobile"). Take the
+    // max of the landscape framing and the distance needed to fit the model's
+    // long axis inside the horizontal fov: desktop is unaffected, portrait pulls
+    // back far enough to show the whole ship.
+    const baseR = maxDim * lerp(1.18, 1.5, ex);
+    const halfV = (camera as THREE.PerspectiveCamera).fov * (Math.PI / 360); // half vertical fov, rad
+    const tanH = Math.max(Math.tan(halfV) * aspect, 1e-3);
+    const horizFitR = (maxDim * 0.5 * lerp(1.15, 1.45, ex)) / tanH;
+    const R = Math.max(baseR, horizFitR);
     const camY = c.y + maxDim * lerp(0.18, 0.3, ex);
     camPos.current.set(c.x + DIR.x * R, camY, c.z + DIR.z * R);
     camTgt.current.set(c.x, cy, c.z);
@@ -209,10 +217,12 @@ function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
 }
 
 /* Blue grid floor — glowing CAD-style grid */
-function GridFloor() {
+function GridFloor({ box }: { box: React.MutableRefObject<Box> }) {
   const gridRef = useRef<THREE.GridHelper>(null);
   useFrame((state) => {
     if (!gridRef.current) return;
+    // seat the grid under the measured hull (model-driven, not hard-coded)
+    gridRef.current.position.y = box.current.floorY;
     // subtle pulse on grid opacity
     const m = gridRef.current.material as THREE.Material;
     m.opacity = 0.15 + Math.sin(state.clock.elapsedTime * 0.5) * 0.05;
@@ -296,8 +306,8 @@ function TargetRing({ box }: { box: React.MutableRefObject<Box> }) {
     ref.current.visible = true;
 
     const t = state.clock.elapsedTime;
-    const { c, sx } = box.current;
-    ref.current.position.set(c.x, -2.4, c.z);
+    const { c, sx, floorY } = box.current;
+    ref.current.position.set(c.x, floorY + 0.08, c.z);
 
     // pulsating scale
     const pulse = 1 + Math.sin(t * 2.5) * 0.08;
@@ -340,8 +350,8 @@ function ScanPulse({ box }: { box: React.MutableRefObject<Box> }) {
       return;
     }
     ref.current.visible = true;
-    const { c, maxDim } = box.current;
-    ref.current.position.set(c.x, -2.42, c.z);
+    const { c, maxDim, floorY } = box.current;
+    ref.current.position.set(c.x, floorY + 0.06, c.z);
     // expand tight → wide, fade as it grows (ease-out)
     const e = smoothstep(t);
     const radius = maxDim * lerp(0.18, 1.15, e);
@@ -472,8 +482,9 @@ export default function VesselContactScene({
   onContextLost?: () => void;
   active?: boolean;
 }) {
-  const box = useRef<Box>({ c: new THREE.Vector3(), sx: 12, sy: 5, sz: 3, maxDim: 12, cy: 2 });
+  const box = useRef<Box>({ c: new THREE.Vector3(), sx: 12, sy: 5, sz: 3, maxDim: 12, cy: 2, floorY: -2.5 });
   const partsRef = useRef<Part[]>([]);
+  const [floorY, setFloorY] = useState(-2.48);
 
   return (
     <Canvas
@@ -508,8 +519,8 @@ export default function VesselContactScene({
         <directionalLight position={[0, 4, -12]} intensity={0.25} color={RING_BLUE} />
         <Environment preset="city" environmentIntensity={0.5} />
 
-        <Vessel onMeasured={(b) => (box.current = b)} />
-        <GridFloor />
+        <Vessel onMeasured={(b) => { box.current = b; setFloorY(b.floorY); }} />
+        <GridFloor box={box} />
         <ConnectionLines parts={partsRef} />
         <TargetRing box={box} />
         <ScanPulse box={box} />
@@ -517,7 +528,7 @@ export default function VesselContactScene({
         <DataParticles />
 
         {/* Darker contact shadow for the grid floor */}
-        <ContactShadows position={[0, -2.48, 0]} scale={36} far={24} blur={2.6} opacity={0.45} color="#040608" resolution={1024} />
+        <ContactShadows position={[0, floorY, 0]} scale={36} far={24} blur={2.6} opacity={0.45} color="#040608" resolution={1024} />
         <AdaptiveDpr pixelated />
 
         {/* Bloom on the neon blue elements + teal scan */}
