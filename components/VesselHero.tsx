@@ -271,9 +271,10 @@ export default function VesselHero() {
               "linear-gradient(to top, color-mix(in oklch, #080c14 82%, transparent) 0%, transparent 55%)",
           }}
         />
-        {/* Mobile: stronger wash for portrait vessel framing */}
+        {/* Mobile + tablet (portrait-ish): stronger wash so the eyebrow/headline
+            never sit low-contrast on bare hull. Desktop keeps the subtle wash. */}
         <div
-          className="absolute inset-0 pointer-events-none sm:hidden"
+          className="absolute inset-0 pointer-events-none lg:hidden"
           style={{
             background:
               "linear-gradient(to top, #080c14 0%, color-mix(in oklch, #080c14 72%, transparent) 40%, transparent 72%)",

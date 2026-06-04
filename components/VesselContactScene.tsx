@@ -260,8 +260,15 @@ function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
     const horizFitR = (maxDim * 0.5 * lerp(1.15, 1.45, ex)) / tanH;
     const R = Math.max(baseR, horizFitR);
     const camY = c.y + maxDim * lerp(0.18, 0.3, ex);
-    camPos.current.set(c.x + DIR.x * R, camY, c.z + DIR.z * R);
-    camTgt.current.set(c.x, cy, c.z);
+    // Portrait pan: on a tall/narrow viewport the bottom ~38% is reserved for
+    // the copy block, so a centre-framed vessel sits behind the headline. Pan
+    // the whole framing DOWN in world space (camera + target by the same delta)
+    // so the ship rides in the UPPER frame and the copy gets clean space below.
+    // Desktop (landscape, aspect ≥ 1) lift = 0 → unchanged.
+    const portrait = clamp01((1 - aspect) / 0.5); // 0 at square → 1 at very tall
+    const lift = maxDim * 0.24 * portrait;
+    camPos.current.set(c.x + DIR.x * R, camY - lift, c.z + DIR.z * R);
+    camTgt.current.set(c.x, cy - lift, c.z);
     camera.position.lerp(camPos.current, motionState.reduced ? 1 : 0.12);
     camera.lookAt(camTgt.current);
     if (!motionState.reduced) state.invalidate();
