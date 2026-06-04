@@ -1,52 +1,15 @@
 "use client";
 
-// Beat 3 of the reel — "Global Reach. Proven Performance." — a real section:
-// the three Malaysian offices presented as a fanned, advancing LocationFanDeck
-// (each card a real dark Carto map tile of the city + address + role), over
-// Aceternity BackgroundBeams (cyan airflow) with NumberTicker count-up stats
-// and React Bits BlurText. (Replaces the single OfficeMap; that component is
-// still in the repo if a live basemap is wanted back.)
+// Beat 3 of the reel — "Global Reach. Proven Performance." — rebuilt as a real
+// section from registry components: OfficeMap (real interactive MapLibre basemap
+// framing AMS's three Malaysian offices), Aceternity BackgroundBeams (cyan→violet
+// airflow), Magic UI Marquee (class-society marks) and NumberTicker (count-up
+// stats), React Bits BlurText.
 
 import BlurText from "./ui/BlurText";
 import { NumberTicker } from "./ui/NumberTicker";
-import LocationFanDeck, { type OfficeLocation } from "./ui/LocationFanDeck";
+import OfficeMap from "./ui/OfficeMap";
 import { BackgroundBeams } from "./ui/BackgroundBeams";
-
-// AMS's three REAL Malaysian offices — coords match OfficeMap; addresses + notes
-// match the contact-page offices list.
-const OFFICES: OfficeLocation[] = [
-  {
-    name: "Johor Bahru",
-    region: "Main office · Johor",
-    lngLat: [103.7578, 1.4655],
-    hq: true,
-    lines: [
-      "No. 18, Jalan Laman Setia 7/4, Taman Laman Setia",
-      "(Setia Business Park), 81550 Gelang Patah, Johor",
-    ],
-    note: "4,630 m² fabrication & dive-support yard",
-  },
-  {
-    name: "Miri",
-    region: "Branch · Sarawak",
-    lngLat: [113.9914, 4.3995],
-    lines: [
-      "Lot 2215, Jalan Piasau Utara 1, Premier Industrial Park",
-      "Piasau, 98000 Miri, Sarawak",
-    ],
-    note: "East Malaysia offshore support",
-  },
-  {
-    name: "Kuala Lumpur",
-    region: "Branch · Selangor",
-    lngLat: [101.6869, 3.139],
-    lines: [
-      "Unit H10-1, Plaza Kelana Jaya, Jalan SS7/13A",
-      "Kelana Jaya, 47301 Selangor",
-    ],
-    note: "Commercial & business development",
-  },
-];
 
 export default function GlobalReach() {
   return (
@@ -79,9 +42,9 @@ export default function GlobalReach() {
           facility across the region&rsquo;s offshore fields.
         </p>
 
-        {/* the three offices as a fanned, advancing deck — real dark map tile per city */}
-        <div className="mt-[var(--space-xl)] mb-[var(--space-lg)]">
-          <LocationFanDeck offices={OFFICES} />
+        {/* real interactive MapLibre basemap framing AMS's three Malaysian offices */}
+        <div className="mt-[var(--space-xl)] h-[clamp(20rem,46vh,30rem)] overflow-hidden rounded-[var(--radius-card)] border border-[color:color-mix(in_oklch,var(--color-cyan)_18%,transparent)]">
+          <OfficeMap />
         </div>
 
         {/* count-up stats */}

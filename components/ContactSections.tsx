@@ -2,11 +2,11 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import ContactForm from "@/components/ContactForm";
-import { PinContainer } from "@/components/ui/PinCard";
 import DecryptedText from "@/components/ui/reactbits/DecryptedText";
 import SpotlightCard from "@/components/ui/reactbits/SpotlightCard";
 import { RevealIconButton } from "@/components/ui/uiverse/RevealIconButton";
 import { WordReveal } from "@/components/ui/WordReveal";
+import LocationFanDeck, { type OfficeLocation } from "@/components/ui/LocationFanDeck";
 
 /* ---------- real content (from about.json / live site) ---------- */
 
@@ -18,10 +18,12 @@ const CONTACTS = [
   { name: "Victor Wong", role: "Director", tels: ["+65 9789 3633", "+60 19 731 0016"] },
 ];
 
-const OFFICES = [
+const OFFICES: OfficeLocation[] = [
   {
-    tag: "Main Office · Johor",
-    short: "Johor",
+    name: "Johor Bahru",
+    region: "Main office · Johor",
+    lngLat: [103.7578, 1.4655],
+    hq: true,
     lines: [
       "No. 18, Jalan Laman Setia 7/4, Taman Laman Setia",
       "(Setia Business Park), 81550 Gelang Patah, Johor",
@@ -29,8 +31,9 @@ const OFFICES = [
     note: "4,630 m² fabrication & dive-support yard",
   },
   {
-    tag: "Branch · Miri",
-    short: "Miri",
+    name: "Miri",
+    region: "Branch · Sarawak",
+    lngLat: [113.9914, 4.3995],
     lines: [
       "Lot 2215, Jalan Piasau Utara 1, Premier Industrial Park",
       "Piasau, 98000 Miri, Sarawak",
@@ -38,8 +41,9 @@ const OFFICES = [
     note: "East Malaysia offshore support",
   },
   {
-    tag: "Branch · Kuala Lumpur",
-    short: "Kuala Lumpur",
+    name: "Kuala Lumpur",
+    region: "Branch · Selangor",
+    lngLat: [101.6869, 3.139],
     lines: [
       "Unit H10-1, Plaza Kelana Jaya, Jalan SS7/13A",
       "Kelana Jaya, 47301 Selangor",
@@ -50,7 +54,6 @@ const OFFICES = [
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const MUTED = { color: "color-mix(in oklch, var(--color-ink) 66%, transparent)" } as const;
-const FAINT = { color: "color-mix(in oklch, var(--color-ink) 55%, transparent)" } as const;
 
 function mapsHref(lines: string[]) {
   return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(lines.join(", "))}`;
@@ -236,36 +239,11 @@ export default function ContactSections() {
             </p>
           </motion.div>
 
-          <div className="grid gap-[var(--space-xl)] sm:grid-cols-2 lg:grid-cols-3">
-            {OFFICES.map((o, i) => (
-              <motion.div
-                key={o.tag}
-                {...reveal}
-                transition={reduce ? undefined : { duration: 0.8, ease: EASE, delay: i * 0.06 }}
-                className="flex h-[24rem] items-center justify-center overflow-x-clip"
-              >
-                <PinContainer title={o.short} href={mapsHref(o.lines)}>
-                  <div className="flex h-[13rem] w-[16rem] flex-col p-1">
-                    <p className="font-display font-medium text-[color:var(--color-ink)]">{o.tag}</p>
-                    <div className="mt-3 space-y-1">
-                      {o.lines.map((ln) => (
-                        <p key={ln} className="font-body text-[0.82rem] leading-[1.5]" style={MUTED}>
-                          {ln}
-                        </p>
-                      ))}
-                    </div>
-                    <p className="mt-3 font-body text-[0.78rem]" style={FAINT}>
-                      {o.note}
-                    </p>
-                    <div className="mt-auto flex items-center gap-2 text-xs text-[color:var(--color-accent)]">
-                      <span className="h-1.5 w-1.5 rounded-full bg-[color:var(--color-accent-2)]" aria-hidden />
-                      View on map
-                    </div>
-                  </div>
-                </PinContainer>
-              </motion.div>
-            ))}
-          </div>
+          {/* the three offices as a fanned, advancing deck — real dark Carto map
+              tile per city; inherits the contact page's teal accent + dark cards */}
+          <motion.div {...reveal} className="pb-[var(--space-lg)]">
+            <LocationFanDeck offices={OFFICES} />
+          </motion.div>
         </div>
       </section>
 
