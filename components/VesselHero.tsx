@@ -16,8 +16,9 @@ gsap.registerPlugin(ScrollTrigger);
 /* ════════════════════════════════════════════════════════════════
    VESSEL HERO — home page (2026-06).
 
-   Dark CAD visualization concept: deep ink background, blue grid floor,
-   neon connection lines during explode, pulsating target ring post-assembly.
+   Light studio concept: warm cream stage (matches page paper, NO dark
+   surfaces), teal technical grid floor, marine-teal connection traces during
+   explode, teal target ring post-assembly. Ink copy + teal accents.
    Sticky 340lvh narrative, iOS-safe (position:sticky only).
    ════════════════════════════════════════════════════════════════ */
 
@@ -25,12 +26,13 @@ const VesselContactScene = dynamic(() => import("./VesselContactScene"), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 grid place-items-center">
-      <div className="eyebrow animate-pulse text-white/70">Assembling vessel…</div>
+      <div className="eyebrow animate-pulse text-[color:var(--color-ink)]/60">Assembling vessel…</div>
     </div>
   ),
 });
 
-const MUTE = "color-mix(in oklch, #ffffff 55%, transparent)";
+const MUTE = "color-mix(in oklch, var(--color-ink) 62%, transparent)";
+const ACCENT = "var(--color-accent)";
 
 function hasWebGL() {
   try {
@@ -100,7 +102,7 @@ function BeatBlock({
       style={stacked ? { gridArea: "1 / 1" } : undefined}
       className="max-w-[42rem] will-change-[opacity,transform]"
     >
-      <p className="eyebrow mb-[var(--space-md)]" style={{ color: "#22eeff" }}>
+      <p className="eyebrow mb-[var(--space-md)]" style={{ color: ACCENT }}>
         {beat.kicker}
       </p>
       <div className="mb-[var(--space-md)]" style={{ fontSize: "var(--text-display)" }}>
@@ -108,14 +110,14 @@ function BeatBlock({
           text={beat.head[0]}
           inView={active}
           animateBy="words"
-          className="font-display font-bold leading-[1.08] tracking-[-0.01em] text-white"
+          className="font-display font-bold leading-[1.08] tracking-[-0.01em] text-[color:var(--color-ink)]"
         />
         <BlurText
           text={beat.head[1]}
           inView={active}
           delay={140}
           animateBy="words"
-          className="font-display font-light leading-[1.08] tracking-[-0.01em] text-white/75"
+          className="font-display font-light leading-[1.08] tracking-[-0.01em] text-[color:var(--color-ink)]/70"
         />
       </div>
       <p
@@ -128,13 +130,13 @@ function BeatBlock({
       <div className="mt-[var(--space-lg)] flex items-end gap-[var(--space-md)] flex-wrap">
         <span
           className="font-display font-bold leading-none flex items-baseline"
-          style={{ fontSize: "var(--text-stat)", color: "#22eeff" }}
+          style={{ fontSize: "var(--text-stat)", color: ACCENT }}
         >
           <NumberTicker
             value={beat.stat.value}
             start={active}
             decimalPlaces={beat.stat.decimals ?? 0}
-            className="text-[#22eeff]"
+            className="text-[color:var(--color-accent)]"
           />
           <span>{beat.stat.suffix}</span>
         </span>
@@ -149,23 +151,23 @@ function BeatBlock({
   );
 }
 
-/* Static hero fallback — dark version with real photo overlay */
+/* Static hero fallback — light cream stage with real photo overlay */
 function StaticHero() {
   return (
-    <header id="top" className="relative h-[100lvh] overflow-hidden" style={{ background: "#080c14" }}>
+    <header id="top" className="relative h-[100lvh] overflow-hidden" style={{ background: "var(--color-paper)" }}>
       <Image
         src="/media/home/Hero-AMS.jpeg"
         alt="Advantage Marine Services diver and vessel"
         fill
         priority
         sizes="100vw"
-        className="object-cover opacity-40"
+        className="object-cover opacity-30"
       />
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "linear-gradient(to top, #080c14 0%, color-mix(in oklch, #080c14 60%, transparent) 42%, transparent 70%)",
+            "linear-gradient(to top, var(--color-paper) 0%, color-mix(in oklch, var(--color-paper) 55%, transparent) 45%, transparent 72%)",
         }}
       />
       <div className="absolute inset-0 grid items-end" style={{ padding: "clamp(1.5rem,5vw,3.5rem)" }}>
@@ -242,7 +244,7 @@ export default function VesselHero() {
     return (
       <>
         <StaticHero />
-        <section className="px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)] grid gap-[var(--space-2xl)] max-w-[min(1200px,92vw)] mx-auto" style={{ background: "#080c14" }}>
+        <section className="px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)] grid gap-[var(--space-2xl)] max-w-[min(1200px,92vw)] mx-auto" style={{ background: "var(--color-paper)" }}>
           {BEATS.slice(1).map((beat, i) => (
             <BeatBlock key={i} beat={beat} active />
           ))}
@@ -253,7 +255,7 @@ export default function VesselHero() {
 
   return (
     <section id="top" ref={sectionRef} className="relative" style={{ height: "340lvh" }}>
-      <div className="sticky top-0 h-[100lvh] overflow-hidden" style={{ background: "#080c14" }}>
+      <div className="sticky top-0 h-[100lvh] overflow-hidden" style={{ background: "var(--color-paper)" }}>
         {/* 3D layer */}
         <div className="absolute inset-0">
           {mounted && (
@@ -263,21 +265,22 @@ export default function VesselHero() {
           )}
         </div>
 
-        {/* Dark readability wash — subtle gradient from bottom */}
+        {/* Light readability wash — subtle cream gradient from bottom so the
+            ink copy stays legible where the vessel sits behind it */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to top, color-mix(in oklch, #080c14 82%, transparent) 0%, transparent 55%)",
+              "linear-gradient(to top, color-mix(in oklch, var(--color-paper) 82%, transparent) 0%, transparent 55%)",
           }}
         />
-        {/* Mobile + tablet (portrait-ish): stronger wash so the eyebrow/headline
-            never sit low-contrast on bare hull. Desktop keeps the subtle wash. */}
+        {/* Mobile + tablet (portrait-ish): stronger cream wash so the eyebrow/
+            headline never sit low-contrast on bare hull. Desktop keeps subtle. */}
         <div
           className="absolute inset-0 pointer-events-none lg:hidden"
           style={{
             background:
-              "linear-gradient(to top, #080c14 0%, color-mix(in oklch, #080c14 72%, transparent) 40%, transparent 72%)",
+              "linear-gradient(to top, var(--color-paper) 0%, color-mix(in oklch, var(--color-paper) 72%, transparent) 40%, transparent 72%)",
           }}
         />
 

@@ -2,8 +2,6 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF, Environment, AdaptiveDpr, ContactShadows } from "@react-three/drei";
-import { EffectComposer, Bloom, ToneMapping } from "@react-three/postprocessing";
-import { ToneMappingMode } from "postprocessing";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { Group, Mesh, MeshStandardMaterial, Object3D } from "three";
@@ -49,11 +47,12 @@ function explodeAmount(p: number): number {
   return 0;                                          // assembled showcase (beat 02)
 }
 
-/* Dark CAD color palette — cyan accent (matches concept video #22EEFF) */
-const DARK_BG = "#080c14";
-const GRID_BLUE = "#1a4a5c";   // cyan-tinted CAD grid
-const LINE_BLUE = "#22eeff";   // video cyan — connection traces + particles
-const RING_BLUE = "#22eeff";   // video cyan — target ring + scan pulse
+/* Light stage palette — warm cream + marine teal (matches the page tokens,
+   NO dark surfaces). Names kept from the dark build to limit churn. */
+const DARK_BG = "#F4EBD9";     // warm sailcloth cream — stage bg = page paper
+const GRID_BLUE = "#cabba0";   // warm technical floor lines on cream
+const LINE_BLUE = "#30837b";   // marine teal — connection traces + particles
+const RING_BLUE = "#2f9e8f";   // teal — target ring + scan pulse
 
 /* PBR materials — adjusted for dark stage (slightly lighter values so they
    read against the dark bg without blowing out).
@@ -349,7 +348,7 @@ function ConnectionLines({ parts }: { parts: React.MutableRefObject<Part[]> }) {
                 itemSize={3}
               />
             </bufferGeometry>
-            <lineBasicMaterial color={LINE_BLUE} transparent opacity={0} depthWrite={false} blending={THREE.AdditiveBlending} />
+            <lineBasicMaterial color={LINE_BLUE} transparent opacity={0} depthWrite={false} blending={THREE.NormalBlending} />
           </line>
         );
       })}
@@ -393,7 +392,7 @@ function TargetRing({ box }: { box: React.MutableRefObject<Box> }) {
         side={THREE.DoubleSide}
         toneMapped={false}
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={THREE.NormalBlending}
       />
     </mesh>
   );
@@ -434,7 +433,7 @@ function ScanPulse({ box }: { box: React.MutableRefObject<Box> }) {
         side={THREE.DoubleSide}
         toneMapped={false}
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={THREE.NormalBlending}
       />
     </mesh>
   );
@@ -462,13 +461,13 @@ function ScanBand({ box }: { box: React.MutableRefObject<Box> }) {
     <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} visible={false} renderOrder={3}>
       <ringGeometry args={[0.9, 1.0, 88]} />
       <meshBasicMaterial
-        color="#5cf0d8"
+        color="#44BBA4"
         transparent
         opacity={0}
         side={THREE.DoubleSide}
         toneMapped={false}
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={THREE.NormalBlending}
       />
     </mesh>
   );
@@ -534,7 +533,7 @@ function DataParticles() {
         transparent
         opacity={0.16}
         depthWrite={false}
-        blending={THREE.AdditiveBlending}
+        blending={THREE.NormalBlending}
       />
     </points>
   );
@@ -560,7 +559,7 @@ export default function VesselContactScene({
       onCreated={({ gl, invalidate }) => {
         gl.outputColorSpace = THREE.SRGBColorSpace;
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.35; // brighter so the vessel reads against the dark stage
+        gl.toneMappingExposure = 1.05; // balanced for the light cream stage
         sceneState.invalidate = invalidate;
         gl.domElement.addEventListener(
           "webglcontextlost",
@@ -572,17 +571,16 @@ export default function VesselContactScene({
         );
       }}
     >
-      {/* Dark ink background — CAD visualization stage */}
+      {/* Warm cream background — light studio stage (matches page paper) */}
       <color attach="background" args={[DARK_BG]} />
-      <fog attach="fog" args={[DARK_BG, 30, 90]} />
+      <fog attach="fog" args={[DARK_BG, 38, 100]} />
 
       <Suspense fallback={null}>
-        {/* Cooler, more dramatic lighting for dark stage */}
-        <hemisphereLight args={["#1a3a5c", "#080c14", 0.6]} />
-        <directionalLight position={[10, 18, 9]} intensity={1.4} color="#d4e4f0" castShadow shadow-mapSize={[1024, 1024]} />
-        <directionalLight position={[-10, 6, -8]} intensity={0.35} color="#2a4a6c" />
-        <directionalLight position={[0, 4, -12]} intensity={0.25} color={RING_BLUE} />
-        <Environment preset="city" environmentIntensity={0.5} />
+        {/* Bright, warm studio lighting for the cream stage */}
+        <hemisphereLight args={["#fff6e6", "#cdbb9a", 0.95]} />
+        <directionalLight position={[10, 18, 9]} intensity={1.7} color="#fff4e2" castShadow shadow-mapSize={[1024, 1024]} />
+        <directionalLight position={[-10, 6, -8]} intensity={0.55} color="#bcd6cf" />
+        <Environment preset="city" environmentIntensity={0.8} />
 
         <Vessel onMeasured={(b) => { box.current = b; setFloorY(b.floorY); }} />
         <GridFloor box={box} />
@@ -592,15 +590,9 @@ export default function VesselContactScene({
         <ScanBand box={box} />
         <DataParticles />
 
-        {/* Darker contact shadow for the grid floor */}
-        <ContactShadows position={[0, floorY, 0]} scale={36} far={24} blur={2.6} opacity={0.45} color="#040608" resolution={1024} />
+        {/* Warm soft contact shadow grounding the vessel on cream */}
+        <ContactShadows position={[0, floorY, 0]} scale={36} far={24} blur={2.8} opacity={0.32} color="#6f6450" resolution={1024} />
         <AdaptiveDpr pixelated />
-
-        {/* Bloom on the neon blue elements + teal scan */}
-        <EffectComposer multisampling={4}>
-          <Bloom intensity={0.85} luminanceThreshold={0.88} luminanceSmoothing={0.12} radius={0.6} mipmapBlur />
-          <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
-        </EffectComposer>
       </Suspense>
     </Canvas>
   );
