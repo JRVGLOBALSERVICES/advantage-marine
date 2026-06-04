@@ -202,6 +202,9 @@ export default function VesselHero() {
       onUpdate: (self) => {
         scrollState.progress = self.progress;
         sceneState.invalidate?.();
+        if (process.env.NODE_ENV === "development") {
+          (window as unknown as { __amProgress?: number }).__amProgress = self.progress;
+        }
       },
     });
 

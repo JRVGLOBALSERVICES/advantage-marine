@@ -23,16 +23,31 @@ import { scrollState, motionState, sceneState } from "@/lib/scroll";
      Y = up            (mast peaks ~4.9)
      Z = beam          (port −Z, starboard +Z)
 
-   Scroll maps to assembly:
-     scroll 0.0   fully exploded — parts hang apart, connection lines visible
-     scroll 0.85  assembled — connection lines fade, rotation + ring begin
-     scroll 1.0   full showcase — slow turntable + pulsating ring
+   Scroll maps to assembly (there-and-back — the vessel is WHOLE at both ends
+   of the scroll and only pulls apart through the middle beat, so the visitor
+   actually sees the ship instead of a field of parts):
+     scroll 0.00–0.14  assembled        — beat 00 "hull to propeller"
+     scroll 0.14–0.50  exploding outward
+     scroll 0.50–0.62  fully apart       — beat 01 "every part accounted for"
+     scroll 0.62–0.86  reassembling
+     scroll 0.86–1.00  assembled showcase — beat 02 + target ring + scan pulse
    ════════════════════════════════════════════════════════════════ */
 
 const MODEL_URL = "/models/vessel.glb";
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
+
+/* Explode amount (0 assembled → 1 fully apart) as a function of scroll.
+   Single source of truth — both the vessel parts and the connection lines
+   read this, so the lines always track the parts. */
+function explodeAmount(p: number): number {
+  if (p <= 0.14) return 0;                          // hold assembled (beat 00)
+  if (p < 0.5) return smoothstep((p - 0.14) / 0.36); // explode out
+  if (p < 0.62) return 1;                            // hold apart (beat 01)
+  if (p < 0.86) return 1 - smoothstep((p - 0.62) / 0.24); // reassemble
+  return 0;                                          // assembled showcase (beat 02)
+}
 
 /* Dark CAD color palette — cyan accent (matches concept video #22EEFF) */
 const DARK_BG = "#080c14";
@@ -76,23 +91,26 @@ const EXPLODE: Record<string, [number, number, number]> = {
   "Prop-P": [-3.4, -1.7, -1.3],
   "Prop-S": [-3.4, -1.7, 1.3],
   Rudder: [-4.0, -1.1, 0],
-  // engine-room interior — drops below the hull on explode (the video's "look inside" reveal),
-  // nests back inside when assembled. Each part-group shares its body's vector so trim/hubs stay attached.
-  "GEO-engineroom-deck": [0, -2.0, 0],
-  "GEO-engine-main-port": [0, -2.5, -0.7],
-  "GEO-engine-main-stbd": [0, -2.5, 0.7],
-  "GEO-genset-A": [1.4, -2.9, -1.0],
-  "GEO-genset-A-trim": [1.4, -2.9, -1.0],
-  "GEO-genset-B": [1.4, -2.9, 1.0],
-  "GEO-genset-B-trim": [1.4, -2.9, 1.0],
-  "GEO-azimuth-thruster-port-strut": [-3.2, -2.7, -1.0],
-  "GEO-azimuth-thruster-port-bulb": [-3.2, -2.7, -1.0],
-  "GEO-azimuth-thruster-port-hub": [-3.2, -2.7, -1.0],
-  "GEO-azimuth-thruster-stbd-strut": [-3.2, -2.7, 1.0],
-  "GEO-azimuth-thruster-stbd-bulb": [-3.2, -2.7, 1.0],
-  "GEO-azimuth-thruster-stbd-hub": [-3.2, -2.7, 1.0],
-  "GEO-bow-thruster": [3.8, -2.5, 0],
-  "GEO-bow-thruster-hub": [3.8, -2.5, 0],
+  // engine-room interior — drops just below the hull on explode (the video's
+  // "look inside" reveal) and nests back when assembled. Modest Y so the
+  // machinery stays ABOVE the grid floor (-2.5) instead of punching through it;
+  // lateral spread does the revealing as the exterior shells lift away. Each
+  // part-group shares its body's vector so trim/hubs stay attached.
+  "GEO-engineroom-deck": [0, -1.0, 0],
+  "GEO-engine-main-port": [0, -1.2, -0.8],
+  "GEO-engine-main-stbd": [0, -1.2, 0.8],
+  "GEO-genset-A": [1.5, -1.4, -1.2],
+  "GEO-genset-A-trim": [1.5, -1.4, -1.2],
+  "GEO-genset-B": [1.5, -1.4, 1.2],
+  "GEO-genset-B-trim": [1.5, -1.4, 1.2],
+  "GEO-azimuth-thruster-port-strut": [-3.0, -1.3, -1.2],
+  "GEO-azimuth-thruster-port-bulb": [-3.0, -1.3, -1.2],
+  "GEO-azimuth-thruster-port-hub": [-3.0, -1.3, -1.2],
+  "GEO-azimuth-thruster-stbd-strut": [-3.0, -1.3, 1.2],
+  "GEO-azimuth-thruster-stbd-bulb": [-3.0, -1.3, 1.2],
+  "GEO-azimuth-thruster-stbd-hub": [-3.0, -1.3, 1.2],
+  "GEO-bow-thruster": [3.4, -1.1, 0],
+  "GEO-bow-thruster-hub": [3.4, -1.1, 0],
 };
 
 function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
@@ -157,7 +175,7 @@ function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
     const p = damped.current;
     const { c, maxDim, cy } = box.current;
 
-    const ex = motionState.reduced ? 0.5 : 1 - smoothstep(clamp01(p));
+    const ex = motionState.reduced ? 0 : explodeAmount(clamp01(p));
 
     // continuous slow turntable — always alive
     if (group.current) {
@@ -217,8 +235,7 @@ function ConnectionLines({ parts }: { parts: React.MutableRefObject<Part[]> }) {
   const lineMeshes = useRef<THREE.Line[]>([]);
 
   useFrame(() => {
-    const p = scrollState.progress;
-    const ex = 1 - smoothstep(clamp01(p));
+    const ex = explodeAmount(clamp01(scrollState.progress));
     const lineOpacity = clamp01((ex - 0.1) / 0.5); // fade as parts come together
 
     lineMeshes.current.forEach((line, i) => {
