@@ -6,7 +6,17 @@ import DecryptedText from "@/components/ui/reactbits/DecryptedText";
 import SpotlightCard from "@/components/ui/reactbits/SpotlightCard";
 import { RevealIconButton } from "@/components/ui/uiverse/RevealIconButton";
 import { WordReveal } from "@/components/ui/WordReveal";
-import LocationFanDeck, { type OfficeLocation } from "@/components/ui/LocationFanDeck";
+import { FanCardDeck, type FanCard } from "@/components/ui/aceternity/FanCardDeck";
+
+/* office shape kept local now that the cards render through the shared news FanCardDeck */
+type OfficeLocation = {
+  name: string;
+  region: string;
+  lngLat: [number, number];
+  lines: string[];
+  note: string;
+  hq?: boolean;
+};
 
 /* ---------- real content (from about.json / live site) ---------- */
 
@@ -51,6 +61,25 @@ const OFFICES: OfficeLocation[] = [
     note: "Commercial & business development",
   },
 ];
+
+/* Web-Mercator lng/lat → XYZ tile (exact, computed). Carto Voyager retina raster
+   = a real, keyless, light city map per office — the card image for the news-style
+   deck (offices have no photos; this is real imagery, not stock or fabricated). */
+function officeTile([lng, lat]: [number, number], z = 12) {
+  const n = 2 ** z;
+  const x = Math.floor(((lng + 180) / 360) * n);
+  const y = Math.floor(
+    ((1 - Math.asinh(Math.tan((lat * Math.PI) / 180)) / Math.PI) / 2) * n
+  );
+  return `https://basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}@2x.png`;
+}
+
+const OFFICE_CARDS: FanCard[] = OFFICES.map((o) => ({
+  title: o.name,
+  src: officeTile(o.lngLat),
+  category: o.region,
+  summary: `${o.note} · ${o.lines.join(", ")}`,
+}));
 
 const EASE = [0.22, 1, 0.36, 1] as const;
 const MUTED = { color: "color-mix(in oklch, var(--color-ink) 66%, transparent)" } as const;
@@ -239,10 +268,16 @@ export default function ContactSections() {
             </p>
           </motion.div>
 
-          {/* the three offices as a fanned, advancing deck — real dark Carto map
-              tile per city; inherits the contact page's teal accent + dark cards */}
-          <motion.div {...reveal} className="pb-[var(--space-lg)]">
-            <LocationFanDeck offices={OFFICES} />
+          {/* offices as the same fanned news-style deck (FanCardDeck) — cream+teal
+              card faces, real Carto Voyager city tile per office, tap/auto-advance */}
+          <motion.div
+            {...reveal}
+            className="flex flex-col items-center gap-[var(--space-md)] pb-[var(--space-lg)]"
+          >
+            <FanCardDeck items={OFFICE_CARDS} />
+            <p className="eyebrow text-[color:var(--color-accent)]">
+              {String(OFFICE_CARDS.length).padStart(2, "0")} yards · tap a card to advance
+            </p>
           </motion.div>
         </div>
       </section>
