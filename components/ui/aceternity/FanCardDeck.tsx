@@ -13,7 +13,8 @@ import { motion } from "motion/react";
 
 export type FanCard = {
   title: string;
-  src: string; // real image path from public/media/<section>/
+  src?: string; // real image path from public/media/<section>/ (news cards)
+  media?: React.ReactNode; // OR a live media node (e.g. a centred map) — takes precedence over src
   category: string;
   summary: string;
 };
@@ -72,7 +73,7 @@ export function FanCardDeck({
         const dir = index % 2 === 0 ? 1 : -1;
         return (
           <motion.div
-            key={`${card.title}-${card.src}`}
+            key={`${card.title}-${index}`}
             className="absolute flex h-full w-full cursor-pointer flex-col overflow-hidden rounded-2xl border"
             style={{
               transformOrigin: "bottom center",
@@ -92,14 +93,18 @@ export function FanCardDeck({
             transition={{ duration: 0.55, ease: EASE }}
           >
             <div className="relative h-3/5 w-full overflow-hidden">
-              <img
-                src={card.src}
-                alt={card.title}
-                className="h-full w-full object-cover"
-                loading={isTop ? "eager" : "lazy"}
-                decoding="async"
-                draggable={false}
-              />
+              {card.media ? (
+                card.media
+              ) : (
+                <img
+                  src={card.src}
+                  alt={card.title}
+                  className="h-full w-full object-cover"
+                  loading={isTop ? "eager" : "lazy"}
+                  decoding="async"
+                  draggable={false}
+                />
+              )}
               <div
                 className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2"
                 style={{

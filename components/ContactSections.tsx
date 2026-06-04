@@ -7,6 +7,7 @@ import SpotlightCard from "@/components/ui/reactbits/SpotlightCard";
 import { RevealIconButton } from "@/components/ui/uiverse/RevealIconButton";
 import { WordReveal } from "@/components/ui/WordReveal";
 import { FanCardDeck, type FanCard } from "@/components/ui/aceternity/FanCardDeck";
+import { StaticTileMap } from "@/components/ui/StaticTileMap";
 
 /* office shape kept local now that the cards render through the shared news FanCardDeck */
 type OfficeLocation = {
@@ -62,21 +63,12 @@ const OFFICES: OfficeLocation[] = [
   },
 ];
 
-/* Web-Mercator lng/lat → XYZ tile (exact, computed). Carto Voyager retina raster
-   = a real, keyless, light city map per office — the card image for the news-style
-   deck (offices have no photos; this is real imagery, not stock or fabricated). */
-function officeTile([lng, lat]: [number, number], z = 12) {
-  const n = 2 ** z;
-  const x = Math.floor(((lng + 180) / 360) * n);
-  const y = Math.floor(
-    ((1 - Math.asinh(Math.tan((lat * Math.PI) / 180)) / Math.PI) / 2) * n
-  );
-  return `https://basemaps.cartocdn.com/rastertiles/voyager/${z}/${x}/${y}@2x.png`;
-}
-
+/* Each card carries a CENTRED Carto Voyager map of the office (StaticTileMap stitches the
+   tiles so the marker sits dead-centre). The earlier single-tile-by-coordinate approach left
+   edge-of-tile offices (e.g. Miri) showing blank ocean — this fixes that. Real, keyless imagery. */
 const OFFICE_CARDS: FanCard[] = OFFICES.map((o) => ({
   title: o.name,
-  src: officeTile(o.lngLat),
+  media: <StaticTileMap lng={o.lngLat[0]} lat={o.lngLat[1]} zoom={14} label={o.name} />,
   category: o.region,
   summary: `${o.note} · ${o.lines.join(", ")}`,
 }));
