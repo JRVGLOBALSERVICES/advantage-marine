@@ -56,59 +56,117 @@ const LINE_BLUE = "#22eeff";   // video cyan — connection traces + particles
 const RING_BLUE = "#22eeff";   // video cyan — target ring + scan pulse
 
 /* PBR materials — adjusted for dark stage (slightly lighter values so they
-   read against the dark bg without blowing out). */
+   read against the dark bg without blowing out).
+
+   Keyed to the rebuilt PSV's GEO-* names (2026-06-04, 91 parts). Order is
+   load-bearing: every test is `startsWith`, so the SPECIFIC prefix must come
+   before the broader one ("GEO-engine-head" before "GEO-engine", the two
+   crane sub-parts before "GEO-crane", "GEO-prop-…" stays one bucket). */
 function paint(name: string): { color: string; metalness: number; roughness: number; emissive?: string } {
-  if (name === "Hull") return { color: "#2a3d5c", metalness: 0.45, roughness: 0.4 };
-  if (name === "Funnel") return { color: "#2a3d5c", metalness: 0.45, roughness: 0.45 };
-  if (name === "Bridge") return { color: "#d8ddd6", metalness: 0.15, roughness: 0.55 };
-  if (name === "Deck") return { color: "#9ba0a6", metalness: 0.5, roughness: 0.5 };
-  if (name === "Bulwark") return { color: "#7a8088", metalness: 0.6, roughness: 0.4 };
-  if (name === "Mast") return { color: "#7a8088", metalness: 0.65, roughness: 0.35 };
-  if (name === "Crane") return { color: "#f0852a", metalness: 0.4, roughness: 0.4 };
-  if (name === "BootTopping") return { color: "#f0852a", metalness: 0.25, roughness: 0.55 };
-  if (name === "Prop-P" || name === "Prop-S") return { color: "#c9a86c", metalness: 0.95, roughness: 0.25, emissive: "#1a1205" };
-  if (name === "Rudder") return { color: "#60666d", metalness: 0.75, roughness: 0.38 };
-  // deck detailing — real PSV colors, NOT the CAD teal. Cradle test must come
-  // before the broader liferaft test ("GEO-liferaft-cradle-*" also starts with
-  // "GEO-liferaft").
-  if (name.startsWith("GEO-liferaft-cradle")) return { color: "#5a626b", metalness: 0.6, roughness: 0.45 };
+  // ── hull & shell — dark workboat navy
+  if (name.startsWith("GEO-hull")) return { color: "#2a3d5c", metalness: 0.45, roughness: 0.4 };
+  if (name.startsWith("GEO-forecastle")) return { color: "#2a3d5c", metalness: 0.45, roughness: 0.42 };
+  if (name.startsWith("GEO-funnel")) return { color: "#2a3d5c", metalness: 0.45, roughness: 0.45 };
+  if (name.startsWith("GEO-bulwark")) return { color: "#7a8088", metalness: 0.6, roughness: 0.4 };
+  // ── superstructure — white
+  if (name.startsWith("GEO-deckhouse")) return { color: "#d8ddd6", metalness: 0.15, roughness: 0.55 };
+  if (name.startsWith("GEO-bridge")) return { color: "#d8ddd6", metalness: 0.15, roughness: 0.55 };
+  // ── deck plate — grey
+  if (name.startsWith("GEO-deck")) return { color: "#9ba0a6", metalness: 0.5, roughness: 0.5 };
+  if (name.startsWith("GEO-aft-deck")) return { color: "#9ba0a6", metalness: 0.5, roughness: 0.5 };
+  // ── masts & rails — galvanised steel
+  if (name.startsWith("GEO-mast")) return { color: "#7a8088", metalness: 0.65, roughness: 0.35 };
+  if (name.startsWith("GEO-rail")) return { color: "#9aa0a8", metalness: 0.7, roughness: 0.35 };
+  if (name.startsWith("GEO-stanchion")) return { color: "#9aa0a8", metalness: 0.7, roughness: 0.35 };
+  // ── crane — safety orange body, dark hook/cable (specific before "GEO-crane")
+  if (name.startsWith("GEO-crane-hook")) return { color: "#3a4048", metalness: 0.8, roughness: 0.4 };
+  if (name.startsWith("GEO-crane-cable")) return { color: "#3a4048", metalness: 0.6, roughness: 0.5 };
+  if (name.startsWith("GEO-crane")) return { color: "#f0852a", metalness: 0.4, roughness: 0.4 };
+  // ── deck fittings
   if (name.startsWith("GEO-liferaft")) return { color: "#f0852a", metalness: 0.2, roughness: 0.55 };  // orange canister
   if (name.startsWith("GEO-bollard")) return { color: "#e0b020", metalness: 0.4, roughness: 0.5 };    // safety yellow
-  if (name === "GEO-railing") return { color: "#9aa0a8", metalness: 0.7, roughness: 0.35 };            // galvanised rail
-  if (name === "GEO-anchor") return { color: "#3a4048", metalness: 0.8, roughness: 0.4 };              // dark steel
+  // ── engine room (cutaway machinery) — head/trim yellow before the teal block
+  if (name.startsWith("GEO-engine-head")) return { color: "#f0c542", metalness: 0.5, roughness: 0.4 }; // yellow cylinder heads
+  if (name.startsWith("GEO-engine")) return { color: "#2f9e8f", metalness: 0.4, roughness: 0.5 };      // teal machinery bodies
+  if (name.startsWith("GEO-gearbox")) return { color: "#2f9e8f", metalness: 0.4, roughness: 0.5 };
+  if (name.startsWith("GEO-shaft")) return { color: "#60666d", metalness: 0.8, roughness: 0.3 };       // steel shafts
+  // ── running gear
+  if (name.startsWith("GEO-prop")) return { color: "#c9a86c", metalness: 0.95, roughness: 0.25, emissive: "#1a1205" }; // brass props (hub + blades)
+  if (name.startsWith("GEO-kort-nozzle")) return { color: "#60666d", metalness: 0.8, roughness: 0.35 };
+  if (name.startsWith("GEO-rudder")) return { color: "#60666d", metalness: 0.75, roughness: 0.38 };
+  if (name.startsWith("GEO-bow-thruster")) return { color: "#60666d", metalness: 0.8, roughness: 0.35 };
   return { color: "#7a8088", metalness: 0.55, roughness: 0.45 };
 }
 
 type Part = { node: Object3D; base: THREE.Vector3; offset: THREE.Vector3 };
 type Box = { c: THREE.Vector3; sx: number; sy: number; sz: number; maxDim: number; cy: number; floorY: number };
 
-/* explode vectors — same as before, each part moves along its real axis */
+/* explode vectors (assembled 0 → fully apart 1), authored along the rebuilt
+   PSV's real axes: X = length (bow +, stern −), Y = up, Z = beam (port −,
+   stbd +). Subsystems move as units — superstructure stacks UP, the engine
+   room drops BELOW the hull for the stage-① cutaway reveal, the running gear
+   pulls aft + down split port/starboard, and the deck plate + its fittings
+   (rails, stanchions, bollards) lift away together. Scaled to the new model
+   (~19u long, props at −10.1X) — camera framing is maxDim-driven so distances
+   stay proportionate. Every part name below exists as a node in vessel.glb;
+   the rig only animates names present here (`if (!(o.name in EXPLODE)) return`). */
 const EXPLODE: Record<string, [number, number, number]> = {
-  Hull: [0, 0, 0],
-  BootTopping: [0, -1.0, 0],
-  Deck: [0, 1.8, 0],
-  Bulwark: [0, 2.6, 0],
-  Bridge: [0, 3.6, 0],
-  Funnel: [-0.4, 4.4, 0],
-  Mast: [0, 5.8, 0],
-  Crane: [1.9, 4.6, 0],
-  "Prop-P": [-3.4, -1.7, -1.3],
-  "Prop-S": [-3.4, -1.7, 1.3],
-  Rudder: [-4.0, -1.1, 0],
-  // deck detailing — rides WITH the deck on explode so the railing, bollards,
-  // life-rafts and cradles lift away as one plate instead of orphan-floating
-  // where the deck used to be. The anchor stays seated on the hull bow.
-  "GEO-railing": [0, 1.8, 0],
-  "GEO-bollard-0": [0, 1.8, 0],
-  "GEO-bollard-1": [0, 1.8, 0],
-  "GEO-bollard-2": [0, 1.8, 0],
-  "GEO-bollard-3": [0, 1.8, 0],
-  "GEO-liferaft-P": [0, 1.8, 0],
-  "GEO-liferaft-S": [0, 1.8, 0],
-  "GEO-liferaft-cradle-P": [0, 1.8, 0],
-  "GEO-liferaft-cradle-S": [0, 1.8, 0],
-  "GEO-anchor": [0, 0, 0],
+  "GEO-hull": [0, 0, 0],            // anchor
+  "GEO-forecastle": [0, 1.5, 0],
+  "GEO-deck": [0, 3.0, 0],
+  "GEO-aft-deck": [0, 3.0, 0],
+  "GEO-bulwark": [0, 4.2, 0],
+  "GEO-deckhouse": [0, 5.4, 0],
+  "GEO-bridge": [0, 6.6, 0],
+  "GEO-funnel": [-0.6, 7.6, 0],
+  "GEO-mast": [0, 9.0, 0],
+  "GEO-mast-yard": [0, 9.0, 0],
+  "GEO-crane": [0, 7.0, -4.0],      // crane lifts up + out to port as a unit
+  "GEO-crane-boom": [0, 7.0, -4.0],
+  "GEO-crane-cable": [0, 7.0, -4.0],
+  "GEO-crane-hook": [0, 7.0, -4.0],
+  "GEO-rail-top-port": [0, 3.0, 0], // rides the deck plate
+  "GEO-rail-top-stbd": [0, 3.0, 0],
+  // engine room — drops below the hull (the interior cutaway reveal)
+  "GEO-engine-block": [0, -3.5, 0],
+  "GEO-engine-main-port": [0, -3.5, -0.9],
+  "GEO-engine-main-stbd": [0, -3.5, 0.9],
+  "GEO-gearbox": [0, -3.5, 0],
+  "GEO-shaft-port": [0, -3.5, -0.7],
+  "GEO-shaft-stbd": [0, -3.5, 0.7],
+  // bow thruster — out the bow + down
+  "GEO-bow-thruster": [4.5, -1.8, 0],
+  // stern running gear — aft + down, split port/starboard
+  "GEO-prop-hub-port": [-4.5, -2.2, -1.3],
+  "GEO-prop-hub-stbd": [-4.5, -2.2, 1.3],
+  "GEO-kort-nozzle-port": [-4.5, -2.2, -1.3],
+  "GEO-kort-nozzle-stbd": [-4.5, -2.2, 1.3],
+  "GEO-rudder-port": [-5.4, -1.6, -0.7],
+  "GEO-rudder-stbd": [-5.4, -1.6, 0.7],
 };
+// repeated part families — same offset per family, expanded so every node is
+// present in EXPLODE (the rig skips any node it can't find here).
+for (let i = 0; i < 6; i++) {
+  EXPLODE[`GEO-bollard-port-${i}`] = [0, 3.0, 0];   // ride the deck plate up
+  EXPLODE[`GEO-bollard-stbd-${i}`] = [0, 3.0, 0];
+}
+for (let i = 0; i < 14; i++) {
+  const n = String(i).padStart(2, "0");
+  EXPLODE[`GEO-stanchion-port-${n}`] = [0, 3.0, 0];
+  EXPLODE[`GEO-stanchion-stbd-${n}`] = [0, 3.0, 0];
+}
+for (let i = 0; i < 2; i++) {
+  EXPLODE[`GEO-liferaft-port-${i}`] = [0, 5.4, 0];  // ride the deckhouse up
+  EXPLODE[`GEO-liferaft-stbd-${i}`] = [0, 5.4, 0];
+}
+for (let i = 0; i < 5; i++) {
+  EXPLODE[`GEO-engine-head-port-${i}`] = [0, -3.0, -0.9]; // drop with the mains
+  EXPLODE[`GEO-engine-head-stbd-${i}`] = [0, -3.0, 0.9];
+}
+for (let i = 0; i < 4; i++) {
+  EXPLODE[`GEO-prop-blade-port-${i}`] = [-4.5, -2.2, -1.3];
+  EXPLODE[`GEO-prop-blade-stbd-${i}`] = [-4.5, -2.2, 1.3];
+}
 
 function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
   const group = useRef<Group>(null);
