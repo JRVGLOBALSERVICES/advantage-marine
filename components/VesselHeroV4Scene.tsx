@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useGLTF, Environment, AdaptiveDpr, ContactShadows, useTexture } from "@react-three/drei";
+import { useGLTF, Environment, AdaptiveDpr, ContactShadows } from "@react-three/drei";
 import { EffectComposer, N8AO, Bloom, ToneMapping } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -56,36 +56,45 @@ const COMPOSE_RIGHT = 0.24; // fraction of maxDim to slide the vessel right-of-c
    clay/cartoon render; a real environment gives sharp specular streaks. */
 const HDRI_URL = "/hdri/studio_small_09_1k.hdr";
 
-/* MatCaps (nidorx/matcaps, Rj 2026-06-05) — a matcap is a studio-lit sphere
-   baked into a texture. MeshMatcapMaterial reads its shading from the texture,
-   NOT from scene lights, so each part looks like solid polished metal/paint
-   regardless of the stage behind it — it can't bleach into the cream canvas the
-   way the flat lit MeshStandard paint did. steel = sharp highlight + dark Fresnel
-   rim (hull + metal fittings); primer = soft matte blue-grey (painted house). */
-const STEEL_MATCAP_URL = "/matcaps/steel.png";
-const PRIMER_MATCAP_URL = "/matcaps/primer.png";
+/* LIVERY PALETTE (Rj 2026-06-05) — ROOT-CAUSE FIX for "the colour doesn't make
+   sense". The GLB bakes near-black albedos (hull #02060e, "green" funnel #072813,
+   glass #03050a). On the cream stage those read as muddy black blobs, and the
+   previous matcap pass only darkened them further while DISCARDING the scene's
+   HDRI + lights (a matcap ignores envMap and scene lights entirely — it reads
+   only its own texture, so the N8AO/Bloom/HDRI rig below did nothing).
 
-/* Convert the GLB's flat MeshStandardMaterials to MeshMatcapMaterial. The matcap
-   carries the studio lighting (highlight + Fresnel rim) in its texture, so the
-   form reads as solid metal/paint independent of the scene lights or the stage
-   colour — the fix for the cream-stage washout. The part's own GLB colour TINTS
-   the neutral matcap (matcap × color), so the navy hull / green funnel / white
-   superstructure livery holds. Metal fittings (metalness ≥ 0.5) get the sharp
-   steel matcap; painted low-metal parts get the soft matte primer. Cached per
-   source material (104 meshes share a handful of materials). */
-const matCache = new Map<string, THREE.MeshMatcapMaterial>();
-function toMatcap(
-  src: MeshStandardMaterial,
-  steel: THREE.Texture,
-  primer: THREE.Texture,
-): THREE.MeshMatcapMaterial {
+   We override each NAMED GLB material with a brand-coherent colour — neutral
+   charcoal-navy hull, clean white superstructure, a SINGLE teal funnel pop
+   matching --color-accent (#30837b), silver waterline band — as a
+   MeshPhysicalMaterial, so the real HDRI reflections, clearcoat depth and N8AO
+   crevice darkening all do their job. Keyed by GLB material name; cached per
+   source material (104 meshes share 8 materials). */
+type Livery = { color: string; metalness: number; roughness: number; clearcoat: number; clearcoatRoughness: number };
+const LIVERY: Record<string, Livery> = {
+  "MAT-v4-hull":              { color: "#1c2832", metalness: 0.0,  roughness: 0.34, clearcoat: 0.7,  clearcoatRoughness: 0.22 },
+  "MAT-v4-hull-silver":       { color: "#9aa3ad", metalness: 0.9,  roughness: 0.30, clearcoat: 0.2,  clearcoatRoughness: 0.30 },
+  "MAT-v4-white":             { color: "#eef0f2", metalness: 0.0,  roughness: 0.45, clearcoat: 0.45, clearcoatRoughness: 0.30 },
+  "MAT-superstructure-white": { color: "#f1f1f3", metalness: 0.0,  roughness: 0.45, clearcoat: 0.45, clearcoatRoughness: 0.30 },
+  "MAT-v4-deck":              { color: "#383b40", metalness: 0.0,  roughness: 0.72, clearcoat: 0.0,  clearcoatRoughness: 0.50 },
+  "MAT-v4-steel":             { color: "#6f7479", metalness: 0.85, roughness: 0.35, clearcoat: 0.0,  clearcoatRoughness: 0.30 },
+  "MAT-v4-livery-green":      { color: "#30837b", metalness: 0.0,  roughness: 0.40, clearcoat: 0.6,  clearcoatRoughness: 0.25 },
+  "MAT-v4-glass":             { color: "#0b1417", metalness: 0.0,  roughness: 0.05, clearcoat: 0.9,  clearcoatRoughness: 0.10 },
+};
+const DEFAULT_LIVERY: Livery = { color: "#8a9099", metalness: 0.3, roughness: 0.5, clearcoat: 0.3, clearcoatRoughness: 0.3 };
+
+const matCache = new Map<string, THREE.MeshPhysicalMaterial>();
+function toLivery(src: MeshStandardMaterial): THREE.MeshPhysicalMaterial {
   const hit = matCache.get(src.uuid);
   if (hit) return hit;
-  const metal = src.metalness ?? 0.5;
-  const m = new THREE.MeshMatcapMaterial({
-    color: src.color.clone(),
+  const spec = LIVERY[src.name] ?? DEFAULT_LIVERY;
+  const m = new THREE.MeshPhysicalMaterial({
+    color: new THREE.Color(spec.color),
+    metalness: spec.metalness,
+    roughness: spec.roughness,
+    clearcoat: spec.clearcoat,
+    clearcoatRoughness: spec.clearcoatRoughness,
+    envMapIntensity: 1.1,
     map: src.map ?? undefined,
-    matcap: metal >= 0.5 ? steel : primer,
     normalMap: src.normalMap ?? undefined,
     transparent: src.transparent,
     opacity: src.opacity,
@@ -222,11 +231,6 @@ function Vessel({
   const group = useRef<Group>(null);
   const { scene } = useGLTF(MODEL_URL, true) as unknown as { scene: THREE.Group };
 
-  /* matcap textures carry the baked studio light — sRGB so the tint stays true */
-  const [steelMc, primerMc] = useTexture([STEEL_MATCAP_URL, PRIMER_MATCAP_URL]);
-  steelMc.colorSpace = THREE.SRGBColorSpace;
-  primerMc.colorSpace = THREE.SRGBColorSpace;
-
   /* Capture base (assembled) positions + measure the bbox in useMemo, which
      runs DURING render — before the first useFrame tick. A frame tick firing
      first (top of page, amount=1) would shove parts to exploded positions and
@@ -247,12 +251,12 @@ function Vessel({
       if (!m.isMesh) return;
       m.castShadow = true;
       m.receiveShadow = true;
-      // flat standard paint → matcap (studio light baked in, washout-proof).
-      // Handle shared + multi-material meshes defensively.
+      // baked near-black standard paint → brand-livery physical material
+      // (real colour + HDRI reflections + clearcoat). Multi-material defensive.
       if (Array.isArray(m.material)) {
-        m.material = m.material.map((s) => (isStd(s) ? toMatcap(s, steelMc, primerMc) : s));
+        m.material = m.material.map((s) => (isStd(s) ? toLivery(s) : s));
       } else if (isStd(m.material)) {
-        m.material = toMatcap(m.material, steelMc, primerMc);
+        m.material = toLivery(m.material);
       }
 
       mbox.setFromObject(m); // this part's bounds, in scene space
@@ -285,7 +289,7 @@ function Vessel({
       offset: computeExplodeOffset(center, b.c, b.maxDim),
     }));
     return { parts: collected, box: b };
-  }, [scene, steelMc, primerMc]);
+  }, [scene]);
 
   const parts = useRef<Part[]>(measured.parts);
   const box = useRef<Box>(measured.box);
