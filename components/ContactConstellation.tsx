@@ -12,14 +12,14 @@ gsap.registerPlugin(ScrollTrigger);
 /* ──────────────────────────────────────────────────────────────────────────
    CONTACT CONSTELLATION — scroll-driven 3-stage vessel + contact payoff.
 
-   Redesign 2026-06-04 (was: static held-assembled vessel + flanking nodes).
-   Rj's reference video shows the support vessel assembling through THREE
-   labelled stages — PART BY PART → INTERMEDIATE ASSEMBLY → COMBINED TOGETHER
-   — then a closing feature callout. Here the vessel scrolls through those same
-   three stages (the explode→assemble schedule already lives in
-   VesselContactScene.explodeAmount), and the SIX real AMS contact points
-   reveal as the COMBINED-stage payoff — the video's callout, grounded in
-   actual Advantage Marine contacts.
+   Redesign 2026-06-05: shares the home hero scene (VesselHeroV4Scene) so the
+   corrected green/silver v4 vessel + live ocean appear identically on both
+   pages. The vessel runs the COMPLETE → SPLIT → REJOIN triangle (assembled at
+   both scroll ends, exploded at the mid-point), captioned through three stages
+   — COMPLETE VESSEL → SPLIT BY PART → JOINED AGAIN — and the SIX real AMS
+   contact points reveal as the rejoined-stage payoff (the video's callout,
+   grounded in actual Advantage Marine contacts). composeRight={0} keeps the
+   ship centred between its flanking node cards (home shifts it right).
 
    iOS-safe: a tall section with a `position: sticky` inner frame (never
    ScrollTrigger pin:true — banned on touch). GSAP writes scrollState.progress;
@@ -30,7 +30,7 @@ gsap.registerPlugin(ScrollTrigger);
    scroll assembly (a real in-water frame, never a fabricated render).
    ────────────────────────────────────────────────────────────────────────── */
 
-const VesselContactScene = dynamic(() => import("./VesselContactScene"), {
+const VesselContactScene = dynamic(() => import("./VesselHeroV4Scene"), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 grid place-items-center">
@@ -48,8 +48,8 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 
 /* trapezoid envelope (0 outside [a,d], 1 across [b,c]) — one per stage label,
-   aligned to the explode schedule in VesselContactScene (apart ≈0–0.15,
-   intermediate ≈0.40–0.58, combined ≥0.85). */
+   aligned to the COMPLETE→SPLIT→REJOIN triangle (whole ≈0, fully split ≈0.5,
+   rejoined ≈1; cards reveal ≥0.9). */
 function trap(p: number, a: number, b: number, c: number, d: number) {
   if (p <= a || p >= d) return 0;
   if (p < b) return (p - a) / (b - a);
@@ -76,15 +76,18 @@ const AnchorGlyph = () => (<svg {...gp}><circle cx="12" cy="4" r="2" /><path d="
 const LifeRingGlyph = () => (<svg {...gp}><circle cx="12" cy="12" r="9" /><circle cx="12" cy="12" r="3.4" /><path d="m5 5 4.2 4.2M14.8 14.8 19 19M19 5l-4.2 4.2M9.2 14.8 5 19" /></svg>);
 const ChatGlyph = () => (<svg {...gp}><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.4A8 8 0 1 1 21 12Z" /><path d="M8.5 11h7M8.5 14h4" /></svg>);
 
-/* ---------- the three assembly stages (match home VesselHero language) ---------- */
+/* ---------- the three assembly stages (match home VesselHero language) ----------
+   The scene now runs the COMPLETE → SPLIT → REJOIN triangle (assembled at both
+   ends of scroll, fully exploded at the mid-point ≈0.5). The captions track
+   that arc: whole ship first, blown apart at the peak, joined again as it lands
+   — then caption 03 CLOSES (trailing edge 0.84→0.90) BEFORE the contact cards
+   reveal (0.90→1.0), a clean sequential handoff so the display type never sits
+   under the left column. */
 type Stage = { no: string; title: string; sub: string; window: [number, number, number, number] };
 const STAGES: Stage[] = [
-  { no: "01", title: "Part by part",          sub: "Every system pulled apart",   window: [-0.1, -0.05, 0.18, 0.32] },
-  { no: "02", title: "Intermediate assembly", sub: "Hull & machinery re-seated",  window: [0.40, 0.48, 0.60, 0.70] },
-  // caption 03 announces the combined ship, then CLOSES (trailing edge 0.84→0.90)
-  // BEFORE the contact cards reveal (0.90→1.0) — a clean sequential handoff, so
-  // the big "Combined together" display type never sits under the left column.
-  { no: "03", title: "Combined together",     sub: "Survey-ready — every line in", window: [0.74, 0.80, 0.84, 0.90] },
+  { no: "01", title: "Complete vessel",  sub: "Survey-ready, every line in",  window: [-0.1, -0.05, 0.12, 0.22] },
+  { no: "02", title: "Split by part",    sub: "Every system pulled apart",    window: [0.34, 0.44, 0.56, 0.66] },
+  { no: "03", title: "Joined again",     sub: "Back together, ready to sail", window: [0.74, 0.80, 0.84, 0.90] },
 ];
 
 /* ---------- the six contact points (real AMS data) ---------- */
@@ -351,7 +354,7 @@ export default function ContactConstellation() {
             home hero and Rj's light-grey reference video. */}
         <div className="absolute inset-0">
           {mounted && (
-            <VesselContactScene active onContextLost={() => setFailed(true)} />
+            <VesselContactScene active composeRight={0} onContextLost={() => setFailed(true)} />
           )}
         </div>
 
@@ -437,7 +440,7 @@ export default function ContactConstellation() {
           transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
           aria-hidden
         >
-          <span className="eyebrow !tracking-[0.28em] text-[color:var(--cc-fg-mute)]">Scroll to assemble</span>
+          <span className="eyebrow !tracking-[0.28em] text-[color:var(--cc-fg-mute)]">Scroll to explore</span>
         </motion.div>
       </div>
     </section>

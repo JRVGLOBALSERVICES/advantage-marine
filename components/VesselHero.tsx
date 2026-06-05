@@ -76,30 +76,36 @@ type Beat = {
   statLabel: string;
 };
 
+/* Copy tracks the COMPLETE → SPLIT → REJOIN scroll arc the scene now runs
+   (whole at p0, fully apart at p0.5, joined again at p1). Earlier copy read
+   apart→assembling→whole, which inverted against the new animation — the ship
+   sat whole while the words said "pulled apart". Re-sequenced so each beat
+   describes what's actually on screen; the parts manifest rides beat 01 (the
+   whole vessel, introducing the systems about to separate). */
 const BEATS: Beat[] = [
   {
     stageNo: "01",
-    stageTitle: "Part by part",
-    stageSub: "Modular components",
-    head: ["Every system", "pulled apart."],
-    lead: "Hull, superstructure, funnel uptakes, radar mast and deck handling gear — separated to the last brace. Each joint is a point we read in-water and document to class.",
+    stageTitle: "Complete vessel",
+    stageSub: "Survey-ready, every line in",
+    head: ["One vessel,", "every system aboard."],
+    lead: "Hull, superstructure, funnel uptakes, radar mast and deck handling gear — the whole research vessel, modelled to the last brace before we take it apart.",
     stat: { value: 103, suffix: "" },
     statLabel: "Modelled parts · whole-of-vessel scope",
   },
   {
     stageNo: "02",
-    stageTitle: "Intermediate assembly",
-    stageSub: "Partial hull & systems",
-    head: ["Section by", "section, refitted."],
-    lead: "Brought back together stage by stage — hull plate, machinery and deck gear repaired and re-seated as each subsystem returns to survey.",
+    stageTitle: "Split by part",
+    stageSub: "Modular components",
+    head: ["Every system,", "pulled apart."],
+    lead: "Separated to the last brace — hull plate, machinery, funnel, radar mast and deck gear laid out as the joints we read in-water and document to class.",
     stat: { value: 4630, suffix: " m²" },
     statLabel: "Johor fabrication & dive facility",
   },
   {
     stageNo: "03",
-    stageTitle: "Combined together",
+    stageTitle: "Joined again",
     stageSub: "Survey-ready vessel",
-    head: ["The whole vessel.", "Cleared by class."],
+    head: ["Back together.", "Cleared by class."],
     lead: "Reassembled and certified — our divers and the Chasing M2 ROV verify the welds, the cathodic protection and the steel the surface can't see, to ISO and class society.",
     stat: { value: 12, suffix: "" },
     statLabel: "ISO & class-society certifications",

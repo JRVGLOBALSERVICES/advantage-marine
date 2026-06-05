@@ -6,20 +6,19 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { Group, Mesh, MeshStandardMaterial } from "three";
 import { scrollState, motionState, sceneState } from "@/lib/scroll";
+import { computeExplodeOffset } from "@/lib/vesselExplode";
 
 /* ════════════════════════════════════════════════════════════════
    VESSEL HERO v4 SCENE — extras-driven explode + live ocean (2026-06-05).
 
-   The Blender-authored v4 research vessel (advantage-vessel-v4.glb, 103 named
-   meshes) carries its explode rig NOT as baked keyframe clips (v3's approach)
-   but as a per-part `explode` offset vector in each node's glTF `extras`.
-   GLTFLoader copies those onto `mesh.userData.explode`, so we lerp every part
-   in JS by one scroll-driven amount — lean GLB, per-part scrub control.
-
-   AXIS NOTE: the exporter converts geometry Blender-Z-up → glTF-Y-up, but it
-   does NOT touch custom-property extras. So `explode` is still in Blender axes
-   (Z-up). We remap (bx,by,bz) → (bx, bz, −by) before adding to the already-
-   converted three-space base position. Without this the mast explodes DOWN.
+   The Blender-authored v4 research vessel (advantage-vessel-v4.glb, 104 named
+   meshes) carries NO explode extras — the export dropped them, so the earlier
+   extras-driven read (`mesh.userData.explode`) was null for every part and the
+   split was a silent no-op. We instead derive each part's offset GEOMETRICALLY
+   at measure time from its position relative to the vessel centroid (see
+   lib/vesselExplode.ts — radial blow-apart, vertically amplified), then lerp
+   every part in JS by one scroll-driven amount. Lean GLB, no Blender re-author,
+   one source of truth shared with the contact constellation.
 
    Narrative matches the shipped home copy (VesselHero BEATS): enter on the
    exploded field of parts (progress 0 → amount 1), scroll the vessel TOGETHER
@@ -41,6 +40,14 @@ const smooth = (t: number) => t * t * (3 - 2 * t);
 /* warm sailcloth stage — matches --color-paper so the hero reads as one
    continuous cream surface, ship floating in it */
 const STAGE_BG = "#F4EBD9";
+
+/* hero composition — pull the vessel back a touch (reads smaller) and slide it
+   into the right third of the frame on desktop, leaving the left clear for the
+   copy block. Gated out on portrait so mobile keeps the ship centred. These are
+   the HOME defaults; the contact constellation overrides composeRight→0 (the
+   node cards flank both sides, so the vessel must stay centred). */
+const FRAME_SCALE = 1.18; // >1 = camera further back, vessel reads smaller
+const COMPOSE_RIGHT = 0.24; // fraction of maxDim to slide the vessel right-of-centre
 
 /* HOLD override — when mounted as a static showcase (no tall sticky section
    driving scrollState) a non-null hold pins the assembly. Module-scoped
@@ -154,9 +161,13 @@ function Ocean({
 function Vessel({
   onMeasured,
   oceanMat,
+  frameScale,
+  composeRight,
 }: {
   onMeasured: (b: Box) => void;
   oceanMat: React.MutableRefObject<THREE.ShaderMaterial | null>;
+  frameScale: number;
+  composeRight: number;
 }) {
   const group = useRef<Group>(null);
   const { scene } = useGLTF(MODEL_URL, true) as unknown as { scene: THREE.Group };
@@ -168,8 +179,14 @@ function Vessel({
      that ordering race entirely. */
   const measured = useMemo(() => {
     scene.updateMatrixWorld(true);
-    const collected: Part[] = [];
+    // PASS 1 — collect meshes + each mesh's own bbox centre, and expand the
+    // whole-vessel bbox. We need the centroid + maxDim BEFORE we can compute
+    // any part's geometric explode offset, so offsets wait for pass 2.
+    type Raw = { mesh: Mesh; base: THREE.Vector3; center: THREE.Vector3 };
+    const raw: Raw[] = [];
     const bbox = new THREE.Box3();
+    const mbox = new THREE.Box3();
+    const mc = new THREE.Vector3();
     scene.traverse((o) => {
       const m = o as Mesh;
       if (!m.isMesh) return;
@@ -178,12 +195,9 @@ function Vessel({
       const mat = m.material as MeshStandardMaterial;
       if (mat && "envMapIntensity" in mat) mat.envMapIntensity = 1.0;
 
-      const raw = (m.userData?.explode ?? null) as number[] | null;
-      // Blender Z-up extras → three Y-up: (bx,by,bz) → (bx, bz, −by)
-      const offset = raw
-        ? new THREE.Vector3(raw[0], raw[2], -raw[1])
-        : new THREE.Vector3();
-      collected.push({ mesh: m, base: m.position.clone(), offset });
+      mbox.setFromObject(m); // this part's bounds, in scene space
+      mbox.getCenter(mc);
+      raw.push({ mesh: m, base: m.position.clone(), center: mc.clone() });
       bbox.expandByObject(m); // measure assembled hull, per-mesh (v3 pattern)
     });
 
@@ -202,6 +216,14 @@ function Vessel({
             sx: size.x,
           }
         : { c: new THREE.Vector3(), maxDim: 14, cy: 2, floorY: -2.5, sx: 14 };
+
+    // PASS 2 — now that the centroid + maxDim are known, derive the geometric
+    // explode offset per part (radial blow-apart, vertically amplified).
+    const collected: Part[] = raw.map(({ mesh, base, center }) => ({
+      mesh,
+      base,
+      offset: computeExplodeOffset(center, b.c, b.maxDim),
+    }));
     return { parts: collected, box: b };
   }, [scene]);
 
@@ -228,14 +250,23 @@ function Vessel({
   const damped = useRef(0);
   const { camera, size } = useThree();
   const DIR = useMemo(() => new THREE.Vector3(0.62, 0.4, 1.0).normalize(), []);
+  // camera screen-right axis = cross(worldUp, viewDir); shift along -RIGHT to push the ship right-of-frame
+  const RIGHT = useMemo(
+    () => new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), DIR).normalize(),
+    [DIR],
+  );
 
   useFrame((state, delta) => {
     const target = motionState.reduced ? 0.5 : clamp01(progressNow());
     damped.current += (target - damped.current) * (motionState.reduced ? 1 : 0.1);
     const p = damped.current;
 
-    // amount: 1 = fully exploded (enter), 0 = assembled (scroll-end)
-    const amount = motionState.reduced ? 0 : 1 - p;
+    // three-phase scrub: COMPLETE → SPLIT → REJOIN.
+    // amount: 0 = assembled, 1 = fully exploded. Triangle over progress so the
+    // vessel enters whole (p=0), blows apart at mid-scroll (p=0.5), and comes
+    // back together at the end (p=1). smooth() eases each leg so the parts don't
+    // snap at the turnaround.
+    const amount = motionState.reduced ? 0 : smooth(1 - Math.abs(2 * p - 1));
     for (const part of parts.current) {
       part.mesh.position.set(
         part.base.x + part.offset.x * amount,
@@ -244,10 +275,13 @@ function Vessel({
       );
     }
 
-    // ocean surfaces only on the assembled end, dissolves with the explode
+    // ocean rides the ASSEMBLED state (both ends of the triangle) and dissolves
+    // to studio void while the vessel is split apart — so the ship is "on water,
+    // taken apart in the air, set back on water". Tied to (1 - amount), not raw
+    // progress, so it tracks both the complete and rejoined beats.
     if (oceanMat.current) {
       oceanMat.current.uniforms.uTime.value = state.clock.elapsedTime;
-      const o = motionState.reduced ? 0.85 : smooth(clamp01((p - 0.5) / 0.42));
+      const o = motionState.reduced ? 0.85 : smooth(clamp01(1 - amount * 1.25));
       oceanMat.current.uniforms.uOpacity.value = o;
     }
 
@@ -262,19 +296,30 @@ function Vessel({
     const { c, maxDim, cy } = box.current;
     const aspect = size.width / Math.max(size.height, 1);
     const spread = motionState.reduced ? 0 : amount; // wider frame when scattered
+    const portrait = clamp01((1 - aspect) / 0.5);
 
     const baseR = maxDim * lerp(1.15, 1.5, spread);
     const halfV = (camera as THREE.PerspectiveCamera).fov * (Math.PI / 360);
     const tanH = Math.max(Math.tan(halfV) * aspect, 1e-3);
-    const horizFitR = (maxDim * 0.5 * lerp(1.12, 1.45, spread)) / tanH;
-    const R = Math.max(baseR, horizFitR);
+    // The vessel's long axis is maxDim. On portrait, fitting that full length
+    // into the narrow width shoves the camera far back and the ship reads tiny
+    // in a cream void. Tighten the horizontal fit on portrait so the hero fills
+    // the frame and the bow/stern crop gently off-edge (more dramatic, not a bug).
+    const fitTighten = lerp(1.0, 0.66, portrait);
+    const horizFitR = (maxDim * 0.5 * lerp(1.12, 1.45, spread) * fitTighten) / tanH;
+    const R = Math.max(baseR, horizFitR) * frameScale;
     const camY = c.y + maxDim * lerp(0.16, 0.32, spread);
 
-    // portrait pan-down: reserve the lower frame for the copy block
-    const portrait = clamp01((1 - aspect) / 0.5);
-    const lift = maxDim * 0.22 * portrait;
-    camPos.current.set(c.x + DIR.x * R, camY - lift, c.z + DIR.z * R);
-    camTgt.current.set(c.x, cy - lift, c.z);
+    // portrait pan-down: reserve a little lower frame for the copy block — but
+    // a large lift was the source of the dead space above the ship, so keep it small.
+    const lift = maxDim * 0.1 * portrait;
+    // slide the vessel into the right third on desktop (shift cam + target along
+    // −RIGHT so the subject moves right of centre); fade the shift out on portrait.
+    const composeMag = composeRight * maxDim * (1 - portrait);
+    const cx = c.x - RIGHT.x * composeMag;
+    const cz = c.z - RIGHT.z * composeMag;
+    camPos.current.set(cx + DIR.x * R, camY - lift, cz + DIR.z * R);
+    camTgt.current.set(cx, cy - lift, cz);
     camera.position.lerp(camPos.current, motionState.reduced ? 1 : 0.12);
     camera.lookAt(camTgt.current);
     if (!motionState.reduced) state.invalidate();
@@ -292,11 +337,19 @@ export default function VesselHeroV4Scene({
   onContextLost,
   active = true,
   hold = null,
+  frameScale = FRAME_SCALE,
+  composeRight = COMPOSE_RIGHT,
 }: {
   onContextLost?: () => void;
   active?: boolean;
   /* pin assembly progress for a static showcase (null = scroll-driven hero) */
   hold?: number | null;
+  /* camera pull-back (>1 = vessel reads smaller). home default 1.18 */
+  frameScale?: number;
+  /* slide vessel right-of-centre as a fraction of maxDim. home 0.24; the
+     contact constellation passes 0 so the ship stays centred between its
+     flanking node cards. */
+  composeRight?: number;
 }) {
   const [floorY, setFloorY] = useState(-2.48);
   const [sx, setSx] = useState(14);
@@ -349,6 +402,8 @@ export default function VesselHeroV4Scene({
 
         <Vessel
           oceanMat={oceanMat}
+          frameScale={frameScale}
+          composeRight={composeRight}
           onMeasured={(b) => {
             setFloorY(b.floorY);
             setSx(b.sx);
