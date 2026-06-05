@@ -27,12 +27,13 @@ gsap.registerPlugin(ScrollTrigger);
    Sticky 340lvh narrative, iOS-safe (position:sticky only — no pin).
    ════════════════════════════════════════════════════════════════ */
 
-/* v3 vessel — Blender-authored research vessel carrying its OWN baked explode
-   rig (53 per-object glTF clips scrubbed via AnimationMixer.setTime inside
-   VesselHeroV3Scene). Replaces the old procedural vessel.glb hero; the de-Lego
-   pass — shade-smooth + angle-limited bevel + rounder superstructure corners —
-   travels baked into the mesh. */
-const VesselContactScene = dynamic(() => import("./VesselHeroV3Scene"), {
+/* v4 vessel — Blender-authored research vessel (advantage-vessel-v4.glb, 103
+   named meshes). Explode rig ships as per-part `explode` offset vectors in glTF
+   extras (lerped in JS by scroll progress inside VesselHeroV4Scene), plus a live
+   Gerstner ocean that surfaces on the assembled end. Replaces the v3 baked-clip
+   hero; the same enter-exploded → scroll-together narrative, finer scrub control
+   and a living waterline instead of a void floor. */
+const VesselContactScene = dynamic(() => import("./VesselHeroV4Scene"), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 grid place-items-center">
@@ -82,7 +83,7 @@ const BEATS: Beat[] = [
     stageSub: "Modular components",
     head: ["Every system", "pulled apart."],
     lead: "Hull, superstructure, funnel uptakes, radar mast and deck handling gear — separated to the last brace. Each joint is a point we read in-water and document to class.",
-    stat: { value: 54, suffix: "" },
+    stat: { value: 103, suffix: "" },
     statLabel: "Modelled parts · whole-of-vessel scope",
   },
   {
