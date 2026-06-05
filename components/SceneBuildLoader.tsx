@@ -18,7 +18,7 @@ const WAVE_SONAR = "M4,46 L32,40 L60,30 L88,21 L116,15 L144,21 L172,30 L196,46";
    Plays the glitch marine footage muted behind the Advantage Marine wordmark +
    logo, with a glitching T-minus COUNTDOWN as the centrepiece. The countdown
    decrements on a timer (each digit drop fires a hard chromatic-split burst)
-   and SNAPS to 00 on the real `am:scene-ready` event dispatched by OsvVideoHero
+   and SNAPS to 00 on the real `am:scene-ready` event dispatched by OsvScrollHero
    once the hero poster/reel is paint-ready — then fades to reveal the cream hero.
    Min on-screen floor (never flashes) + safety timeout (stalled GPU / reduced
    motion still clears). Pattern mirrors seagull's SceneBuildLoader. */

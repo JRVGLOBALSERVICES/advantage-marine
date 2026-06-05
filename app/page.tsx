@@ -1,5 +1,5 @@
 import Link from "next/link";
-import OsvVideoHero from "@/components/OsvVideoHero";
+import OsvScrollHero from "@/components/OsvScrollHero";
 import SceneBuildLoader from "@/components/SceneBuildLoader";
 import GlobalReach from "@/components/GlobalReach";
 import { DottedSurface } from "@/components/ui/DottedSurface";
@@ -169,7 +169,7 @@ export default function Home() {
       </h1>
 
       {/* (1) ── OSV concept-reel scrub hero, 100lvh sticky ──────────────── */}
-      <OsvVideoHero />
+      <OsvScrollHero />
 
       {/* (2) ── class-approved reach (kept) ─────────────────────────────── */}
       <GlobalReach />

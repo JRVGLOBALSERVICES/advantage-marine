@@ -1,20 +1,22 @@
 "use client";
 
 /* ──────────────────────────────────────────────────────────────────────────
-   OSV VIDEO-SCRUB HERO
+   OSV SCROLL-FRAME HERO
    The client's own concept reel (the ADVANTAGE offshore support vessel —
    orbit → exploded view with callouts → reassemble → blue/yellow livery
-   reveal → sail-away) driven frame-by-frame by scroll. This is the literal
-   reference animation, scrubbed Apple-keynote style: video.currentTime is a
-   function of scroll progress, never autoplayed.
+   reveal → sail-away) driven frame-by-frame by scroll.
 
-   Why a scrubbed <video> and not the R3F rebuild: the reel already IS the hero
-   moment, at a fidelity primitives can't reach. Scrubbing it is lighter than a
-   WebGL scene and looks exactly like the concept because it is the concept.
+   HOW THE SCRUB IS DONE (matches altida / seagull references):
+   The reel is pre-exploded into an IMAGE SEQUENCE and painted to a <canvas>,
+   indexed by scroll progress. We do NOT seek video.currentTime on scroll —
+   that's the pattern that FREEZES on iOS Safari (programmatic frame-seeks are
+   throttled/blocked on iPhone & iPad). Drawing a decoded image to canvas is
+   plain raster work, so the scrub is frame-accurate and identical on iOS,
+   iPadOS and macOS. This is the Apple-keynote / altida technique.
 
-   iOS-safe: CSS `position: sticky` (NOT ScrollTrigger pin — pin re-measures on
-   the iOS URL-bar dvh change and feels stuck). Reduced-motion / no-JS falls
-   back to the poster frame + stacked copy.
+   iOS-safe pinning: CSS `position: sticky` (NOT ScrollTrigger pin — pin
+   re-measures on the iOS URL-bar dvh change and feels stuck). Reduced-motion /
+   no-JS falls back to the poster frame + stacked copy.
    ────────────────────────────────────────────────────────────────────────── */
 
 import { useEffect, useRef, useState } from "react";
@@ -28,13 +30,19 @@ import ScrollCue from "./ScrollCue";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* Same 15.04s reel, two crops: 16:9 master for desktop, a 9:16 blurred-pad cut
-   for portrait phones so the vessel fills the frame instead of being letter-
-   boxed. Both are identical-duration, so the scroll→currentTime math is shared. */
-const VIDEO_SRC_16x9 = "/video/hero-osv-scrub.mp4";
-const VIDEO_SRC_9x16 = "/video/hero-osv-scrub-9x16.mp4";
+/* Two sequences, same 15.04s reel: a 16:9 set for desktop/tablet and a 9:16
+   set so the vessel fills portrait phones instead of being letter-boxed. The
+   scroll→frame math is shared (both map progress 0→1 across their own count). */
+const DESKTOP = { dir: "/frames/osv", count: 120, pad: 3 };
+const MOBILE = { dir: "/frames/osv-9x16", count: 96, pad: 3 };
 const POSTER = "/media/home/hero-osv-poster.jpg";
+/* The reel as durable, indexable content for the VideoObject schema. */
+const REEL_URL =
+  "https://res.cloudinary.com/de3gn7o77/video/upload/advantage-marine/deliverables/advantage-osv-reel-16x9-4k.mp4";
 const MUTE = "color-mix(in oklch, var(--color-ink) 66%, transparent)";
+
+const framePath = (dir: string, i: number, pad: number) =>
+  `${dir}/f-${String(i + 1).padStart(pad, "0")}.webp`;
 
 /* trapezoid 0→1 visibility window */
 function trap(p: number, a: number, b: number, c: number, d: number) {
@@ -162,60 +170,104 @@ function StaticHero() {
   );
 }
 
-export default function OsvVideoHero() {
+export default function OsvScrollHero() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const beatRefs = useRef<(HTMLDivElement | null)[]>([]);
   const shownRef = useRef<boolean[]>(BEATS.map(() => false));
   const [mounted, setMounted] = useState(false);
   const [reduced, setReduced] = useState(false);
-  const [src, setSrc] = useState(VIDEO_SRC_16x9);
   const [active, setActive] = useState<boolean[]>(BEATS.map(() => false));
 
   useEffect(() => {
     const r = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     motionState.reduced = r;
     setReduced(r);
-    // portrait phones get the 9:16 cut; everything wider keeps the 16:9 master
-    setSrc(window.matchMedia("(max-width: 640px)").matches ? VIDEO_SRC_9x16 : VIDEO_SRC_16x9);
     setMounted(true);
-
-    // dismiss SceneBuildLoader the moment the hero is paint-ready. The poster
-    // covers the frame instantly, so signal as soon as we mount (and again when
-    // the video can play, whichever the loader catches first). Once-guarded.
-    let fired = false;
-    const ready = () => {
-      if (fired) return;
-      fired = true;
-      window.dispatchEvent(new Event("am:scene-ready"));
-    };
-    const v = videoRef.current;
-    if (v) {
-      if (v.readyState >= 2) ready();
-      else v.addEventListener("loadeddata", ready, { once: true });
-    }
-    const t = window.setTimeout(ready, 400); // poster is up regardless
-    return () => {
-      window.clearTimeout(t);
-      v?.removeEventListener("loadeddata", ready);
-    };
   }, []);
 
   useEffect(() => {
-    if (!mounted || reduced || !sectionRef.current) return;
-    const video = videoRef.current;
+    if (!mounted || reduced || !sectionRef.current || !canvasRef.current) return;
 
-    // iOS unlock: a muted play()→pause() round-trip lets us seek currentTime
-    // smoothly afterwards (Safari blocks programmatic seeks on an untouched el).
-    const unlock = () => {
-      if (!video) return;
-      video.play().then(() => video.pause()).catch(() => {});
+    const seq = window.matchMedia("(max-width: 640px)").matches ? MOBILE : DESKTOP;
+    const { count } = seq;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d", { alpha: false });
+    if (!ctx) return;
+
+    /* ── decode the image sequence ─────────────────────────────────────────
+       Coarse-stride order first (0,6,12 … then fill) so a fast early flick
+       always lands on a frame near the target while the rest stream in. */
+    const imgs: HTMLImageElement[] = new Array(count);
+    const loaded: boolean[] = new Array(count).fill(false);
+    let firstReady = false;
+
+    const order: number[] = [];
+    const stride = 6;
+    for (let s = 0; s < stride; s++) for (let i = s; i < count; i += stride) order.push(i);
+
+    /* ── canvas sizing (cap DPR at 2) + cover-fit draw ────────────────────── */
+    let cssW = 0;
+    let cssH = 0;
+    const sizeCanvas = () => {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      cssW = rect.width;
+      cssH = rect.height;
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
-    if (video) {
-      if (video.readyState >= 1) unlock();
-      else video.addEventListener("loadedmetadata", unlock, { once: true });
-    }
 
+    const drawCover = (img: HTMLImageElement) => {
+      const iw = img.naturalWidth;
+      const ih = img.naturalHeight;
+      if (!iw || !ih || !cssW || !cssH) return;
+      const scale = Math.max(cssW / iw, cssH / ih);
+      const dw = iw * scale;
+      const dh = ih * scale;
+      ctx.drawImage(img, (cssW - dw) / 2, (cssH - dh) / 2, dw, dh);
+    };
+
+    let curTarget = 0;
+    let curDrawn = -1;
+    const nearestLoaded = (t: number) => {
+      if (loaded[t]) return t;
+      for (let r = 1; r < count; r++) {
+        if (t - r >= 0 && loaded[t - r]) return t - r;
+        if (t + r < count && loaded[t + r]) return t + r;
+      }
+      return -1;
+    };
+    const paint = () => {
+      const idx = nearestLoaded(curTarget);
+      if (idx < 0 || idx === curDrawn) return;
+      drawCover(imgs[idx]);
+      curDrawn = idx;
+    };
+
+    sizeCanvas();
+
+    order.forEach((i) => {
+      const img = new window.Image();
+      img.decoding = "async";
+      img.onload = () => {
+        loaded[i] = true;
+        if (!firstReady) {
+          firstReady = true;
+          window.dispatchEvent(new Event("am:scene-ready"));
+        }
+        // redraw if this fills the frame we currently want
+        paint();
+      };
+      img.src = framePath(seq.dir, i, seq.pad);
+      imgs[i] = img;
+    });
+
+    // poster is already up; signal the loader even if decode is slow
+    const readyTimer = window.setTimeout(() => window.dispatchEvent(new Event("am:scene-ready")), 600);
+
+    /* ── scroll → frame index ─────────────────────────────────────────────── */
     const st = ScrollTrigger.create({
       trigger: sectionRef.current,
       start: "top top",
@@ -236,13 +288,8 @@ export default function OsvVideoHero() {
 
     const tick = () => {
       const p = scrollState.progress;
-      // ── scrub the video: ease currentTime toward the scroll target so a
-      // fast flick doesn't thrash the decoder; dense keyframes keep it crisp ──
-      if (video && video.duration) {
-        const target = p * (video.duration - 0.05);
-        const next = video.currentTime + (target - video.currentTime) * 0.22;
-        if (Math.abs(next - video.currentTime) > 0.004) video.currentTime = next;
-      }
+      curTarget = Math.round(p * (count - 1));
+      paint();
       // ── beat opacity / rise ──
       let changed = false;
       beatRefs.current.forEach((el, i) => {
@@ -260,9 +307,21 @@ export default function OsvVideoHero() {
     gsap.ticker.add(tick);
     tick();
 
+    const onResize = () => {
+      sizeCanvas();
+      curDrawn = -1;
+      paint();
+    };
+    window.addEventListener("resize", onResize);
+
     return () => {
+      window.clearTimeout(readyTimer);
+      window.removeEventListener("resize", onResize);
       gsap.ticker.remove(tick);
       st.kill();
+      imgs.forEach((img) => {
+        if (img) img.onload = null;
+      });
     };
   }, [mounted, reduced]);
 
@@ -283,21 +342,22 @@ export default function OsvVideoHero() {
             thumbnailUrl: [POSTER],
             uploadDate: "2026-06-06",
             duration: "PT15S",
-            contentUrl: VIDEO_SRC_16x9,
+            contentUrl: REEL_URL,
           }),
         }}
       />
       <div className="sticky top-0 h-[100lvh] overflow-hidden bg-[color:var(--color-paper)]">
-        {/* the reel, full-bleed; currentTime driven by scroll */}
-        <video
-          ref={videoRef}
-          className="absolute inset-0 h-full w-full object-cover"
-          src={src}
-          poster={POSTER}
-          muted
-          playsInline
-          preload="auto"
+        {/* poster underlay — instant paint before the first frame decodes */}
+        <Image
+          src={POSTER}
+          alt="Advantage Marine offshore support vessel"
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
         />
+        {/* the reel, scrubbed frame-by-frame on a canvas (iOS-safe) */}
+        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
 
         {/* readability wash — cream, anchored bottom-left for the copy */}
         <div
