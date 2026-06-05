@@ -5,9 +5,10 @@ import {
   useGLTF,
   Environment,
   AdaptiveDpr,
-  ContactShadows,
   Html,
   Line,
+  Sky,
+  MeshReflectorMaterial,
 } from "@react-three/drei";
 import { EffectComposer, Bloom, ToneMapping } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
@@ -94,7 +95,9 @@ function explodePlan(name: string): { kR: number; kV: number; anchor?: boolean }
 /* ════════════════════════════════════════════════════════════════
    GROUND GRID — reflective grid plane that fades in during the
    exploded hold, giving the rig a stage to sit on (video ref).
-   ════════════════════════════════════════════════════════════════ */
+   Retired: the ocean plane is the stage now. Kept for reference / reduced-
+   motion fallback. ════════════════════════════════════════════════════════ */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function GroundGrid({ anchors }: { anchors: React.MutableRefObject<Anchors> }) {
   const meshRef = useRef<THREE.Mesh>(null!);
   const matRef = useRef<THREE.ShaderMaterial>(null!);
@@ -264,7 +267,25 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
        it shadow-casting. Blanket-greying here would erase the white + yellow. */
     const tuneMat = (m: Mesh) => {
       const mat = (m.material as MeshStandardMaterial).clone();
-      mat.envMapIntensity = 0.9;
+      // Push toward the concept's sleek REFLECTIVE read — every panel mirrors
+      // the pastel sky + ocean + sunset HDRI. This is what turns the low-poly
+      // forms from "matte clay" into a premium chrome-ish vessel (igloo.inc /
+      // Higgsfield-concept territory). Glass stays glassy; teal-glow internals
+      // keep their emissive.
+      const nm = (mat.name || "").toLowerCase();
+      mat.envMapIntensity = 1.8;
+      if (nm.includes("glass")) {
+        mat.metalness = 0.0;
+        mat.roughness = 0.05;
+        mat.envMapIntensity = 2.4;
+      } else if (/steel|mast|engine|silver|pod|thruster/.test(nm)) {
+        mat.metalness = 0.96;
+        mat.roughness = 0.16; // chrome-ish structure
+      } else {
+        // painted hull / quarters / deck — semi-reflective clearcoat feel
+        mat.metalness = Math.max(mat.metalness, 0.55);
+        mat.roughness = Math.min(Math.max(mat.roughness * 0.5, 0.12), 0.4);
+      }
       mat.needsUpdate = true;
       m.material = mat;
       m.castShadow = true;
@@ -343,6 +364,13 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
         yaw.current = -0.5 + state.clock.elapsedTime * 0.05;
       }
       group.current.rotation.y = yaw.current + reassemblyTurn;
+      // gentle float on the swell (concept: vessel bobs on the water)
+      if (!motionState.reduced) {
+        const t = state.clock.elapsedTime;
+        group.current.position.y = Math.sin(t * 0.6) * span * 0.012;
+        group.current.rotation.z = Math.sin(t * 0.45) * 0.012;
+        group.current.rotation.x = Math.sin(t * 0.5 + 1.0) * 0.008;
+      }
     }
 
     // ── part positions ──
@@ -514,6 +542,42 @@ function ScanBand({ anchors }: { anchors: React.MutableRefObject<Anchors> }) {
   );
 }
 
+/* ════════════════════════════════════════════════════════════════
+   OCEAN — calm reflective sea the vessel sits on (concept ref: vessel
+   bobbing on deep blue-green water, sky + hull reflected, foam picking
+   up during reassembly). MeshReflectorMaterial gives real sky+vessel
+   reflections with a blurred, slightly distorted calm-water feel. The
+   waterline tracks the measured hull base so the vessel always floats.
+   `foam` (0→1) rises during the reassembly beat for the forward-motion
+   beat in the concept.
+   ════════════════════════════════════════════════════════════════ */
+function Ocean({ anchors }: { anchors: React.MutableRefObject<Anchors> }) {
+  const ref = useRef<THREE.Mesh>(null!);
+  useFrame(() => {
+    if (!ref.current) return;
+    const { bot, span } = anchors.current;
+    ref.current.position.y = bot + span * 0.025;
+  });
+  return (
+    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} renderOrder={-1}>
+      <planeGeometry args={[6000, 6000]} />
+      <MeshReflectorMaterial
+        resolution={1024}
+        mirror={0.6}
+        mixStrength={2.4}
+        mixBlur={1.0}
+        blur={[480, 120]}
+        depthScale={1.0}
+        minDepthThreshold={0.3}
+        maxDepthThreshold={1.2}
+        roughness={0.85}
+        metalness={0.5}
+        color="#21454f"
+      />
+    </mesh>
+  );
+}
+
 export default function RigHeroScene({
   onContextLost,
 }: {
@@ -541,35 +605,45 @@ export default function RigHeroScene({
         );
       }}
     >
-      <color attach="background" args={["#F4EBD9"]} />
-      <fog attach="fog" args={["#F4EBD9", 110, 280]} />
+      {/* cool morning haze for atmospheric depth (concept: subtle volumetric
+          fog), pushed well back so it never veils the vessel */}
+      <fog attach="fog" args={["#cdd9de", 240, 640]} />
 
       <Suspense fallback={null}>
-        <hemisphereLight args={["#ffffff", "#ECDFC7", 0.85]} />
+        {/* Concept lighting: soft morning sun (warm key low on the horizon) +
+            cool sky fill + a cool back-rim that catches the reflective hull and
+            separates it from the sky. Reflective materials + sunset env do the
+            heavy lifting now, so the key is softer than a studio rig. */}
+        <hemisphereLight args={["#bcd3e0", "#21454f", 0.55]} />
         <directionalLight
-          position={[18, 30, 14]}
-          intensity={1.6}
-          color="#fff6e6"
+          position={[40, 16, -36]}
+          intensity={2.3}
+          color="#fff1d8"
           castShadow
-          shadow-mapSize={[1024, 1024]}
+          shadow-mapSize={[2048, 2048]}
+          shadow-bias={-0.0003}
+          shadow-normalBias={0.02}
         />
-        <directionalLight position={[-16, 8, -12]} intensity={0.4} color="#cfe7e2" />
-        <Environment preset="warehouse" environmentIntensity={0.7} />
+        <directionalLight position={[-22, 12, 18]} intensity={0.45} color="#cfe7e2" />
+        <directionalLight position={[-10, 22, -28]} intensity={1.2} color="#bfe3dc" />
 
+        {/* visible pastel sky with a low warm sun (drives the horizon glow) */}
+        <Sky
+          distance={4500}
+          sunPosition={[40, 16, -36]}
+          turbidity={5}
+          rayleigh={1.7}
+          mieCoefficient={0.012}
+          mieDirectionalG={0.86}
+        />
+        {/* warm sunset HDRI for the chrome/steel reflections (not shown as bg) */}
+        <Environment preset="sunset" environmentIntensity={1.0} />
+
+        <Ocean anchors={anchors} />
         <Rig onMeasured={(a) => (anchors.current = a)} />
         <ScanBand anchors={anchors} />
         <GlowRing anchors={anchors} />
-        <GroundGrid anchors={anchors} />
 
-        <ContactShadows
-          position={[0, 0.02, 0]}
-          scale={80}
-          far={60}
-          blur={2.8}
-          opacity={0.32}
-          color="#5b5347"
-          resolution={1024}
-        />
         <AdaptiveDpr pixelated />
 
         <EffectComposer multisampling={4}>
