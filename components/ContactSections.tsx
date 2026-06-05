@@ -8,6 +8,7 @@ import { RevealIconButton } from "@/components/ui/uiverse/RevealIconButton";
 import { WordReveal } from "@/components/ui/WordReveal";
 import { FanCardDeck, type FanCard } from "@/components/ui/aceternity/FanCardDeck";
 import { StaticTileMap } from "@/components/ui/StaticTileMap";
+import ContactConstellation from "@/components/ContactConstellation";
 
 /* office shape kept local now that the cards render through the shared news FanCardDeck */
 type OfficeLocation = {
@@ -176,10 +177,11 @@ export default function ContactSections() {
         </div>
       </section>
 
-      {/* ===================== contact 3D band — NEW model (in build) =====================
-          The vessel moved to the home hero. Contact gets its own DIFFERENT model
-          (ROV / subsea hero — authored in Blender). Showcase wired here once the
-          GLB lands. ============================================================ */}
+      {/* ===================== contact constellation — vessel + 6 contact points =====================
+          Dark holographic feature-band (matches Rj's reference concept): the assembled
+          support vessel centred, six contact-point nodes radiating port/starboard with
+          teal traces converging on the hull. Real AMS contacts, not concept placeholders. */}
+      <ContactConstellation />
 
       {/* ===================== enquiry + key contacts ===================== */}
       <section

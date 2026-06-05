@@ -14,12 +14,17 @@ import ScrollCue from "./ScrollCue";
 gsap.registerPlugin(ScrollTrigger);
 
 /* ════════════════════════════════════════════════════════════════
-   VESSEL HERO — home page (2026-06).
+   VESSEL HERO — home page (2026-06-04).
 
-   Light studio concept: warm cream stage (matches page paper, NO dark
-   surfaces), teal technical grid floor, marine-teal connection traces during
-   explode, teal target ring post-assembly. Ink copy + teal accents.
-   Sticky 340lvh narrative, iOS-safe (position:sticky only).
+   Three-stage technical exploded-assembly, mapped to Rj's reference poster:
+     stage 01  PART BY PART          — exploded modular components + manifest
+     stage 02  INTERMEDIATE ASSEMBLY — partial hull & systems
+     stage 03  COMBINED TOGETHER     — survey-ready vessel
+   Reads top→bottom (scroll) the way the reference reads left→right. Monotonic
+   assemble: the visitor enters on the parts and scrolls the ship together.
+
+   Warm cream studio stage (matches page paper), ink copy + one teal accent.
+   Sticky 340lvh narrative, iOS-safe (position:sticky only — no pin).
    ════════════════════════════════════════════════════════════════ */
 
 const VesselContactScene = dynamic(() => import("./VesselContactScene"), {
@@ -32,7 +37,9 @@ const VesselContactScene = dynamic(() => import("./VesselContactScene"), {
 });
 
 const MUTE = "color-mix(in oklch, var(--color-ink) 62%, transparent)";
+const FAINT = "color-mix(in oklch, var(--color-ink) 42%, transparent)";
 const ACCENT = "var(--color-accent)";
+const RULE = "color-mix(in oklch, var(--color-ink) 16%, transparent)";
 
 function hasWebGL() {
   try {
@@ -54,7 +61,9 @@ function trap(p: number, a: number, b: number, c: number, d: number) {
 }
 
 type Beat = {
-  kicker: string;
+  stageNo: string;
+  stageTitle: string;
+  stageSub: string;
   head: [string, string];
   lead: string;
   stat: { value: number; suffix: string; decimals?: number };
@@ -63,49 +72,94 @@ type Beat = {
 
 const BEATS: Beat[] = [
   {
-    kicker: "00 — Whole-of-vessel, every system in scope",
-    head: ["Hull to propeller,", "one accountable crew."],
-    lead: "Class survey, in-water repair, salvage and conversion — from the boot-topping at the waterline to the twin screws and rudder at the stern, held on one work order.",
-    stat: { value: 10, suffix: "+" },
-    statLabel: "Years afloat · IMCA / OGP standard",
+    stageNo: "01",
+    stageTitle: "Part by part",
+    stageSub: "Modular components",
+    head: ["Every system", "pulled apart."],
+    lead: "Hull, running gear, superstructure, deck equipment and survey systems — separated to the last fitting. Each joint is a point we read in-water and document to class.",
+    stat: { value: 91, suffix: "" },
+    statLabel: "Modelled parts · whole-of-vessel scope",
   },
   {
-    kicker: "01 — Read underwater, joint by joint",
-    head: ["Every part", "accounted for."],
-    lead: "Pulled apart to its last fitting — hull, deck, bridge, funnel, mast, crane, the running gear. Every joint is a point we read in-water and document to class.",
+    stageNo: "02",
+    stageTitle: "Intermediate assembly",
+    stageSub: "Partial hull & systems",
+    head: ["Section by", "section, refitted."],
+    lead: "Brought back together stage by stage — hull plate, machinery and deck gear repaired and re-seated as each subsystem returns to survey.",
     stat: { value: 4630, suffix: " m²" },
     statLabel: "Johor fabrication & dive facility",
   },
   {
-    kicker: "02 — Reassembled, proven to class",
+    stageNo: "03",
+    stageTitle: "Combined together",
+    stageSub: "Survey-ready vessel",
     head: ["The whole vessel.", "Cleared by class."],
-    lead: "Brought back together and signed off — our divers and the Chasing M2 ROV verify the welds, the cathodic protection and the steel the surface can't see, to ISO and class society.",
+    lead: "Reassembled and certified — our divers and the Chasing M2 ROV verify the welds, the cathodic protection and the steel the surface can't see, to ISO and class society.",
     stat: { value: 12, suffix: "" },
     statLabel: "ISO & class-society certifications",
   },
 ];
+
+/* Component manifest — the reference's left-column callouts, grounded in the
+   real PSV subsystems modelled in vessel.glb (not the poster's generic
+   "weapon & sensor" naval concept; AMS is commercial subsea inspection). */
+const MANIFEST: { code: string; label: string; note: string }[] = [
+  { code: "AMS·H1", label: "Hull sections", note: "Hull · forecastle · bulwarks" },
+  { code: "AMS·P2", label: "Propulsion & running gear", note: "Twin screws · shafts · nozzles · rudders" },
+  { code: "AMS·S3", label: "Superstructure decks", note: "Deckhouse · bridge · funnels · mast" },
+  { code: "AMS·D4", label: "Deck equipment", note: "Knuckle-boom crane · liferafts · bollards" },
+  { code: "AMS·R5", label: "Survey & ROV systems", note: "Chasing M2 ROV · dive spread · NDT" },
+];
+
+/* Stage header — the reference's "PART BY PART / (MODULAR COMPONENTS)" block. */
+function StageHead({ beat }: { beat: Beat }) {
+  return (
+    <div className="flex items-baseline gap-[var(--space-sm)] mb-[var(--space-md)]">
+      <span
+        className="font-display font-bold leading-none tabular-nums"
+        style={{ fontSize: "clamp(1.6rem,3vw,2.4rem)", color: ACCENT }}
+      >
+        {beat.stageNo}
+      </span>
+      <span className="h-[1.4em] w-px self-center" style={{ background: RULE }} />
+      <span className="flex flex-col">
+        <span className="eyebrow !tracking-[0.22em]" style={{ color: ACCENT }}>
+          {beat.stageTitle}
+        </span>
+        <span className="eyebrow !tracking-[0.18em] normal-case" style={{ color: FAINT }}>
+          {beat.stageSub}
+        </span>
+      </span>
+    </div>
+  );
+}
 
 function BeatBlock({
   beat,
   innerRef,
   stacked,
   active,
+  withManifest,
 }: {
   beat: Beat;
   innerRef?: (el: HTMLDivElement | null) => void;
   stacked?: boolean;
   active: boolean;
+  withManifest?: boolean;
 }) {
+  /* stage 01 carries the component manifest, so its headline runs at a
+     calmer scale to leave room — stages 02/03 keep the full display size. */
+  const headSize = withManifest
+    ? "clamp(2rem, min(4.4vw, 7vh), 3.4rem)"
+    : "var(--text-display)";
   return (
     <div
       ref={innerRef}
       style={stacked ? { gridArea: "1 / 1" } : undefined}
       className="max-w-[42rem] will-change-[opacity,transform]"
     >
-      <p className="eyebrow mb-[var(--space-md)]" style={{ color: ACCENT }}>
-        {beat.kicker}
-      </p>
-      <div className="mb-[var(--space-md)]" style={{ fontSize: "var(--text-display)" }}>
+      <StageHead beat={beat} />
+      <div className="mb-[var(--space-md)]" style={{ fontSize: headSize }}>
         <BlurText
           text={beat.head[0]}
           inView={active}
@@ -120,12 +174,27 @@ function BeatBlock({
           className="font-display font-light leading-[1.08] tracking-[-0.01em] text-[color:var(--color-ink)]/70"
         />
       </div>
-      <p
-        className="max-w-[34rem] leading-[1.55]"
-        style={{ fontSize: "var(--text-lead)", color: MUTE }}
-      >
-        {beat.lead}
-      </p>
+
+      {withManifest ? (
+        <>
+          {/* mobile: short lead (manifest would crowd portrait) */}
+          <p
+            className="lg:hidden max-w-[34rem] leading-[1.55]"
+            style={{ fontSize: "var(--text-lead)", color: MUTE }}
+          >
+            {beat.lead}
+          </p>
+          {/* desktop: the component manifest — the reference's left column */}
+          <ManifestList />
+        </>
+      ) : (
+        <p
+          className="max-w-[34rem] leading-[1.55]"
+          style={{ fontSize: "var(--text-lead)", color: MUTE }}
+        >
+          {beat.lead}
+        </p>
+      )}
 
       <div className="mt-[var(--space-lg)] flex items-end gap-[var(--space-md)] flex-wrap">
         <span
@@ -151,7 +220,73 @@ function BeatBlock({
   );
 }
 
-/* Static hero fallback — light cream stage with real photo overlay */
+/* Component manifest — the reference's left column, rendered inside the
+   stage-01 block (desktop only; would crowd portrait). Two columns on wide
+   viewports so five subsystems read as a compact technical readout. */
+function ManifestList() {
+  return (
+    <ul className="hidden lg:grid grid-cols-2 gap-x-[var(--space-lg)] gap-y-[0.55rem] max-w-[40rem]">
+      {MANIFEST.map((m) => (
+        <li
+          key={m.code}
+          className="grid grid-cols-[auto_1fr] gap-x-[var(--space-sm)] items-baseline border-t pt-[0.5rem]"
+          style={{ borderColor: RULE }}
+        >
+          <span className="eyebrow tabular-nums !tracking-[0.14em]" style={{ color: FAINT }}>
+            {m.code}
+          </span>
+          <span className="flex flex-col">
+            <span
+              className="font-display"
+              style={{ fontSize: "0.95rem", color: "var(--color-ink)", lineHeight: 1.2 }}
+            >
+              {m.label}
+            </span>
+            <span className="eyebrow !tracking-[0.1em] normal-case mt-[0.1rem]" style={{ color: FAINT }}>
+              {m.note}
+            </span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/* Stage rail — 01 · 02 · 03 progress, highlights the active stage. The
+   reference's three column headers, distilled to a scrubbable indicator. */
+function StageRail({ current }: { current: number }) {
+  return (
+    <div
+      className="hidden md:flex flex-col items-end gap-[var(--space-md)]"
+      aria-hidden
+    >
+      {BEATS.map((b, i) => {
+        const on = i === current;
+        return (
+          <div key={b.stageNo} className="flex items-center gap-[0.6rem]">
+            <span
+              className="eyebrow tabular-nums !tracking-[0.2em] transition-colors duration-500"
+              style={{ color: on ? ACCENT : FAINT, fontSize: on ? "0.8rem" : "0.72rem" }}
+            >
+              {b.stageNo}
+            </span>
+            <span
+              className="block rounded-full transition-all duration-500"
+              style={{
+                width: on ? 28 : 14,
+                height: 2,
+                background: on ? ACCENT : RULE,
+              }}
+            />
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/* Static hero fallback — no WebGL / reduced-motion. Shows the COMBINED payoff
+   (stage 03) over a real photo, then the story stages below it. */
 function StaticHero() {
   return (
     <header id="top" className="relative h-[100lvh] overflow-hidden" style={{ background: "var(--color-paper)" }}>
@@ -171,7 +306,7 @@ function StaticHero() {
         }}
       />
       <div className="absolute inset-0 grid items-end" style={{ padding: "clamp(1.5rem,5vw,3.5rem)" }}>
-        <BeatBlock beat={BEATS[0]} active />
+        <BeatBlock beat={BEATS[2]} active />
       </div>
     </header>
   );
@@ -185,6 +320,8 @@ export default function VesselHero() {
   const [useCanvas, setUseCanvas] = useState(false);
   const [canvasFailed, setCanvasFailed] = useState(false);
   const [active, setActive] = useState<boolean[]>(BEATS.map(() => false));
+  const [stage, setStage] = useState(0);
+  const stageRef = useRef(0);
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -210,10 +347,12 @@ export default function VesselHero() {
       },
     });
 
+    // copy windows — one trapezoid per stage, aligned to the explode schedule
+    // (apart ≈0–0.15, intermediate ≈0.40–0.58, combined ≥0.85).
     const windows: [number, number, number, number][] = [
-      [-0.1, -0.05, 0.14, 0.24],
-      [0.42, 0.5, 0.62, 0.7],
-      [0.86, 0.92, 0.99, 1.05],
+      [-0.1, -0.05, 0.16, 0.30],
+      [0.40, 0.48, 0.60, 0.70],
+      [0.84, 0.90, 0.99, 1.05],
     ];
     const tick = () => {
       const p = scrollState.progress;
@@ -228,6 +367,11 @@ export default function VesselHero() {
           changed = true;
         }
       });
+      const cur = p < 0.38 ? 0 : p < 0.7 ? 1 : 2;
+      if (cur !== stageRef.current) {
+        stageRef.current = cur;
+        setStage(cur);
+      }
       if (changed) setActive([...shownRef.current]);
     };
     gsap.ticker.add(tick);
@@ -245,8 +389,8 @@ export default function VesselHero() {
       <>
         <StaticHero />
         <section className="px-[clamp(1.5rem,4vw,4rem)] py-[var(--space-2xl)] grid gap-[var(--space-2xl)] max-w-[min(1200px,92vw)] mx-auto" style={{ background: "var(--color-paper)" }}>
-          {BEATS.slice(1).map((beat, i) => (
-            <BeatBlock key={i} beat={beat} active />
+          {BEATS.slice(0, 2).map((beat, i) => (
+            <BeatBlock key={i} beat={beat} active withManifest={i === 0} />
           ))}
         </section>
       </>
@@ -284,6 +428,11 @@ export default function VesselHero() {
           }}
         />
 
+        {/* stage rail — right edge, vertically centred (md+) */}
+        <div className="absolute top-1/2 -translate-y-1/2 right-[clamp(1rem,3vw,2.5rem)] pointer-events-none">
+          <StageRail current={stage} />
+        </div>
+
         {/* copy layer */}
         <div
           className="absolute inset-0 grid items-end pointer-events-none"
@@ -296,6 +445,7 @@ export default function VesselHero() {
                 beat={beat}
                 stacked
                 active={active[i]}
+                withManifest={i === 0}
                 innerRef={(el) => (beatRefs.current[i] = el)}
               />
             ))}

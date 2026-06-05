@@ -216,6 +216,15 @@ html.am-scroll-locked body {
   touch-action: none;
 }
 
+/* contact constellation — flowing connector traces + hull convergence pulse */
+@keyframes cc-flow { to { stroke-dashoffset: -24; } }
+.cc-flow { animation: cc-flow 1.4s linear infinite; }
+@keyframes cc-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+.cc-pulse { animation: cc-pulse 2.2s ease-in-out infinite; transform-origin: center; }
+
 @media (prefers-reduced-motion: reduce) {
   * { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; }
 }

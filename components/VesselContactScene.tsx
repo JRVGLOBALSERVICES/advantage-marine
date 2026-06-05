@@ -21,14 +21,14 @@ import { scrollState, motionState, sceneState } from "@/lib/scroll";
      Y = up            (mast peaks ~4.9)
      Z = beam          (port −Z, starboard +Z)
 
-   Scroll maps to assembly (there-and-back — the vessel is WHOLE at both ends
-   of the scroll and only pulls apart through the middle beat, so the visitor
-   actually sees the ship instead of a field of parts):
-     scroll 0.00–0.14  assembled        — beat 00 "hull to propeller"
-     scroll 0.14–0.50  exploding outward
-     scroll 0.50–0.62  fully apart       — beat 01 "every part accounted for"
-     scroll 0.62–0.86  reassembling
-     scroll 0.86–1.00  assembled showcase — beat 02 + target ring + scan pulse
+   Scroll maps to a MONOTONIC ASSEMBLE (matches Rj's reference poster, which
+   reads part-by-part → intermediate → combined). The visitor enters on the
+   exploded field of parts and scrolls the vessel TOGETHER — no there-and-back:
+     scroll 0.00–0.15  fully apart        — stage 01 "part by part"
+     scroll 0.15–0.40  assembling inward
+     scroll 0.40–0.58  partial hull       — stage 02 "intermediate assembly"
+     scroll 0.58–0.85  finishing the join
+     scroll 0.85–1.00  combined showcase  — stage 03 + target ring + scan pulse
    ════════════════════════════════════════════════════════════════ */
 
 const MODEL_URL = "/models/vessel.glb";
@@ -36,15 +36,27 @@ const smoothstep = (t: number) => t * t * (3 - 2 * t);
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+/* HOLD override — when the scene is mounted as a STATIC showcase (the contact
+   constellation, not the scroll-driven hero) the page has no tall sticky
+   section to drive scrollState. A non-null hold pins the assembly progress so
+   the vessel renders fully combined (hold≈0.95 → explodeAmount 0 + target ring
+   + scan beat). Module-scoped because only one scene mounts per page. */
+let holdProgress: number | null = null;
+const progressNow = () => (holdProgress ?? scrollState.progress);
+
 /* Explode amount (0 assembled → 1 fully apart) as a function of scroll.
    Single source of truth — both the vessel parts and the connection lines
-   read this, so the lines always track the parts. */
+   read this, so the lines always track the parts.
+
+   MONOTONIC ASSEMBLE: enter on the exploded parts (stage 01), scroll the
+   vessel together through a mid "intermediate" hold, land on the combined
+   ship (stage 03). Reads top→bottom the way the reference reads left→right. */
 function explodeAmount(p: number): number {
-  if (p <= 0.14) return 0;                          // hold assembled (beat 00)
-  if (p < 0.5) return smoothstep((p - 0.14) / 0.36); // explode out
-  if (p < 0.62) return 1;                            // hold apart (beat 01)
-  if (p < 0.86) return 1 - smoothstep((p - 0.62) / 0.24); // reassemble
-  return 0;                                          // assembled showcase (beat 02)
+  if (p <= 0.15) return 1;                                            // fully apart  — stage 01 "part by part"
+  if (p < 0.40) return lerp(1, 0.55, smoothstep((p - 0.15) / 0.25));  // assembling inward
+  if (p < 0.58) return 0.55;                                          // partial hull — stage 02 "intermediate"
+  if (p < 0.85) return lerp(0.55, 0, smoothstep((p - 0.58) / 0.27));  // finishing the join
+  return 0;                                                           // combined ship — stage 03 "combined together"
 }
 
 /* Light stage palette — warm cream + marine teal (matches the page tokens,
@@ -225,7 +237,7 @@ function Vessel({ onMeasured }: { onMeasured: (b: Box) => void }) {
   const DIR = useMemo(() => new THREE.Vector3(0.62, 0.42, 1.0).normalize(), []);
 
   useFrame((state) => {
-    const target = motionState.reduced ? 0.5 : scrollState.progress;
+    const target = motionState.reduced ? 0.5 : progressNow();
     damped.current += (target - damped.current) * (motionState.reduced ? 1 : 0.1);
     const p = damped.current;
     const { c, maxDim, cy } = box.current;
@@ -309,7 +321,7 @@ function ConnectionLines({ parts }: { parts: React.MutableRefObject<Part[]> }) {
   const lineMeshes = useRef<THREE.Line[]>([]);
 
   useFrame(() => {
-    const ex = explodeAmount(clamp01(scrollState.progress));
+    const ex = explodeAmount(clamp01(progressNow()));
     const lineOpacity = clamp01((ex - 0.1) / 0.5); // fade as parts come together
 
     lineMeshes.current.forEach((line, i) => {
@@ -361,7 +373,7 @@ function TargetRing({ box }: { box: React.MutableRefObject<Box> }) {
   const ref = useRef<THREE.Mesh>(null!);
   useFrame((state) => {
     if (!ref.current) return;
-    const p = scrollState.progress;
+    const p = progressNow();
     const visible = smoothstep(clamp01((p - 0.75) / 0.15));
     if (visible <= 0.01) {
       ref.current.visible = false;
@@ -406,7 +418,7 @@ function ScanPulse({ box }: { box: React.MutableRefObject<Box> }) {
   const ref = useRef<THREE.Mesh>(null!);
   useFrame(() => {
     if (!ref.current) return;
-    const p = motionState.reduced ? 0.93 : scrollState.progress;
+    const p = motionState.reduced ? 0.93 : progressNow();
     // active only across the assembly-complete window (0.86 → 1.0)
     const t = clamp01((p - 0.86) / 0.14);
     if (t <= 0.01 || t >= 0.999) {
@@ -542,24 +554,36 @@ function DataParticles() {
 export default function VesselContactScene({
   onContextLost,
   active = true,
+  hold = null,
+  dark = false,
 }: {
   onContextLost?: () => void;
   active?: boolean;
+  /* pin assembly progress for a static showcase (null = scroll-driven hero) */
+  hold?: number | null;
+  /* render transparent on a dark CSS backdrop (the contact constellation) */
+  dark?: boolean;
 }) {
   const box = useRef<Box>({ c: new THREE.Vector3(), sx: 12, sy: 5, sz: 3, maxDim: 12, cy: 2, floorY: -2.5 });
   const partsRef = useRef<Part[]>([]);
   const [floorY, setFloorY] = useState(-2.48);
+
+  // pin (or release) the module-scoped assembly hold while this scene is mounted
+  useEffect(() => {
+    holdProgress = hold;
+    return () => { holdProgress = null; };
+  }, [hold]);
 
   return (
     <Canvas
       dpr={[1, 1.8]}
       frameloop={active ? "always" : "never"}
       camera={{ position: [9, 5, 14], fov: 38, near: 0.1, far: 600 }}
-      gl={{ antialias: true, powerPreference: "high-performance" }}
+      gl={{ antialias: true, alpha: dark, powerPreference: "high-performance" }}
       onCreated={({ gl, invalidate }) => {
         gl.outputColorSpace = THREE.SRGBColorSpace;
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.05; // balanced for the light cream stage
+        gl.toneMappingExposure = dark ? 1.18 : 1.05; // lift a touch on the dark stage
         sceneState.invalidate = invalidate;
         gl.domElement.addEventListener(
           "webglcontextlost",
@@ -571,16 +595,23 @@ export default function VesselContactScene({
         );
       }}
     >
-      {/* Warm cream background — light studio stage (matches page paper) */}
-      <color attach="background" args={[DARK_BG]} />
-      <fog attach="fog" args={[DARK_BG, 38, 100]} />
+      {/* dark constellation = transparent canvas over the CSS gradient; cream hero
+          stage = opaque warm background that matches page paper */}
+      {dark ? (
+        <fog attach="fog" args={["#0a1620", 40, 110]} />
+      ) : (
+        <>
+          <color attach="background" args={[DARK_BG]} />
+          <fog attach="fog" args={[DARK_BG, 38, 100]} />
+        </>
+      )}
 
       <Suspense fallback={null}>
-        {/* Bright, warm studio lighting for the cream stage */}
-        <hemisphereLight args={["#fff6e6", "#cdbb9a", 0.95]} />
-        <directionalLight position={[10, 18, 9]} intensity={1.7} color="#fff4e2" castShadow shadow-mapSize={[1024, 1024]} />
-        <directionalLight position={[-10, 6, -8]} intensity={0.55} color="#bcd6cf" />
-        <Environment preset="city" environmentIntensity={0.8} />
+        {/* Studio lighting — warm on cream, cooler marine fill on the dark stage */}
+        <hemisphereLight args={dark ? ["#cfe6ef", "#16242e", 0.85] : ["#fff6e6", "#cdbb9a", 0.95]} />
+        <directionalLight position={[10, 18, 9]} intensity={dark ? 1.9 : 1.7} color={dark ? "#eaf6ff" : "#fff4e2"} castShadow shadow-mapSize={[1024, 1024]} />
+        <directionalLight position={[-10, 6, -8]} intensity={dark ? 0.7 : 0.55} color={dark ? "#3fae9f" : "#bcd6cf"} />
+        <Environment preset={dark ? "night" : "city"} environmentIntensity={dark ? 0.55 : 0.8} />
 
         <Vessel onMeasured={(b) => { box.current = b; setFloorY(b.floorY); }} />
         <GridFloor box={box} />
