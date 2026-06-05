@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, useFrame, useThree, type ThreeEvent } from "@react-three/fiber";
 import {
   useGLTF,
   Environment,
@@ -39,8 +39,9 @@ import { scrollState, motionState, sceneState } from "@/lib/scroll";
    Bloom catches ONLY the raw-HDR teal scan ring + glow ring.
    ════════════════════════════════════════════════════════════════ */
 
-const MODEL_URL = "/models/advantage-osv-hero.glb";
+const MODEL_URL = "/models/advantage-osv-hero-refined.glb";
 
+const HOVER_EMISSIVE = new THREE.Color("#1ec8b0"); // igloo-style teal hover glow
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -60,6 +61,7 @@ type Part = {
   offset: THREE.Vector3;
   dir: THREE.Vector2;
   label?: string;
+  hv: number; // hover amount 0→1 (igloo-style highlight)
 };
 
 type Anchors = { top: number; bot: number; span: number; foot: number; cx: number; cz: number };
@@ -242,6 +244,7 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
   const group = useRef<Group>(null);
   const { scene } = useGLTF(MODEL_URL, true);
   const parts = useRef<Part[]>([]);
+  const hovered = useRef<Object3D | null>(null);
   const [ready, setReady] = useState(false);
   const anchors = useRef<Anchors>({ top: 26, bot: 0, span: 26, foot: 14, cx: 0, cz: 0 });
 
@@ -319,6 +322,7 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
           offset: off,
           dir: dir.clone(),
           label: LABELS[o.name] ? o.name : undefined,
+          hv: 0,
         });
       }
     });
@@ -373,13 +377,23 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
       }
     }
 
-    // ── part positions ──
+    // ── part positions + igloo-style hover (highlight + lift the part) ──
     for (const part of parts.current) {
+      const tgt = part.node === hovered.current ? 1 : 0;
+      part.hv += (tgt - part.hv) * 0.18;
+      const lift = part.hv * span * 0.02;
       part.node.position.set(
-        part.base.x + part.offset.x * ex,
-        part.base.y + part.offset.y * ex,
-        part.base.z + part.offset.z * ex,
+        part.base.x + part.offset.x * ex + part.dir.x * lift,
+        part.base.y + part.offset.y * ex + part.hv * span * 0.012,
+        part.base.z + part.offset.z * ex + part.dir.y * lift,
       );
+      if (part.hv > 0.001) {
+        const mat = (part.node as Mesh).material as MeshStandardMaterial;
+        if (mat && mat.emissive) {
+          mat.emissive.lerpColors(new THREE.Color(0, 0, 0), HOVER_EMISSIVE, part.hv);
+          mat.emissiveIntensity = part.hv * 0.55;
+        }
+      }
     }
 
     // ── camera: dramatic orbit matching video phases ──
@@ -415,7 +429,22 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
 
   return (
     <group ref={group}>
-      <primitive object={scene} />
+      <primitive
+        object={scene}
+        onPointerMove={(e: ThreeEvent<PointerEvent>) => {
+          e.stopPropagation();
+          const o = e.object;
+          if ((o as Mesh).isMesh && o.name.startsWith("GEO-")) {
+            hovered.current = o;
+            if (typeof document !== "undefined") document.body.style.cursor = "pointer";
+          }
+        }}
+        onPointerOut={(e: ThreeEvent<PointerEvent>) => {
+          e.stopPropagation();
+          hovered.current = null;
+          if (typeof document !== "undefined") document.body.style.cursor = "auto";
+        }}
+      />
       {ready &&
         !isNarrow &&
         !motionState.reduced &&
