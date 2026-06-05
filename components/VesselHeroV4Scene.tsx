@@ -1,7 +1,7 @@
 "use client";
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { useGLTF, Environment, AdaptiveDpr, ContactShadows } from "@react-three/drei";
+import { useGLTF, Environment, AdaptiveDpr, ContactShadows, useTexture } from "@react-three/drei";
 import { EffectComposer, N8AO, Bloom, ToneMapping } from "@react-three/postprocessing";
 import { ToneMappingMode } from "postprocessing";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
@@ -56,39 +56,44 @@ const COMPOSE_RIGHT = 0.24; // fraction of maxDim to slide the vessel right-of-c
    clay/cartoon render; a real environment gives sharp specular streaks. */
 const HDRI_URL = "/hdri/studio_small_09_1k.hdr";
 
-/* Promote the GLB's flat MeshStandardMaterials to MeshPhysicalMaterial with a
-   clearcoat lacquer — marine/auto paint gets its wet depth from clearcoat, and
-   the GLB ships none. Cached per source material (104 meshes share a handful of
-   materials, so we upgrade each once, not per-mesh). Painted (low-metal) parts
-   get a full clearcoat; metal fittings get a thinner coat and sharper, less
-   rough reflections. */
-const matCache = new Map<string, THREE.MeshPhysicalMaterial>();
-function toPhysical(src: MeshStandardMaterial): THREE.MeshPhysicalMaterial {
+/* MatCaps (nidorx/matcaps, Rj 2026-06-05) — a matcap is a studio-lit sphere
+   baked into a texture. MeshMatcapMaterial reads its shading from the texture,
+   NOT from scene lights, so each part looks like solid polished metal/paint
+   regardless of the stage behind it — it can't bleach into the cream canvas the
+   way the flat lit MeshStandard paint did. steel = sharp highlight + dark Fresnel
+   rim (hull + metal fittings); primer = soft matte blue-grey (painted house). */
+const STEEL_MATCAP_URL = "/matcaps/steel.png";
+const PRIMER_MATCAP_URL = "/matcaps/primer.png";
+
+/* Convert the GLB's flat MeshStandardMaterials to MeshMatcapMaterial. The matcap
+   carries the studio lighting (highlight + Fresnel rim) in its texture, so the
+   form reads as solid metal/paint independent of the scene lights or the stage
+   colour — the fix for the cream-stage washout. The part's own GLB colour TINTS
+   the neutral matcap (matcap × color), so the navy hull / green funnel / white
+   superstructure livery holds. Metal fittings (metalness ≥ 0.5) get the sharp
+   steel matcap; painted low-metal parts get the soft matte primer. Cached per
+   source material (104 meshes share a handful of materials). */
+const matCache = new Map<string, THREE.MeshMatcapMaterial>();
+function toMatcap(
+  src: MeshStandardMaterial,
+  steel: THREE.Texture,
+  primer: THREE.Texture,
+): THREE.MeshMatcapMaterial {
   const hit = matCache.get(src.uuid);
   if (hit) return hit;
   const metal = src.metalness ?? 0.5;
-  const p = new THREE.MeshPhysicalMaterial({
+  const m = new THREE.MeshMatcapMaterial({
     color: src.color.clone(),
-    map: src.map,
-    metalness: metal,
-    roughness: THREE.MathUtils.clamp((src.roughness ?? 0.5) * 0.85, 0.06, 1),
-    normalMap: src.normalMap,
-    roughnessMap: src.roughnessMap,
-    metalnessMap: src.metalnessMap,
-    aoMap: src.aoMap,
-    emissive: src.emissive.clone(),
-    emissiveMap: src.emissiveMap,
-    emissiveIntensity: src.emissiveIntensity,
+    map: src.map ?? undefined,
+    matcap: metal >= 0.5 ? steel : primer,
+    normalMap: src.normalMap ?? undefined,
     transparent: src.transparent,
     opacity: src.opacity,
     side: src.side,
-    clearcoat: metal < 0.5 ? 1.0 : 0.35,
-    clearcoatRoughness: 0.12,
-    envMapIntensity: 1.35,
   });
-  p.name = src.name;
-  matCache.set(src.uuid, p);
-  return p;
+  m.name = src.name;
+  matCache.set(src.uuid, m);
+  return m;
 }
 function isStd(m: THREE.Material | null | undefined): m is MeshStandardMaterial {
   return !!m && (m as { isMeshStandardMaterial?: boolean }).isMeshStandardMaterial === true;
@@ -217,6 +222,11 @@ function Vessel({
   const group = useRef<Group>(null);
   const { scene } = useGLTF(MODEL_URL, true) as unknown as { scene: THREE.Group };
 
+  /* matcap textures carry the baked studio light — sRGB so the tint stays true */
+  const [steelMc, primerMc] = useTexture([STEEL_MATCAP_URL, PRIMER_MATCAP_URL]);
+  steelMc.colorSpace = THREE.SRGBColorSpace;
+  primerMc.colorSpace = THREE.SRGBColorSpace;
+
   /* Capture base (assembled) positions + measure the bbox in useMemo, which
      runs DURING render — before the first useFrame tick. A frame tick firing
      first (top of page, amount=1) would shove parts to exploded positions and
@@ -237,12 +247,12 @@ function Vessel({
       if (!m.isMesh) return;
       m.castShadow = true;
       m.receiveShadow = true;
-      // upgrade flat standard paint → clearcoat physical (sharper reflections,
-      // wet-lacquer depth). Handle shared + multi-material meshes defensively.
+      // flat standard paint → matcap (studio light baked in, washout-proof).
+      // Handle shared + multi-material meshes defensively.
       if (Array.isArray(m.material)) {
-        m.material = m.material.map((s) => (isStd(s) ? toPhysical(s) : s));
+        m.material = m.material.map((s) => (isStd(s) ? toMatcap(s, steelMc, primerMc) : s));
       } else if (isStd(m.material)) {
-        m.material = toPhysical(m.material);
+        m.material = toMatcap(m.material, steelMc, primerMc);
       }
 
       mbox.setFromObject(m); // this part's bounds, in scene space
@@ -275,7 +285,7 @@ function Vessel({
       offset: computeExplodeOffset(center, b.c, b.maxDim),
     }));
     return { parts: collected, box: b };
-  }, [scene]);
+  }, [scene, steelMc, primerMc]);
 
   const parts = useRef<Part[]>(measured.parts);
   const box = useRef<Box>(measured.box);
