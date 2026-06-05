@@ -418,8 +418,12 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
     const dz = DIR.x * sin + DIR.y * cos;
 
     const aspect = size.width / Math.max(size.height, 1);
-    const distMul = aspect < 1 ? 1 + (1 - aspect) * 0.5 : 1;
-    camPos.current.set(cx + dx * camR * distMul, camY, cz + dz * camR * distMul);
+    // portrait needs MUCH more pull-back so the whole ship fits (the mobile
+    // cut-off bug): a long vessel in a narrow viewport is horizontal-FOV
+    // limited. Scale distance hard as aspect drops below 1.
+    const distMul = aspect < 1 ? 1 + (1 - aspect) * 1.9 : 1;
+    const camYAdj = aspect < 1 ? camY + span * (1 - aspect) * 0.12 : camY;
+    camPos.current.set(cx + dx * camR * distMul, camYAdj, cz + dz * camR * distMul);
     camTgt.current.set(cx, cy, cz);
     camera.position.lerp(camPos.current, motionState.reduced ? 1 : 0.12);
     camera.lookAt(camTgt.current);
@@ -607,15 +611,38 @@ function Ocean({ anchors }: { anchors: React.MutableRefObject<Anchors> }) {
   );
 }
 
+/* Cheap mobile ocean — a glossy plane that catches the env (no per-frame
+   reflection render). The MeshReflectorMaterial version tanks real phones; this
+   keeps a reflective blue sea that actually renders on a constrained GPU. */
+function SimpleOcean({ anchors }: { anchors: React.MutableRefObject<Anchors> }) {
+  const ref = useRef<THREE.Mesh>(null!);
+  useFrame(() => {
+    if (ref.current) ref.current.position.y = anchors.current.bot + anchors.current.span * 0.025;
+  });
+  return (
+    <mesh ref={ref} rotation={[-Math.PI / 2, 0, 0]} renderOrder={-1}>
+      <planeGeometry args={[6000, 6000]} />
+      <meshStandardMaterial color="#0e3a47" roughness={0.34} metalness={0.6} envMapIntensity={1.1} />
+    </mesh>
+  );
+}
+
 export default function RigHeroScene({
   onContextLost,
 }: {
   onContextLost?: () => void;
 }) {
   const anchors = useRef<Anchors>({ top: 26, bot: 0, span: 26, foot: 14, cx: 0, cz: 0 });
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
   return (
     <Canvas
-      dpr={[1, 1.8]}
+      dpr={isMobile ? [1, 1.3] : [1, 1.8]}
       frameloop="always"
       camera={{ position: [42, 27, 48], fov: 38, near: 0.1, far: 600 }}
       gl={{ antialias: true, powerPreference: "high-performance" }}
@@ -668,7 +695,7 @@ export default function RigHeroScene({
         {/* warm sunset HDRI for the chrome/steel reflections (not shown as bg) */}
         <Environment preset="sunset" environmentIntensity={0.82} />
 
-        <Ocean anchors={anchors} />
+        {isMobile ? <SimpleOcean anchors={anchors} /> : <Ocean anchors={anchors} />}
         <Rig onMeasured={(a) => (anchors.current = a)} />
         <ScanBand anchors={anchors} />
         <GlowRing anchors={anchors} />
