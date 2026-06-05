@@ -2,6 +2,8 @@
 
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF, Environment, AdaptiveDpr, ContactShadows } from "@react-three/drei";
+import { EffectComposer, N8AO, Bloom, ToneMapping } from "@react-three/postprocessing";
+import { ToneMappingMode } from "postprocessing";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { Group, Mesh, MeshStandardMaterial } from "three";
@@ -48,6 +50,49 @@ const STAGE_BG = "#F4EBD9";
    node cards flank both sides, so the vessel must stay centred). */
 const FRAME_SCALE = 1.18; // >1 = camera further back, vessel reads smaller
 const COMPOSE_RIGHT = 0.24; // fraction of maxDim to slide the vessel right-of-centre
+
+/* real studio HDRI (Poly Haven CC0, 1k) — replaces drei's low-res "city"
+   preset. The mushy preset reflections were the #1 reason the hull read as a
+   clay/cartoon render; a real environment gives sharp specular streaks. */
+const HDRI_URL = "/hdri/studio_small_09_1k.hdr";
+
+/* Promote the GLB's flat MeshStandardMaterials to MeshPhysicalMaterial with a
+   clearcoat lacquer — marine/auto paint gets its wet depth from clearcoat, and
+   the GLB ships none. Cached per source material (104 meshes share a handful of
+   materials, so we upgrade each once, not per-mesh). Painted (low-metal) parts
+   get a full clearcoat; metal fittings get a thinner coat and sharper, less
+   rough reflections. */
+const matCache = new Map<string, THREE.MeshPhysicalMaterial>();
+function toPhysical(src: MeshStandardMaterial): THREE.MeshPhysicalMaterial {
+  const hit = matCache.get(src.uuid);
+  if (hit) return hit;
+  const metal = src.metalness ?? 0.5;
+  const p = new THREE.MeshPhysicalMaterial({
+    color: src.color.clone(),
+    map: src.map,
+    metalness: metal,
+    roughness: THREE.MathUtils.clamp((src.roughness ?? 0.5) * 0.85, 0.06, 1),
+    normalMap: src.normalMap,
+    roughnessMap: src.roughnessMap,
+    metalnessMap: src.metalnessMap,
+    aoMap: src.aoMap,
+    emissive: src.emissive.clone(),
+    emissiveMap: src.emissiveMap,
+    emissiveIntensity: src.emissiveIntensity,
+    transparent: src.transparent,
+    opacity: src.opacity,
+    side: src.side,
+    clearcoat: metal < 0.5 ? 1.0 : 0.35,
+    clearcoatRoughness: 0.12,
+    envMapIntensity: 1.35,
+  });
+  p.name = src.name;
+  matCache.set(src.uuid, p);
+  return p;
+}
+function isStd(m: THREE.Material | null | undefined): m is MeshStandardMaterial {
+  return !!m && (m as { isMeshStandardMaterial?: boolean }).isMeshStandardMaterial === true;
+}
 
 /* HOLD override — when mounted as a static showcase (no tall sticky section
    driving scrollState) a non-null hold pins the assembly. Module-scoped
@@ -192,8 +237,13 @@ function Vessel({
       if (!m.isMesh) return;
       m.castShadow = true;
       m.receiveShadow = true;
-      const mat = m.material as MeshStandardMaterial;
-      if (mat && "envMapIntensity" in mat) mat.envMapIntensity = 1.0;
+      // upgrade flat standard paint → clearcoat physical (sharper reflections,
+      // wet-lacquer depth). Handle shared + multi-material meshes defensively.
+      if (Array.isArray(m.material)) {
+        m.material = m.material.map((s) => (isStd(s) ? toPhysical(s) : s));
+      } else if (isStd(m.material)) {
+        m.material = toPhysical(m.material);
+      }
 
       mbox.setFromObject(m); // this part's bounds, in scene space
       mbox.getCenter(mc);
@@ -371,8 +421,10 @@ export default function VesselHeroV4Scene({
       gl={{ antialias: true, alpha: false, powerPreference: "high-performance" }}
       onCreated={({ gl, invalidate }) => {
         gl.outputColorSpace = THREE.SRGBColorSpace;
-        gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.05;
+        // tone mapping is owned by the composer's ToneMapping effect (must run
+        // LAST, after Bloom in linear HDR space) — disable it on the renderer so
+        // it isn't applied twice.
+        gl.toneMapping = THREE.NoToneMapping;
         sceneState.invalidate = invalidate;
         gl.domElement.addEventListener(
           "webglcontextlost",
@@ -388,17 +440,23 @@ export default function VesselHeroV4Scene({
       <fog attach="fog" args={[STAGE_BG, 42, 120]} />
 
       <Suspense fallback={null}>
-        {/* warm studio key + cooler marine fill */}
-        <hemisphereLight args={["#fff6e6", "#cdbb9a", 0.95]} />
+        {/* Lower hemisphere fill so the HDRI + a crisp key carry the form (the
+            old even wash flattened it). Hard key = the raking spotlight that
+            sells the metal; a cool back-rim separates the hull from the cream. */}
+        <hemisphereLight args={["#fff6e6", "#cdbb9a", 0.55]} />
         <directionalLight
-          position={[12, 20, 10]}
-          intensity={1.7}
+          position={[14, 22, 11]}
+          intensity={2.4}
           color="#fff4e2"
           castShadow
-          shadow-mapSize={[1024, 1024]}
+          shadow-mapSize={[2048, 2048]}
+          shadow-bias={-0.0004}
         />
-        <directionalLight position={[-10, 6, -8]} intensity={0.55} color="#bcd6cf" />
-        <Environment preset="city" environmentIntensity={0.85} />
+        <directionalLight position={[-12, 7, -9]} intensity={0.4} color="#bcd6cf" />
+        {/* back rim for edge definition against the bright stage */}
+        <directionalLight position={[-6, 9, -14]} intensity={1.1} color="#dfeef0" />
+        {/* real studio HDRI for sharp reflections; not shown as background */}
+        <Environment files={HDRI_URL} environmentIntensity={1.0} resolution={512} />
 
         <Vessel
           oceanMat={oceanMat}
@@ -424,6 +482,17 @@ export default function VesselHeroV4Scene({
           resolution={1024}
         />
         <AdaptiveDpr pixelated />
+
+        {/* Post chain — the grounding + polish that was missing on V4.
+            N8AO: contact/crevice darkening so parts sit in space instead of
+            floating (the biggest "is it real" lever). Bloom: only true HDR
+            highlights (threshold 1.0) so the metal spec glints, copy stays crisp.
+            ToneMapping LAST (skill §2) — ACES in linear HDR after Bloom. */}
+        <EffectComposer multisampling={4}>
+          <N8AO halfRes aoRadius={2.0} intensity={2.0} distanceFalloff={1.0} />
+          <Bloom intensity={0.4} luminanceThreshold={1.0} luminanceSmoothing={0.2} mipmapBlur />
+          <ToneMapping mode={ToneMappingMode.ACES_FILMIC} />
+        </EffectComposer>
       </Suspense>
     </Canvas>
   );
