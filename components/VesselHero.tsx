@@ -27,7 +27,12 @@ gsap.registerPlugin(ScrollTrigger);
    Sticky 340lvh narrative, iOS-safe (position:sticky only — no pin).
    ════════════════════════════════════════════════════════════════ */
 
-const VesselContactScene = dynamic(() => import("./VesselContactScene"), {
+/* v3 vessel — Blender-authored research vessel carrying its OWN baked explode
+   rig (53 per-object glTF clips scrubbed via AnimationMixer.setTime inside
+   VesselHeroV3Scene). Replaces the old procedural vessel.glb hero; the de-Lego
+   pass — shade-smooth + angle-limited bevel + rounder superstructure corners —
+   travels baked into the mesh. */
+const VesselContactScene = dynamic(() => import("./VesselHeroV3Scene"), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 grid place-items-center">
@@ -76,8 +81,8 @@ const BEATS: Beat[] = [
     stageTitle: "Part by part",
     stageSub: "Modular components",
     head: ["Every system", "pulled apart."],
-    lead: "Hull, running gear, superstructure, deck equipment and survey systems — separated to the last fitting. Each joint is a point we read in-water and document to class.",
-    stat: { value: 91, suffix: "" },
+    lead: "Hull, superstructure, funnel uptakes, radar mast and deck handling gear — separated to the last brace. Each joint is a point we read in-water and document to class.",
+    stat: { value: 54, suffix: "" },
     statLabel: "Modelled parts · whole-of-vessel scope",
   },
   {
@@ -101,14 +106,14 @@ const BEATS: Beat[] = [
 ];
 
 /* Component manifest — the reference's left-column callouts, grounded in the
-   real PSV subsystems modelled in vessel.glb (not the poster's generic
-   "weapon & sensor" naval concept; AMS is commercial subsea inspection). */
+   real subsystems modelled in vessel-v3.glb (the research-vessel rebuild;
+   AMS is commercial subsea inspection, not a naval concept). */
 const MANIFEST: { code: string; label: string; note: string }[] = [
-  { code: "AMS·H1", label: "Hull sections", note: "Hull · forecastle · bulwarks" },
-  { code: "AMS·P2", label: "Propulsion & running gear", note: "Twin screws · shafts · nozzles · rudders" },
-  { code: "AMS·S3", label: "Superstructure decks", note: "Deckhouse · bridge · funnels · mast" },
-  { code: "AMS·D4", label: "Deck equipment", note: "Knuckle-boom crane · liferafts · bollards" },
-  { code: "AMS·R5", label: "Survey & ROV systems", note: "Chasing M2 ROV · dive spread · NDT" },
+  { code: "AMS·H1", label: "Hull & forecastle", note: "Silver hull · main deck · bulwarks" },
+  { code: "AMS·S2", label: "Superstructure", note: "Tiered deckhouse · bridge · glass" },
+  { code: "AMS·F3", label: "Funnel & uptakes", note: "Casing · A-frame · exhaust uptakes" },
+  { code: "AMS·M4", label: "Radar mast", note: "Lattice mast · braces · legs" },
+  { code: "AMS·D5", label: "Deck handling gear", note: "Knuckle crane · stern A-frame · winch" },
 ];
 
 /* Stage header — the reference's "PART BY PART / (MODULAR COMPONENTS)" block. */
