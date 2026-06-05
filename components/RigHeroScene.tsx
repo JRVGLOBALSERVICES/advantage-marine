@@ -570,9 +570,9 @@ function Ocean({ anchors }: { anchors: React.MutableRefObject<Anchors> }) {
         depthScale={1.0}
         minDepthThreshold={0.3}
         maxDepthThreshold={1.2}
-        roughness={0.85}
+        roughness={0.72}
         metalness={0.5}
-        color="#21454f"
+        color="#0e3a47"
       />
     </mesh>
   );
@@ -593,7 +593,7 @@ export default function RigHeroScene({
       onCreated={({ gl, invalidate }) => {
         gl.outputColorSpace = THREE.SRGBColorSpace;
         gl.toneMapping = THREE.ACESFilmicToneMapping;
-        gl.toneMappingExposure = 1.0;
+        gl.toneMappingExposure = 0.92; // richer, less washed-out
         sceneState.invalidate = invalidate;
         gl.domElement.addEventListener(
           "webglcontextlost",
@@ -605,16 +605,16 @@ export default function RigHeroScene({
         );
       }}
     >
-      {/* cool morning haze for atmospheric depth (concept: subtle volumetric
-          fog), pushed well back so it never veils the vessel */}
-      <fog attach="fog" args={["#cdd9de", 240, 640]} />
+      {/* only a faint far haze on the horizon — pushed way back so it never
+          milks out the vessel (the washed/foggy look was this starting too near) */}
+      <fog attach="fog" args={["#a9c4cd", 620, 1500]} />
 
       <Suspense fallback={null}>
         {/* Concept lighting: soft morning sun (warm key low on the horizon) +
             cool sky fill + a cool back-rim that catches the reflective hull and
             separates it from the sky. Reflective materials + sunset env do the
             heavy lifting now, so the key is softer than a studio rig. */}
-        <hemisphereLight args={["#bcd3e0", "#21454f", 0.55]} />
+        <hemisphereLight args={["#bcd3e0", "#0e3a47", 0.42]} />
         <directionalLight
           position={[40, 16, -36]}
           intensity={2.3}
@@ -637,7 +637,7 @@ export default function RigHeroScene({
           mieDirectionalG={0.86}
         />
         {/* warm sunset HDRI for the chrome/steel reflections (not shown as bg) */}
-        <Environment preset="sunset" environmentIntensity={1.0} />
+        <Environment preset="sunset" environmentIntensity={0.82} />
 
         <Ocean anchors={anchors} />
         <Rig onMeasured={(a) => (anchors.current = a)} />
