@@ -189,11 +189,22 @@ export default function OsvScrollHero() {
   useEffect(() => {
     if (!mounted || reduced || !sectionRef.current || !canvasRef.current) return;
 
-    const seq = window.matchMedia("(max-width: 640px)").matches ? MOBILE : DESKTOP;
+    /* Pick the sequence by ORIENTATION, not a width breakpoint: portrait
+       phones AND portrait tablets (iPad) get the 9:16 set so the vessel fits
+       the tall frame; landscape gets 16:9. (A width breakpoint sent iPad
+       portrait into the 16:9 set and cover-cropped ~60% of the width.) */
+    const seq = window.matchMedia("(orientation: portrait)").matches ? MOBILE : DESKTOP;
     const { count } = seq;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
+
+    /* Letterbox fill — alpha:false canvas clears to BLACK, so any contain-fit
+       gap must be painted with the page paper. Resolve the container's already
+       computed background to an rgb() string (works on every browser, unlike a
+       raw oklch var in canvas fillStyle). */
+    const paperFill =
+      getComputedStyle(canvas.parentElement as HTMLElement).backgroundColor || "#ffffff";
 
     /* ── decode the image sequence ─────────────────────────────────────────
        Coarse-stride order first (0,6,12 … then fill) so a fast early flick
@@ -219,11 +230,15 @@ export default function OsvScrollHero() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    const drawCover = (img: HTMLImageElement) => {
+    /* CONTAIN-fit (min scale) — never crop the exploded vessel; fill the
+       letterbox gap with paper so nothing is cut off on any viewport. */
+    const drawContain = (img: HTMLImageElement) => {
       const iw = img.naturalWidth;
       const ih = img.naturalHeight;
       if (!iw || !ih || !cssW || !cssH) return;
-      const scale = Math.max(cssW / iw, cssH / ih);
+      ctx.fillStyle = paperFill;
+      ctx.fillRect(0, 0, cssW, cssH);
+      const scale = Math.min(cssW / iw, cssH / ih);
       const dw = iw * scale;
       const dh = ih * scale;
       ctx.drawImage(img, (cssW - dw) / 2, (cssH - dh) / 2, dw, dh);
@@ -242,7 +257,7 @@ export default function OsvScrollHero() {
     const paint = () => {
       const idx = nearestLoaded(curTarget);
       if (idx < 0 || idx === curDrawn) return;
-      drawCover(imgs[idx]);
+      drawContain(imgs[idx]);
       curDrawn = idx;
     };
 
