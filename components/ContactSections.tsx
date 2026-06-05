@@ -237,7 +237,7 @@ export default function ContactSections() {
         </motion.div>
       </section>
 
-      {/* ===================== offices — PinCards over paper-2 band ===================== */}
+      {/* ===================== offices — cards over paper-2 band ===================== */}
       <section
         id="offices"
         className="border-y border-[color:var(--color-rule)] bg-[color:var(--color-paper-2)]"

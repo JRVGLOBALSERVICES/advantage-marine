@@ -1,5 +1,5 @@
 import Link from "next/link";
-import RigHero from "@/components/RigHero";
+import OsvVideoHero from "@/components/OsvVideoHero";
 import SceneBuildLoader from "@/components/SceneBuildLoader";
 import GlobalReach from "@/components/GlobalReach";
 import { DottedSurface } from "@/components/ui/DottedSurface";
@@ -168,8 +168,8 @@ export default function Home() {
         engineering for shipping and offshore, Johor, Malaysia.
       </h1>
 
-      {/* (1) ── jack-up rig assembly hero, 100lvh ───────────────────────── */}
-      <RigHero />
+      {/* (1) ── OSV concept-reel scrub hero, 100lvh sticky ──────────────── */}
+      <OsvVideoHero />
 
       {/* (2) ── class-approved reach (kept) ─────────────────────────────── */}
       <GlobalReach />
