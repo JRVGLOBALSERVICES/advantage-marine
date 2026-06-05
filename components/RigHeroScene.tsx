@@ -38,7 +38,7 @@ import { scrollState, motionState, sceneState } from "@/lib/scroll";
    Bloom catches ONLY the raw-HDR teal scan ring + glow ring.
    ════════════════════════════════════════════════════════════════ */
 
-const MODEL_URL = "/models/offshore-rig-hero.glb";
+const MODEL_URL = "/models/advantage-osv-hero.glb";
 
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -47,10 +47,10 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 /* Honest assembly labels — real jack-up nomenclature + AM scope.
    Anchored to one part per major assembly, shown only in the hold. */
 const LABELS: Record<string, { code: string; spec: string }> = {
-  "GEO-rig-derrick": { code: "Derrick & drill floor", spec: "weld NDT · class survey" },
-  "GEO-rig-hull": { code: "Hull & jackhouses", spec: "plate UT · CP read" },
-  "GEO-rig-leg-a": { code: "Lattice leg & spud-can", spec: "chord & brace MPI" },
-  "GEO-rig-cranes": { code: "Pedestal cranes", spec: "boom & slew survey" },
+  "GEO-adv-hull": { code: "Hull & ballast tanks", spec: "plate UT · CP read" },
+  "GEO-adv-pod-s": { code: "Azimuth thrusters", spec: "shaft & seal survey" },
+  "GEO-adv-mast": { code: "Radar & comms mast", spec: "nav-aid · antenna check" },
+  "GEO-adv-crane": { code: "Deck crane", spec: "boom & slew survey" },
 };
 
 type Part = {
@@ -69,17 +69,26 @@ type Anchors = { top: number; bot: number; span: number; foot: number; cx: numbe
    of the rotary, topside blocks fan out so the whole jack-up reads as one
    machine coming apart along its real axes. */
 function explodePlan(name: string): { kR: number; kV: number; anchor?: boolean } {
-  if (/leg-/.test(name)) return { kR: 0.30, kV: -0.24 };
-  if (/drillstring/.test(name)) return { kR: 0.04, kV: 0.60 };
-  if (/derrick/.test(name)) return { kR: 0.05, kV: 0.42 };
-  if (/drillfloor/.test(name)) return { kR: 0.10, kV: 0.26 };
-  if (/helideck/.test(name)) return { kR: 0.26, kV: 0.48 };
-  if (/accom/.test(name)) return { kR: 0.28, kV: 0.30 };
-  if (/cranes/.test(name)) return { kR: 0.42, kV: 0.18 };
-  if (/cantilever/.test(name)) return { kR: 0.44, kV: 0.10 };
-  if (/deckdetail/.test(name)) return { kR: 0.20, kV: 0.12 };
+  // internals drop out the bottom
+  if (/engine/.test(name)) return { kR: 0.06, kV: -0.60 };
+  if (/pod-/.test(name)) return { kR: 0.18, kV: -0.46 };
+  if (/bowthruster/.test(name)) return { kR: 0.10, kV: -0.40 };
+  if (/bulbous/.test(name)) return { kR: 0.20, kV: -0.12 };
+  // superstructure lifts up as stacked layers
+  if (/mast/.test(name)) return { kR: 0.02, kV: 0.72 };
+  if (/bridge/.test(name)) return { kR: 0.02, kV: 0.56 };
+  if (/house-t3/.test(name)) return { kR: 0.02, kV: 0.42 };
+  if (/house-t2/.test(name)) return { kR: 0.02, kV: 0.30 };
+  if (/house-t1/.test(name)) return { kR: 0.02, kV: 0.18 };
+  if (/funnel/.test(name)) return { kR: 0.16, kV: 0.34 };
+  // deck gear fans outboard
+  if (/forecastle/.test(name)) return { kR: 0.26, kV: 0.12 };
+  if (/lifeboat|davit/.test(name)) return { kR: 0.36, kV: 0.16 };
+  if (/crane/.test(name)) return { kR: 0.40, kV: 0.24 };
+  if (/aframe/.test(name)) return { kR: 0.40, kV: 0.18 };
+  if (/sensor/.test(name)) return { kR: 0.26, kV: 0.18 };
   if (/hull/.test(name)) return { kR: 0, kV: 0, anchor: true };
-  return { kR: 0.16, kV: 0.06 };
+  return { kR: 0.18, kV: 0.06 };
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -268,7 +277,7 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
       if (m.isMesh && o.name.startsWith("GEO-")) {
         tuneMat(m);
       }
-      if (o.name.startsWith("GEO-") && o.parent?.name.startsWith("EMPTY-")) {
+      if (m.isMesh && o.name.startsWith("GEO-")) {
         const wc = new THREE.Vector3();
         new THREE.Box3().setFromObject(o).getCenter(wc);
         const dir = new THREE.Vector2(wc.x - anchors.current.cx, wc.z - anchors.current.cz);

@@ -17,7 +17,7 @@ const RigHeroScene = dynamic(() => import("./RigHeroScene"), {
   ssr: false,
   loading: () => (
     <div className="absolute inset-0 grid place-items-center">
-      <div className="eyebrow animate-pulse">Initialising rig…</div>
+      <div className="eyebrow animate-pulse">Initialising vessel…</div>
     </div>
   ),
 });
@@ -61,23 +61,23 @@ type Beat = {
    headline line stays dark ink so type never blends with the teal scene glow. */
 const BEATS: Beat[] = [
   {
-    kicker: "00 — Offshore integrity, assembled afloat",
-    head: ["Built to stand", "where the sea won't."],
-    lead: "A jack-up platform is only as sound as the survey behind it — hull, legs, footings, derrick. We assemble that confidence, then verify every joint of it underwater.",
+    kicker: "00 — Offshore support, surveyed to class",
+    head: ["Built to work", "where the sea won't."],
+    lead: "An offshore support vessel is only as sound as the survey behind it — hull, propulsion, deck systems. We assemble that confidence, then verify every part of it underwater.",
     stat: { value: 10, suffix: "+" },
     statLabel: "Years afloat · IMCA / OGP standard",
   },
   {
-    kicker: "01 — Taken apart, joint by joint",
+    kicker: "01 — Taken apart, system by system",
     head: ["Every part", "accounted for."],
-    lead: "Pulled apart to its last bracing — hull, legs, spud-cans, derrick, crane. Every joint is a point we read underwater, documented to class before the platform takes weight.",
+    lead: "Pulled apart to its last module — hull, superstructure, azimuth thrusters, deck crane. Every system is a point we read and document to class before the vessel sails.",
     stat: { value: 4630, suffix: " m²" },
     statLabel: "Johor fabrication & dive facility",
   },
   {
-    kicker: "02 — Topped out, then proven",
-    head: ["Structure complete.", "Cleared by class."],
-    lead: "Derrick set. Our divers and the Chasing M2 ROV read the welds, the cathodic protection and the steel the surface can't see — documented to ISO and class society.",
+    kicker: "02 — Reassembled, then proven",
+    head: ["Vessel complete.", "Cleared by class."],
+    lead: "Systems seated. Our divers and the Chasing M2 ROV read the welds, the cathodic protection and the steel the surface can't see — documented to ISO and class society.",
     stat: { value: 12, suffix: "" },
     statLabel: "ISO & class-society certifications",
   },
