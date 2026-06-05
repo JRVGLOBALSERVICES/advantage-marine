@@ -38,7 +38,7 @@ import { scrollState, motionState, sceneState } from "@/lib/scroll";
    Bloom catches ONLY the raw-HDR teal scan ring + glow ring.
    ════════════════════════════════════════════════════════════════ */
 
-const MODEL_URL = "/models/jackup-rig.glb";
+const MODEL_URL = "/models/offshore-rig-hero.glb";
 
 const smoothstep = (t: number) => t * t * (3 - 2 * t);
 const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
@@ -47,10 +47,10 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 /* Honest assembly labels — real jack-up nomenclature + AM scope.
    Anchored to one part per major assembly, shown only in the hold. */
 const LABELS: Record<string, { code: string; spec: string }> = {
-  "GEO-Derrick": { code: "Derrick & drill floor", spec: "weld NDT · class survey" },
-  "GEO-Hull": { code: "Hull & jackhouses", spec: "plate UT · CP read" },
-  "GEO-Leg-A": { code: "Lattice leg", spec: "chord & brace MPI" },
-  "GEO-SpudCan-A": { code: "Spud-can footing", spec: "scour · CP −0.92V" },
+  "GEO-rig-derrick": { code: "Derrick & drill floor", spec: "weld NDT · class survey" },
+  "GEO-rig-hull": { code: "Hull & jackhouses", spec: "plate UT · CP read" },
+  "GEO-rig-leg-a": { code: "Lattice leg & spud-can", spec: "chord & brace MPI" },
+  "GEO-rig-cranes": { code: "Pedestal cranes", spec: "boom & slew survey" },
 };
 
 type Part = {
@@ -63,19 +63,22 @@ type Part = {
 
 type Anchors = { top: number; bot: number; span: number; foot: number; cx: number; cz: number };
 
-/* Per-part explode plan — radial+vertical offset as fraction of span. */
+/* Per-part explode plan — radial+vertical offset as fraction of span.
+   Keyed to the new GLB's lowercase-hyphen node names (GEO-rig-*). Hull is the
+   anchor; legs splay out + drop to seabed, the derrick + drill string lift out
+   of the rotary, topside blocks fan out so the whole jack-up reads as one
+   machine coming apart along its real axes. */
 function explodePlan(name: string): { kR: number; kV: number; anchor?: boolean } {
-  if (/SpudCan/.test(name)) return { kR: 0.34, kV: -0.40 };
-  if (/^GEO-Leg-/.test(name)) return { kR: 0.24, kV: -0.20 };
-  if (/JackHouse/.test(name)) return { kR: 0.30, kV: 0.04 };
-  if (/CrownBlock/.test(name)) return { kR: 0.06, kV: 0.52 };
-  if (/Derrick/.test(name)) return { kR: 0.06, kV: 0.38 };
-  if (/DrillFloor/.test(name)) return { kR: 0.08, kV: 0.24 };
-  if (/Heli/.test(name)) return { kR: 0.22, kV: 0.46 };
-  if (/Accom/.test(name)) return { kR: 0.24, kV: 0.28 };
-  if (/Crane/.test(name)) return { kR: 0.34, kV: 0.16 };
-  if (/Cantilever/.test(name)) return { kR: 0.40, kV: 0.08 };
-  if (/Hull/.test(name)) return { kR: 0, kV: 0, anchor: true };
+  if (/leg-/.test(name)) return { kR: 0.30, kV: -0.24 };
+  if (/drillstring/.test(name)) return { kR: 0.04, kV: 0.60 };
+  if (/derrick/.test(name)) return { kR: 0.05, kV: 0.42 };
+  if (/drillfloor/.test(name)) return { kR: 0.10, kV: 0.26 };
+  if (/helideck/.test(name)) return { kR: 0.26, kV: 0.48 };
+  if (/accom/.test(name)) return { kR: 0.28, kV: 0.30 };
+  if (/cranes/.test(name)) return { kR: 0.42, kV: 0.18 };
+  if (/cantilever/.test(name)) return { kR: 0.44, kV: 0.10 };
+  if (/deckdetail/.test(name)) return { kR: 0.20, kV: 0.12 };
+  if (/hull/.test(name)) return { kR: 0, kV: 0, anchor: true };
   return { kR: 0.16, kV: 0.06 };
 }
 
@@ -246,11 +249,13 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
     anchors.current = { top, bot, span, foot, cx: ctr.x, cz: ctr.z };
     onMeasured(anchors.current);
 
-    const patchSteel = (m: Mesh, base: string, rough: number) => {
+    /* Preserve the GLB's baked PBR identity (RIG-white quarters, RIG-yellow
+       cranes, RIG-steel/dksteel/darkmet structure) — only tune it to read on
+       the warm cream studio env: clone per-mesh, lift envMap reflections, keep
+       it shadow-casting. Blanket-greying here would erase the white + yellow. */
+    const tuneMat = (m: Mesh) => {
       const mat = (m.material as MeshStandardMaterial).clone();
-      mat.color = new THREE.Color(base);
-      mat.metalness = 0.9;
-      mat.roughness = rough;
+      mat.envMapIntensity = 0.9;
       mat.needsUpdate = true;
       m.material = mat;
       m.castShadow = true;
@@ -261,7 +266,7 @@ function Rig({ onMeasured }: { onMeasured: (a: Anchors) => void }) {
     scene.traverse((o) => {
       const m = o as Mesh;
       if (m.isMesh && o.name.startsWith("GEO-")) {
-        patchSteel(m, /SpudCan/.test(o.name) ? "#3A4046" : "#4E565C", /SpudCan/.test(o.name) ? 0.55 : 0.4);
+        tuneMat(m);
       }
       if (o.name.startsWith("GEO-") && o.parent?.name.startsWith("EMPTY-")) {
         const wc = new THREE.Vector3();
