@@ -112,13 +112,6 @@ export default function AboutPage() {
               "linear-gradient(to top, color-mix(in oklch, var(--color-ink) 80%, transparent) 0%, color-mix(in oklch, var(--color-ink) 42%, transparent) 42%, color-mix(in oklch, var(--color-ink) 14%, transparent) 100%)",
           }}
         />
-        {/* paper feather at the foot so the hero grounds into the page */}
-        <div
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-32"
-          style={{
-            background: "linear-gradient(to top, var(--color-paper) 0%, transparent 100%)",
-          }}
-        />
 
         <div className="absolute inset-0 flex items-end">
           <div className="mx-auto w-full max-w-[min(1280px,92vw)] px-[clamp(1.5rem,4vw,4rem)] pb-[clamp(4rem,9vh,7rem)]">
