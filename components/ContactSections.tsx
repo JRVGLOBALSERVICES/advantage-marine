@@ -113,19 +113,23 @@ export default function ContactSections() {
         {/* live offshore-platform ocean scene (falls back to the photo on
             reduced-motion / no-WebGL) */}
         <PlatformHero fallback={HERO_IMG} />
-        {/* ink scrim — keep type legible, no cream text */}
+        {/* subtle dark grounding at the base only — keeps the headline legible
+            without washing the rig in cream */}
         <div
-          className="absolute inset-0"
+          className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(180deg, color-mix(in oklch, var(--color-paper) 30%, transparent) 0%, color-mix(in oklch, var(--color-paper) 12%, transparent) 38%, color-mix(in oklch, var(--color-paper) 92%, transparent) 100%)",
+              "linear-gradient(to top, oklch(0.12 0.03 235 / 0.62) 0%, oklch(0.12 0.03 235 / 0.18) 34%, transparent 60%)",
           }}
           aria-hidden
         />
 
-        <div className="relative z-10 mx-auto flex h-full max-w-[min(1280px,92vw)] flex-col justify-end px-[clamp(1.5rem,4vw,4rem)] pb-[clamp(2.5rem,7vh,5rem)]">
+        <div
+          className="relative z-10 mx-auto flex h-full max-w-[min(1280px,92vw)] flex-col justify-end px-[clamp(1.5rem,4vw,4rem)] pb-[clamp(2.5rem,7vh,5rem)]"
+          style={{ textShadow: "0 2px 24px oklch(0.12 0.03 235 / 0.55), 0 1px 3px oklch(0.12 0.03 235 / 0.4)" }}
+        >
           <motion.p
-            className="eyebrow mb-[var(--space-md)] text-[color:var(--color-ink)]"
+            className="eyebrow mb-[var(--space-md)] text-[color:var(--color-accent-2)]"
             initial={reduce ? false : { opacity: 0, y: 16 }}
             animate={reduce ? {} : { opacity: 1, y: 0 }}
             transition={{ duration: 0.7, ease: EASE }}
@@ -136,12 +140,12 @@ export default function ContactSections() {
               sequential
               revealDirection="start"
               className="font-display"
-              parentClassName="eyebrow text-[color:var(--color-ink)]"
+              parentClassName="eyebrow text-[color:var(--color-accent-2)]"
             />
           </motion.p>
 
           <h1
-            className="font-display leading-[1.02] text-[color:var(--color-ink)]"
+            className="font-display leading-[1.02] text-[color:var(--color-paper)]"
             style={{ fontSize: "var(--text-display)" }}
           >
             <WordReveal text="Talk to AMS." />
@@ -149,7 +153,7 @@ export default function ContactSections() {
 
           <motion.p
             className="mt-[var(--space-lg)] max-w-[46ch] font-body"
-            style={{ ...MUTED, fontSize: "var(--text-lead)" }}
+            style={{ color: "color-mix(in oklch, var(--color-paper) 86%, transparent)", fontSize: "var(--text-lead)" }}
             initial={reduce ? false : { opacity: 0, y: 20 }}
             animate={reduce ? {} : { opacity: 1, y: 0 }}
             transition={{ duration: 0.8, ease: EASE, delay: 0.35 }}
@@ -178,7 +182,7 @@ export default function ContactSections() {
           aria-hidden
         >
           <motion.div
-            className="h-9 w-[1.5px] origin-top rounded-full bg-[color:color-mix(in_oklch,var(--color-ink)_45%,transparent)]"
+            className="h-9 w-[1.5px] origin-top rounded-full bg-[color:color-mix(in_oklch,var(--color-paper)_60%,transparent)]"
             animate={reduce ? {} : { scaleY: [0.3, 1, 0.3], opacity: [0.3, 1, 0.3] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
           />

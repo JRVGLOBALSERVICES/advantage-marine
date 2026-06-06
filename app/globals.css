@@ -104,16 +104,24 @@ a { color: inherit; }
   font-family: var(--font-body); font-weight: 600; font-size: 0.95rem;
   border-radius: var(--radius-pill); padding: 0.7rem 1.4rem;
   background: var(--color-accent); color: var(--color-accent-ink);
-  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out);
+  /* soft drop shadow so the teal pill lifts off teal / photo heroes (subtle on cream) */
+  box-shadow: 0 8px 22px -10px oklch(0.18 0.04 235 / 0.55);
+  transition: background var(--dur-fast) var(--ease-out), transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
 }
-.cta-primary:hover { background: var(--color-accent-2); color: var(--color-ink); }
+.cta-primary:hover { background: var(--color-accent-2); color: var(--color-ink); box-shadow: 0 10px 26px -10px oklch(0.18 0.04 235 / 0.6); }
 .cta-primary:active { transform: translateY(1px); }
 
 .cta-secondary {
   display: inline-flex; align-items: center; gap: 0.5rem;
   font-family: var(--font-body); font-weight: 600; font-size: 0.95rem;
   border-radius: var(--radius-pill); padding: 0.7rem 1.4rem;
-  border: 1px solid var(--color-rule); color: var(--color-ink);
+  /* translucent paper plate + blur + stronger hairline so the outline button
+     reads on photo / 3D heroes; on cream sections the plate is ~invisible */
+  border: 1px solid color-mix(in oklch, var(--color-ink) 26%, transparent);
+  background: color-mix(in oklch, var(--color-paper) 58%, transparent);
+  -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+  color: var(--color-ink);
+  box-shadow: 0 8px 22px -12px oklch(0.18 0.04 235 / 0.45);
   transition: border-color var(--dur-fast) var(--ease-out), background var(--dur-fast) var(--ease-out);
 }
 .cta-secondary:hover { border-color: var(--color-accent); background: var(--color-aqua); }
