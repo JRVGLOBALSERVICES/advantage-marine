@@ -123,7 +123,14 @@ function BeatBlock({
   return (
     <div
       ref={innerRef}
-      style={stacked ? { gridArea: "1 / 1" } : undefined}
+      style={{
+        ...(stacked ? { gridArea: "1 / 1" } : {}),
+        /* tight paper halo so dark ink type separates from the reel on ANY
+           frame (dark sea / hull = dark-on-dark without it). Invisible over
+           bright sky; lets the scrim below stay light, not a cream sheet. */
+        textShadow:
+          "0 1px 16px oklch(0.943 0.024 82 / 0.82), 0 0 3px oklch(0.943 0.024 82 / 0.7)",
+      }}
       className="max-w-[42rem] will-change-[opacity,transform]"
     >
       <p className="eyebrow mb-[var(--space-md)]">{beat.kicker}</p>
@@ -411,23 +418,26 @@ export default function OsvScrollHero() {
         {/* the reel, scrubbed frame-by-frame on a canvas (iOS-safe) */}
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
 
-        {/* readability wash — a tight gradient anchored at the very bottom, only
-           behind the copy. Kept light and short so the video reads clean: no
-           full-frame cream cast (the old mobile scrim that washed out the reel). */}
+        {/* readability scrim — a RAMPED paper gradient: strong at the baseline
+           where the type sits, easing to transparent by ~64% so the whole copy
+           block (kicker → headline → lead → stat) reads, while the upper third+
+           of the reel stays clean. Bottom-anchored grounding, NOT the old flat
+           full-frame cream sheet that washed the video. */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to top, color-mix(in oklch, var(--color-paper) 64%, transparent) 0%, transparent 34%)",
+              "linear-gradient(to top, color-mix(in oklch, var(--color-paper) 88%, transparent) 0%, color-mix(in oklch, var(--color-paper) 64%, transparent) 20%, color-mix(in oklch, var(--color-paper) 28%, transparent) 44%, transparent 64%)",
           }}
         />
-        {/* mobile: portrait copy overlaps the vessel, so a touch more lift at the
-           base only — still bottom-anchored and short, not a sheet over the reel */}
+        {/* mobile: portrait copy overlaps more of the vessel, so the ramp runs a
+           touch stronger and taller (transparent by ~72%) — still a bottom-up
+           ramp, not a sheet over the reel. */}
         <div
           className="absolute inset-0 pointer-events-none sm:hidden"
           style={{
             background:
-              "linear-gradient(to top, color-mix(in oklch, var(--color-paper) 72%, transparent) 0%, transparent 40%)",
+              "linear-gradient(to top, color-mix(in oklch, var(--color-paper) 92%, transparent) 0%, color-mix(in oklch, var(--color-paper) 72%, transparent) 24%, color-mix(in oklch, var(--color-paper) 38%, transparent) 50%, transparent 72%)",
           }}
         />
 
