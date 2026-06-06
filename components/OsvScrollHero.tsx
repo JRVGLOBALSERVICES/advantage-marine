@@ -118,9 +118,19 @@ function BeatBlock({
         <span
           aria-hidden
           className="h-px w-[clamp(1.75rem,3vw,3.25rem)] shrink-0"
-          style={{ background: "var(--color-accent)", boxShadow: "0 0 10px var(--color-accent)" }}
+          style={{ background: "var(--color-accent-2)", boxShadow: "0 0 12px var(--color-accent-2)" }}
         />
-        <p className="eyebrow !mb-0 text-[color:var(--color-accent)]">{beat.kicker}</p>
+        {/* bright mint-white + dark halo so the kicker holds over BOTH the bright
+            day ocean and the dark night sea (the brand teal was blending in) */}
+        <p
+          className="eyebrow !mb-0"
+          style={{
+            color: "color-mix(in oklch, white 78%, var(--color-accent-2))",
+            textShadow: "0 1px 14px oklch(0.12 0.04 235 / 0.78)",
+          }}
+        >
+          {beat.kicker}
+        </p>
       </div>
       <div className="mb-[var(--space-md)]" style={{ fontSize: "var(--text-display)" }}>
         <BlurText
@@ -143,21 +153,27 @@ function BeatBlock({
       >
         {beat.lead}
       </p>
-      <div className="mt-[var(--space-lg)] flex items-end gap-[var(--space-md)] flex-wrap">
+      {/* stat — interactive on hover (only the active beat captures the pointer):
+          the figure scales + glows, the label brightens */}
+      <div
+        className={`group mt-[var(--space-lg)] flex items-end gap-[var(--space-md)] flex-wrap ${
+          active ? "pointer-events-auto" : "pointer-events-none"
+        }`}
+      >
         <span
-          className="font-display font-bold leading-none text-[color:var(--color-accent)] flex items-baseline"
+          className="font-display font-bold leading-none text-[color:var(--color-accent-2)] flex items-baseline origin-left transition-[transform,text-shadow] duration-300 ease-out group-hover:scale-[1.07] group-hover:[text-shadow:0_0_26px_color-mix(in_oklch,var(--color-accent-2)_70%,transparent)]"
           style={{ fontSize: "var(--text-stat)" }}
         >
           <NumberTicker
             value={beat.stat.value}
             start={active}
             decimalPlaces={beat.stat.decimals ?? 0}
-            className="text-[color:var(--color-accent)]"
+            className="text-current"
           />
           <span>{beat.stat.suffix}</span>
         </span>
         <span
-          className="eyebrow pb-2 max-w-[14rem] !tracking-[0.18em] normal-case"
+          className="eyebrow pb-2 max-w-[14rem] !tracking-[0.18em] normal-case transition-colors duration-300 group-hover:text-[color:color-mix(in_oklch,var(--color-paper)_94%,transparent)]"
           style={{ color: "color-mix(in oklch, var(--color-paper) 72%, transparent)" }}
         >
           {beat.statLabel}
@@ -233,6 +249,22 @@ export default function OsvScrollHero() {
     const scene = new THREE.Scene();
     const camera = new THREE.PerspectiveCamera(46, 1, 1, 20000);
 
+    // small helper: a procedural CanvasTexture (foam, moon, glows) — no assets
+    const makeTex = (w: number, h: number, paint: (d: Uint8ClampedArray) => void) => {
+      const cv = document.createElement("canvas");
+      cv.width = w;
+      cv.height = h;
+      const c = cv.getContext("2d")!;
+      const img = c.createImageData(w, h);
+      paint(img.data);
+      c.putImageData(img, 0, 0);
+      const tex = new THREE.CanvasTexture(cv);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.wrapS = THREE.ClampToEdgeWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    };
+
     // ── ocean (live Water shader) ───────────────────────────────────────────
     const sun = new THREE.Vector3();
     const waterNormals = new THREE.TextureLoader().load(WATER_NORMALS_URL, (t) => {
@@ -251,40 +283,174 @@ export default function OsvScrollHero() {
     water.rotation.x = -Math.PI / 2;
     scene.add(water);
 
-    // ── sky (physical, low golden sun) ──────────────────────────────────────
+    // ── sky + celestial day→night (driven by scroll) ───────────────────────
+    // As the vessel cruises LEFT across the scroll the scene crosses from a
+    // golden day into night: the sun sets on the left, the sky/sea darken and
+    // stars + a moon rise. The Sky atmosphere shader yields the sunset colours
+    // for free as the sun dips below the horizon.
     const sky = new Sky();
     sky.scale.setScalar(20000);
     scene.add(sky);
     const skyU = sky.material.uniforms;
-    skyU["turbidity"].value = 8;
-    skyU["rayleigh"].value = 1.6;
-    skyU["mieCoefficient"].value = 0.006;
-    skyU["mieDirectionalG"].value = 0.86;
+    skyU["mieDirectionalG"].value = 0.88;
 
-    const SUN_ELEVATION = 3.2; // degrees above horizon → long glitter path
-    const SUN_AZIMUTH = 178; // sun roughly behind the vessel toward the horizon
+    const SUN_AZ = 206; // sun front-LEFT → sets where the vessel is heading
+    const moonDir = new THREE.Vector3().setFromSphericalCoords(
+      1,
+      THREE.MathUtils.degToRad(90 - 40),
+      THREE.MathUtils.degToRad(120)
+    );
+
+    // lights — retuned every frame across the day→night blend
+    const key = new THREE.DirectionalLight(0xffe9cf, 2.6);
+    scene.add(key);
+    const hemi = new THREE.HemisphereLight(0xbfe0f2, 0x0c2a36, 0.55);
+    scene.add(hemi);
+
+    // stars — hidden by day, fade in at night
+    const STAR_N = 1700;
+    const starPos = new Float32Array(STAR_N * 3);
+    for (let i = 0; i < STAR_N; i++) {
+      const d = new THREE.Vector3().randomDirection();
+      d.y = Math.abs(d.y) * 0.92 + 0.05; // keep them in the upper sky
+      d.normalize().multiplyScalar(9000);
+      starPos[i * 3] = d.x;
+      starPos[i * 3 + 1] = d.y;
+      starPos[i * 3 + 2] = d.z;
+    }
+    const starGeo = new THREE.BufferGeometry();
+    starGeo.setAttribute("position", new THREE.BufferAttribute(starPos, 3));
+    const starMat = new THREE.PointsMaterial({
+      color: 0xffffff,
+      size: 2.4,
+      sizeAttenuation: false,
+      transparent: true,
+      opacity: 0,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+    });
+    scene.add(new THREE.Points(starGeo, starMat));
+
+    // sun + moon: a soft body disc + a glow halo each
+    const discTex = makeTex(128, 128, (d) => {
+      for (let y = 0; y < 128; y++)
+        for (let x = 0; x < 128; x++) {
+          const r = Math.hypot((x - 64) / 60, (y - 64) / 60);
+          const a = r < 1 ? 1 - Math.max(0, (r - 0.82) / 0.18) : 0;
+          const i = (y * 128 + x) * 4;
+          d[i] = d[i + 1] = d[i + 2] = 255;
+          d[i + 3] = Math.max(0, Math.min(1, a)) * 255;
+        }
+    });
+    const glowTex = makeTex(128, 128, (d) => {
+      for (let y = 0; y < 128; y++)
+        for (let x = 0; x < 128; x++) {
+          const r = Math.hypot((x - 64) / 64, (y - 64) / 64);
+          const a = Math.pow(Math.max(0, 1 - r), 2.4);
+          const i = (y * 128 + x) * 4;
+          d[i] = d[i + 1] = d[i + 2] = 255;
+          d[i + 3] = a * 255;
+        }
+    });
+    const moonTex = makeTex(128, 128, (d) => {
+      const craters: number[][] = [[44, 52, 9], [82, 66, 12], [60, 86, 7], [92, 44, 6]];
+      for (let y = 0; y < 128; y++)
+        for (let x = 0; x < 128; x++) {
+          const r = Math.hypot((x - 64) / 60, (y - 64) / 60);
+          const a = r < 1 ? 1 - Math.max(0, (r - 0.85) / 0.15) : 0;
+          let sh = 236;
+          for (const [cx, cy, cr] of craters) {
+            const cd = Math.hypot(x - cx, y - cy);
+            if (cd < cr) sh -= (1 - cd / cr) * 34;
+          }
+          const i = (y * 128 + x) * 4;
+          d[i] = sh;
+          d[i + 1] = sh;
+          d[i + 2] = sh * 0.97;
+          d[i + 3] = Math.max(0, Math.min(1, a)) * 255;
+        }
+    });
+    const mkSprite = (map: THREE.Texture, color: number, scale: number, additive: boolean) => {
+      const s = new THREE.Sprite(
+        new THREE.SpriteMaterial({
+          map,
+          color,
+          transparent: true,
+          opacity: 0,
+          depthWrite: false,
+          blending: additive ? THREE.AdditiveBlending : THREE.NormalBlending,
+        })
+      );
+      s.scale.setScalar(scale);
+      scene.add(s);
+      return s;
+    };
+    const sunGlow = mkSprite(glowTex, 0xffcf8a, 4200, true);
+    const sunBody = mkSprite(discTex, 0xfff0cf, 760, true);
+    const moonGlow = mkSprite(glowTex, 0xaec4ff, 3200, true);
+    const moonBody = mkSprite(moonTex, 0xffffff, 760, false);
+    moonBody.position.copy(moonDir).multiplyScalar(12000);
+    moonGlow.position.copy(moonBody.position);
+
+    // environment (sky reflections on the hull) — rebuilt occasionally as the
+    // sky shifts (PMREM per-frame would be far too costly)
     const pmrem = new THREE.PMREMGenerator(renderer);
     const sceneEnv = new THREE.Scene();
     let envRT: THREE.WebGLRenderTarget | null = null;
-    const updateSun = () => {
-      const phi = THREE.MathUtils.degToRad(90 - SUN_ELEVATION);
-      const theta = THREE.MathUtils.degToRad(SUN_AZIMUTH);
-      sun.setFromSphericalCoords(1, phi, theta);
-      skyU["sunPosition"].value.copy(sun);
-      water.material.uniforms["sunDirection"].value.copy(sun).normalize();
+    const rebuildEnv = () => {
       if (envRT) envRT.dispose();
-      sceneEnv.add(sky); // pmrem captures only the sky
+      sceneEnv.add(sky); // capture only the sky dome
       envRT = pmrem.fromScene(sceneEnv);
       scene.add(sky);
       scene.environment = envRT.texture;
     };
-    updateSun();
 
-    // ── lights (sun key + sky/sea fill) ─────────────────────────────────────
-    const key = new THREE.DirectionalLight(0xffe9cf, 2.4);
-    key.position.copy(sun).multiplyScalar(200);
-    scene.add(key);
-    scene.add(new THREE.HemisphereLight(0xbfe0f2, 0x0c2a36, 0.55));
+    // day→night palette, applied per-frame from a 0(day)→1(night) factor
+    const L = THREE.MathUtils.lerp;
+    const dayWater = new THREE.Color(0x103a4a);
+    const nightWater = new THREE.Color(0x04101a);
+    const daySunC = new THREE.Color(0xfff2dd);
+    const nightSunC = new THREE.Color(0xaecbe6);
+    const dayKey = new THREE.Color(0xffe9cf);
+    const nightKey = new THREE.Color(0x9fb6dd);
+    const dayHemi = new THREE.Color(0xbfe0f2);
+    const nightHemi = new THREE.Color(0x1a2740);
+    const tmpDir = new THREE.Vector3();
+    const applySky = (n: number) => {
+      const elev = L(8, -7, n); // sun sinks below the horizon → night
+      sun.setFromSphericalCoords(1, THREE.MathUtils.degToRad(90 - elev), THREE.MathUtils.degToRad(SUN_AZ));
+      skyU["sunPosition"].value.copy(sun);
+      skyU["turbidity"].value = L(8, 2.2, n);
+      skyU["rayleigh"].value = L(2.2, 0.16, n);
+      skyU["mieCoefficient"].value = L(0.005, 0.002, n);
+      const wu = water.material.uniforms;
+      wu["sunDirection"].value.copy(sun).normalize();
+      (wu["waterColor"].value as THREE.Color).lerpColors(dayWater, nightWater, n);
+      (wu["sunColor"].value as THREE.Color).lerpColors(daySunC, nightSunC, n);
+      wu["distortionScale"].value = L(3.4, 2.2, n);
+      // key light follows the sun by day, the moon by night
+      tmpDir.copy(sun).lerp(moonDir, n).normalize();
+      key.position.copy(tmpDir).multiplyScalar(300);
+      key.color.lerpColors(dayKey, nightKey, n);
+      key.intensity = L(2.6, 0.55, n);
+      hemi.color.lerpColors(dayHemi, nightHemi, n);
+      hemi.intensity = L(0.55, 0.16, n);
+      renderer.toneMappingExposure = L(0.52, 0.6, n);
+      // sun visible only above the horizon (and faded out by night)
+      const sunVis = Math.max(0, Math.min(1, (sun.y + 0.02) * 6)) * (1 - n);
+      sunGlow.material.opacity = sunVis * 0.85;
+      sunBody.material.opacity = sunVis;
+      sunGlow.position.copy(sun).multiplyScalar(12000);
+      sunBody.position.copy(sun).multiplyScalar(12000);
+      // moon + stars rise into the night
+      const night = THREE.MathUtils.smoothstep(n, 0.4, 0.95);
+      moonBody.material.opacity = night;
+      moonGlow.material.opacity = night * 0.7;
+      starMat.opacity = THREE.MathUtils.smoothstep(n, 0.45, 1.0);
+    };
+    applySky(0);
+    rebuildEnv();
+    let envStep = 0;
 
     // ── the vessel ──────────────────────────────────────────────────────────
     // Bow is at the model's +Z (helideck/bridge forward, open cargo deck aft).
@@ -307,20 +473,6 @@ export default function OsvScrollHero() {
     // bright bow-spray crescent. Procedural CanvasTextures (no extra asset): a
     // widening Kelvin churn for the wake, a soft crescent for the bow. The wake
     // texture scrolls each frame so the foam streams backward.
-    const makeTex = (w: number, h: number, paint: (d: Uint8ClampedArray) => void) => {
-      const cv = document.createElement("canvas");
-      cv.width = w;
-      cv.height = h;
-      const c = cv.getContext("2d")!;
-      const img = c.createImageData(w, h);
-      paint(img.data);
-      c.putImageData(img, 0, 0);
-      const tex = new THREE.CanvasTexture(cv);
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.wrapS = THREE.ClampToEdgeWrapping;
-      tex.wrapT = THREE.RepeatWrapping;
-      return tex;
-    };
     const WAKE_W = 72;
     const WAKE_L = 240;
     const WAKE_TW = 160;
@@ -405,7 +557,7 @@ export default function OsvScrollHero() {
         const s = SHIP_LEN / size.z; // world units along the hull
         model.scale.setScalar(s);
         // centre on X/Z; seat the keel below the y=0 waterline by DRAFT
-        const DRAFT = 8.5;
+        const DRAFT = 5.5;
         model.position.x = -center.x * s;
         model.position.z = -center.z * s;
         model.position.y = -box.min.y * s - DRAFT;
@@ -487,6 +639,15 @@ export default function OsvScrollHero() {
       },
     });
 
+    // ── pointer parallax (desktop hover effect) ──────────────────────────────
+    const ptr = { x: 0, y: 0, tx: 0, ty: 0 };
+    const finePointer = window.matchMedia("(pointer: fine)").matches;
+    const onPointerMove = (e: PointerEvent) => {
+      ptr.tx = (e.clientX / (mount.clientWidth || 1) - 0.5) * 2;
+      ptr.ty = (e.clientY / (mount.clientHeight || 1) - 0.5) * 2;
+    };
+    if (finePointer) window.addEventListener("pointermove", onPointerMove);
+
     // ── render loop (paused offscreen) ───────────────────────────────────────
     const clock = new THREE.Clock();
     let elapsed = 0;
@@ -496,6 +657,16 @@ export default function OsvScrollHero() {
       const dt = Math.min(clock.getDelta(), 0.05);
       elapsed += dt;
       const p = Math.min(Math.max(scrollState.progress, 0), 1);
+
+      // day → night as the vessel cruises toward the left
+      const n = THREE.MathUtils.smoothstep(p, 0.4, 0.96);
+      applySky(n);
+      const qs = Math.round(n * 6); // rebuild reflections in ~6 steps, not /frame
+      if (qs !== envStep) {
+        envStep = qs;
+        rebuildEnv();
+      }
+      starMat.size = 2.2 + Math.sin(elapsed * 2.5) * 0.4; // faint twinkle
 
       // live sea + streaming wake foam
       water.material.uniforms["time"].value += dt;
@@ -522,9 +693,16 @@ export default function OsvScrollHero() {
       const fwd = SHIP_LEN * 0.5 - 6;
       bowFoam.position.set(shipX + bowDir.x * fwd, 0.3, shipZ + bowDir.z * fwd);
 
-      // fixed cinematic camera with a faint breathing dolly
-      camera.position.set(cam.px, cam.py + Math.sin(elapsed * 0.3) * 0.3, cam.pz);
-      camera.lookAt(cam.tx, cam.ty, 0);
+      // fixed cinematic camera with a faint breathing dolly + pointer parallax
+      ptr.x += (ptr.tx - ptr.x) * 0.05;
+      ptr.y += (ptr.ty - ptr.y) * 0.05;
+      const PAR = 5;
+      camera.position.set(
+        cam.px + ptr.x * PAR,
+        cam.py + Math.sin(elapsed * 0.3) * 0.3 - ptr.y * PAR * 0.4,
+        cam.pz
+      );
+      camera.lookAt(cam.tx + ptr.x * 2.5, cam.ty - ptr.y * 1.5, 0);
 
       updateBeats(p);
       renderer.render(scene, camera);
@@ -559,6 +737,7 @@ export default function OsvScrollHero() {
     return () => {
       window.clearTimeout(readyTimer);
       window.removeEventListener("resize", onResize);
+      window.removeEventListener("pointermove", onPointerMove);
       cancelAnimationFrame(raf);
       io.disconnect();
       st.kill();
@@ -568,6 +747,9 @@ export default function OsvScrollHero() {
       waterNormals.dispose();
       wakeTex.dispose();
       bowTex.dispose();
+      discTex.dispose();
+      glowTex.dispose();
+      moonTex.dispose();
       scene.traverse((o) => {
         const mesh = o as THREE.Mesh;
         if (mesh.geometry) mesh.geometry.dispose();
