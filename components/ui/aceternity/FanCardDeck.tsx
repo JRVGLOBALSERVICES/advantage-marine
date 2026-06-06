@@ -105,13 +105,6 @@ export function FanCardDeck({
                   draggable={false}
                 />
               )}
-              <div
-                className="pointer-events-none absolute inset-x-0 bottom-0 h-1/2"
-                style={{
-                  background:
-                    "linear-gradient(to top, color-mix(in oklch, var(--color-ink) 30%, transparent), transparent)",
-                }}
-              />
             </div>
             <div className="flex flex-1 flex-col justify-between p-5 md:p-6">
               <div>

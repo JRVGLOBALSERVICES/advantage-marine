@@ -98,14 +98,6 @@ export function ProjectCard({
         >
           {category}
         </span>
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-1/3"
-          style={{
-            background:
-              "linear-gradient(to top, var(--color-paper-2) 0%, transparent 100%)",
-          }}
-        />
       </div>
 
       <div className="relative z-10 flex flex-1 flex-col gap-3 p-6">
