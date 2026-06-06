@@ -263,20 +263,25 @@ export default function OsvScrollHero() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    /* COVER: scale so the frame fills BOTH axes (Math.max), centred, overflow
-       cropped. The vessel always reaches every edge — no cream/black margin on
-       any viewport. The paper pre-fill stays only as a 1-frame guard before the
-       first decode; cover leaves no visible gap. */
+    /* COVER + SCROLL PAN: scale past cover (ZOOM) so there's horizontal slack,
+       then slide the frame from RIGHT (scroll-top) to LEFT as you scroll — the
+       vessel cruises across while the copy column stays over open sea on the
+       left. dx is clamped to the overflow range so a gap is never revealed
+       (dh ≥ cssH and dw ≥ cssW always), and vertical stays centred. */
+    const ZOOM = 1.42;
     const draw = (img: HTMLImageElement) => {
       const iw = img.naturalWidth;
       const ih = img.naturalHeight;
       if (!iw || !ih || !cssW || !cssH) return;
       ctx.fillStyle = paperFill;
       ctx.fillRect(0, 0, cssW, cssH);
-      const scale = Math.max(cssW / iw, cssH / ih);
+      const scale = Math.max(cssW / iw, cssH / ih) * ZOOM;
       const dw = iw * scale;
       const dh = ih * scale;
-      const dx = (cssW - dw) / 2;
+      // p=0 → dx=0 (frame's left shown, vessel sits right ~70%);
+      // p=1 → dx=cssW-dw (frame's right shown, vessel cruised to the left).
+      const p = Math.min(Math.max(scrollState.progress, 0), 1);
+      const dx = (cssW - dw) * p;
       const dy = (cssH - dh) / 2;
       ctx.drawImage(img, dx, dy, dw, dh);
     };
@@ -289,11 +294,17 @@ export default function OsvScrollHero() {
       }
       return -1;
     };
+    // redraw when the FRAME changes OR the scroll position moves (the pan tracks
+    // scroll, so a paint is needed every scroll step even on the same frame).
+    let lastPaintP = -1;
     const paint = () => {
       const idx = nearestLoaded(curTarget);
-      if (idx < 0 || idx === curDrawn) return;
+      if (idx < 0) return;
+      const p = scrollState.progress;
+      if (idx === curDrawn && Math.abs(p - lastPaintP) < 0.0015) return;
       draw(imgs[idx]);
       curDrawn = idx;
+      lastPaintP = p;
     };
 
     /* Decode the current set, coarse-stride first (0,6,12 … then fill) so a fast
@@ -433,7 +444,7 @@ export default function OsvScrollHero() {
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "radial-gradient(135% 110% at 0% 100%, oklch(0.13 0.035 235 / 0.64) 0%, transparent 62%), linear-gradient(to top, oklch(0.12 0.03 235 / 0.56) 0%, oklch(0.13 0.03 235 / 0.16) 40%, transparent 66%)",
+              "linear-gradient(to right, oklch(0.12 0.03 235 / 0.66) 0%, oklch(0.12 0.03 235 / 0.34) 30%, transparent 56%), linear-gradient(to top, oklch(0.12 0.03 235 / 0.5) 0%, oklch(0.13 0.03 235 / 0.14) 38%, transparent 64%)",
           }}
         />
         {/* mobile: portrait copy overlaps more of the vessel — run the base wash
