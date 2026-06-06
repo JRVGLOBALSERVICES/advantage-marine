@@ -119,72 +119,64 @@ function BeatBlock({
   return (
     <div
       ref={innerRef}
-      style={stacked ? { gridArea: "1 / 1" } : undefined}
-      className="w-[min(34rem,92vw)] will-change-[opacity,transform]"
+      style={{
+        ...(stacked ? { gridArea: "1 / 1" } : {}),
+        // soft dark halo so cream type holds even where it rises over bright sky
+        textShadow: "0 2px 28px oklch(0.12 0.03 235 / 0.55), 0 1px 3px oklch(0.12 0.03 235 / 0.4)",
+      }}
+      className="max-w-[44rem] will-change-[opacity,transform]"
     >
-      {/* frosted-glass card — guaranteed legibility over ANY frame (sky or dark
-          sea), with a cyan accent edge. The blur + dark tint give light type a
-          stable ground; the ship reads straight through the rest of the frame. */}
-      <div
-        className="relative overflow-hidden rounded-[1.25rem]"
-        style={{
-          padding: "clamp(1.25rem, 2.6vw, 2.25rem)",
-          background: "color-mix(in oklch, var(--color-ink) 52%, transparent)",
-          backdropFilter: "blur(18px) saturate(1.18)",
-          WebkitBackdropFilter: "blur(18px) saturate(1.18)",
-          border: "1px solid color-mix(in oklch, white 14%, transparent)",
-          boxShadow:
-            "0 26px 70px -30px oklch(0 0 0 / 0.62), inset 0 1px 0 color-mix(in oklch, white 14%, transparent)",
-        }}
-      >
-        {/* cyan accent edge + glow (the C look) */}
+      {/* Design A — cinematic full-bleed: brand display type straight on the
+          ship (no card), light cream on the dark base wash, cyan accent rule +
+          stat. Site fonts (font-display) and the real type scale. */}
+      <div className="flex items-center gap-[var(--space-sm)] mb-[var(--space-sm)]">
         <span
           aria-hidden
-          className="absolute left-0 top-0 h-full w-[3px]"
-          style={{ background: "var(--color-accent)", boxShadow: "0 0 22px 1px var(--color-accent)" }}
+          className="h-px w-[clamp(1.75rem,3vw,3.25rem)] shrink-0"
+          style={{ background: "var(--color-accent)", boxShadow: "0 0 10px var(--color-accent)" }}
         />
-        <p className="eyebrow mb-[var(--space-sm)] text-[color:var(--color-accent)]">{beat.kicker}</p>
-        <div className="mb-[var(--space-sm)]" style={{ fontSize: "var(--text-display)" }}>
-          <BlurText
-            text={beat.head[0]}
-            inView={active}
-            animateBy="words"
-            className="font-display font-bold leading-[1.06] tracking-[-0.01em] text-[color:var(--color-paper)]"
-          />
-          <BlurText
-            text={beat.head[1]}
-            inView={active}
-            delay={140}
-            animateBy="words"
-            className="font-display font-light leading-[1.06] tracking-[-0.01em] text-[color:color-mix(in_oklch,var(--color-paper)_72%,transparent)]"
-          />
-        </div>
-        <p
-          className="max-w-[32rem] leading-[1.5]"
-          style={{ fontSize: "var(--text-lead)", color: "color-mix(in oklch, var(--color-paper) 82%, transparent)" }}
+        <p className="eyebrow !mb-0 text-[color:var(--color-accent)]">{beat.kicker}</p>
+      </div>
+      <div className="mb-[var(--space-md)]" style={{ fontSize: "var(--text-display)" }}>
+        <BlurText
+          text={beat.head[0]}
+          inView={active}
+          animateBy="words"
+          className="font-display font-bold leading-[1.04] tracking-[-0.01em] text-[color:var(--color-paper)]"
+        />
+        <BlurText
+          text={beat.head[1]}
+          inView={active}
+          delay={140}
+          animateBy="words"
+          className="font-display font-light leading-[1.04] tracking-[-0.01em] text-[color:color-mix(in_oklch,var(--color-paper)_74%,transparent)]"
+        />
+      </div>
+      <p
+        className="max-w-[36rem] leading-[1.55]"
+        style={{ fontSize: "var(--text-lead)", color: "color-mix(in oklch, var(--color-paper) 84%, transparent)" }}
+      >
+        {beat.lead}
+      </p>
+      <div className="mt-[var(--space-lg)] flex items-end gap-[var(--space-md)] flex-wrap">
+        <span
+          className="font-display font-bold leading-none text-[color:var(--color-accent)] flex items-baseline"
+          style={{ fontSize: "var(--text-stat)" }}
         >
-          {beat.lead}
-        </p>
-        <div className="mt-[var(--space-md)] flex items-end gap-[var(--space-md)] flex-wrap">
-          <span
-            className="font-display font-bold leading-none text-[color:var(--color-accent)] flex items-baseline"
-            style={{ fontSize: "var(--text-stat)" }}
-          >
-            <NumberTicker
-              value={beat.stat.value}
-              start={active}
-              decimalPlaces={beat.stat.decimals ?? 0}
-              className="text-[color:var(--color-accent)]"
-            />
-            <span>{beat.stat.suffix}</span>
-          </span>
-          <span
-            className="eyebrow pb-2 max-w-[14rem] !tracking-[0.18em] normal-case"
-            style={{ color: "color-mix(in oklch, var(--color-paper) 70%, transparent)" }}
-          >
-            {beat.statLabel}
-          </span>
-        </div>
+          <NumberTicker
+            value={beat.stat.value}
+            start={active}
+            decimalPlaces={beat.stat.decimals ?? 0}
+            className="text-[color:var(--color-accent)]"
+          />
+          <span>{beat.stat.suffix}</span>
+        </span>
+        <span
+          className="eyebrow pb-2 max-w-[14rem] !tracking-[0.18em] normal-case"
+          style={{ color: "color-mix(in oklch, var(--color-paper) 72%, transparent)" }}
+        >
+          {beat.statLabel}
+        </span>
       </div>
     </div>
   );
@@ -441,10 +433,10 @@ export default function OsvScrollHero() {
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "radial-gradient(125% 95% at 0% 100%, oklch(0.16 0.035 235 / 0.52) 0%, transparent 55%), linear-gradient(to top, oklch(0.15 0.03 235 / 0.42) 0%, transparent 44%)",
+              "radial-gradient(135% 110% at 0% 100%, oklch(0.13 0.035 235 / 0.64) 0%, transparent 62%), linear-gradient(to top, oklch(0.12 0.03 235 / 0.56) 0%, oklch(0.13 0.03 235 / 0.16) 40%, transparent 66%)",
           }}
         />
-        {/* mobile: portrait card overlaps more of the vessel — run the base wash
+        {/* mobile: portrait copy overlaps more of the vessel — run the base wash
            a touch stronger/taller for contrast. */}
         <div
           className="absolute inset-0 pointer-events-none sm:hidden"
