@@ -2,9 +2,10 @@
 
 /* ──────────────────────────────────────────────────────────────────────────
    OSV SCROLL-FRAME HERO
-   The client's own concept reel (the ADVANTAGE offshore support vessel —
-   orbit → exploded view with callouts → reassemble → blue/yellow livery
-   reveal → sail-away) driven frame-by-frame by scroll.
+   A Blender-authored ADVANTAGE offshore support vessel cruising open water
+   (gunmetal hull, white superstructure, deck crane, helideck) — the vessel
+   rides the swell frame-by-frame as you scroll. Rendered in Cycles from the
+   brand-recoloured model (see /blender), exported as an image sequence.
 
    HOW THE SCRUB IS DONE (matches altida / seagull references):
    The reel is pre-exploded into an IMAGE SEQUENCE and painted to a <canvas>,
@@ -30,14 +31,11 @@ import ScrollCue from "./ScrollCue";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* Per-orientation frame sets — each a REAL edge-to-edge composition of the same
-   15.04s reel, not a crop or blur-pad of the 16:9 master. The portrait sets come
-   from a Higgsfield GENERATIVE REFRAME of the 4K master that outpaints the canvas
-   vertically with real sea + sky (the iPad 3:4 set is cropped from that same clean
-   9:16 render). So every viewport gets a frame whose aspect already matches it:
-   no side-crop of the exploded modules (the earlier "cropped on mobile" defect),
-   no blurred zoom-pad (the earlier "blurry on mobile" defect). Fit-to-width keeps
-   the full vessel width on screen; any vertical overshoot trims only sky/sea. */
+/* Per-orientation frame sets — each a REAL edge-to-edge render of the Blender
+   cruise for its aspect, not a crop or blur-pad of one master. The portrait sets
+   are re-rendered from the same scene with a taller (width-locked) camera so they
+   carry more sea + sky, so every viewport gets a frame whose aspect already
+   matches it: no side-crop of the vessel, no blurred zoom-pad. */
 type FrameSet = { dir: string; count: number; pad: number; fit: "cover" };
 const FRAME_SETS: Record<"portraitNarrow" | "portraitWide" | "landscape", FrameSet> = {
   // COVER on every set: the frame fills the viewport edge-to-edge, any aspect
@@ -82,28 +80,28 @@ type Beat = {
   statLabel: string;
 };
 
-/* Three acts latched to the reel: assembled vessel → exploded survey →
-   reassembled-and-cleared. Copy is grounded ONLY in lib/content (10+ yrs
-   afloat, the 4,630 m² Johor yard, 12 class/ISO certs). No invented metrics. */
+/* Three beats latched to the cruise: vessel underway → read down to the steel →
+   cleared by class. Copy is grounded ONLY in lib/content (10+ yrs afloat, the
+   4,630 m² Johor yard, 12 class/ISO certs). No invented metrics. */
 const BEATS: Beat[] = [
   {
     kicker: "00 — Offshore support, surveyed to class",
     head: ["Built to work", "where the sea won't."],
-    lead: "An offshore support vessel is only as sound as the survey behind it — hull, propulsion, deck systems. We build that confidence, then verify every part of it underwater.",
+    lead: "An offshore support vessel earns open water only when the survey behind it holds — hull, propulsion, deck systems. We build that confidence, then prove it underwater.",
     stat: { value: 10, suffix: "+" },
     statLabel: "Years afloat · IMCA / OGP standard",
   },
   {
-    kicker: "01 — Taken apart, system by system",
-    head: ["Every part", "accounted for."],
-    lead: "Pulled to its last module — hull, superstructure, azimuth thrusters, deck crane. Every system is a point we read and document to class before the vessel sails.",
+    kicker: "01 — Read down to the steel",
+    head: ["Every weld,", "every anode."],
+    lead: "Before a vessel sails, our divers and NDT teams read what the surface hides — hull plating, welds and cathodic protection — and document each one to class.",
     stat: { value: 4630, suffix: " m²" },
     statLabel: "Johor fabrication & dive facility",
   },
   {
-    kicker: "02 — Reassembled, then proven",
-    head: ["Vessel complete.", "Cleared by class."],
-    lead: "Systems seated, livery on, underway. Our divers and the Chasing M2 ROV read the welds, the cathodic protection and the steel the surface can't see — documented to ISO and class society.",
+    kicker: "02 — Underway, cleared by class",
+    head: ["Proven at sea.", "Signed to class."],
+    lead: "Systems seated, livery on, underway. The Chasing M2 ROV and our dive teams verify the steel the surface can't see — documented to ISO and class society.",
     stat: { value: 12, suffix: "" },
     statLabel: "ISO & class-society certifications",
   },
@@ -218,11 +216,10 @@ export default function OsvScrollHero() {
   useEffect(() => {
     if (!mounted || reduced || !sectionRef.current || !canvasRef.current) return;
 
-    /* Per-orientation frame set — each is a REAL composition for its aspect (a
-       Higgsfield generative reframe of the 4K master for the portrait sets), so
-       the chosen sequence already matches the live viewport. Fit-to-WIDTH keeps
-       the full vessel width on screen on portrait (no side-crop of the exploded
-       modules) with only a thin paper margin top/bottom; landscape contains. */
+    /* Per-orientation frame set — each is a REAL Blender render for its aspect
+       (the portrait sets re-rendered with a taller width-locked camera), so the
+       chosen sequence already matches the live viewport. COVER fills the canvas
+       edge-to-edge; any aspect overshoot trims only sky/sea, never the vessel. */
     let seq = pickFrameSet();
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d", { alpha: false });
@@ -330,12 +327,12 @@ export default function OsvScrollHero() {
       },
     });
 
-    // Beat windows tuned to the reel: 0 over the assembled vessel, 1 over the
-    // exploded-survey hold, 2 over the livery reveal + sail-away.
+    // Beat windows spread evenly across the continuous cruise (no single hold
+    // moment): underway → read the steel → cleared by class.
     const windows: [number, number, number, number][] = [
-      [-0.1, -0.05, 0.12, 0.22],
-      [0.34, 0.42, 0.56, 0.66],
-      [0.82, 0.9, 0.99, 1.06],
+      [-0.1, -0.05, 0.16, 0.28],
+      [0.36, 0.45, 0.56, 0.66],
+      [0.74, 0.84, 0.99, 1.06],
     ];
 
     const tick = () => {
@@ -397,7 +394,7 @@ export default function OsvScrollHero() {
             "@type": "VideoObject",
             name: "ADVANTAGE — offshore support vessel, surveyed to class",
             description:
-              "Exploded-view walkthrough of an Advantage Marine offshore support vessel: hull, superstructure, azimuth thrusters and deck systems, reassembled and cleared to class.",
+              "An Advantage Marine offshore support vessel underway on open water — hull, superstructure, deck crane and helideck — surveyed by divers and the Chasing M2 ROV and cleared to class.",
             thumbnailUrl: [POSTER],
             uploadDate: "2026-06-06",
             duration: "PT15S",
