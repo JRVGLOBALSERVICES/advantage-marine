@@ -23,9 +23,14 @@ const SERVICE_CHILDREN = [
   { href: "/services#trading-others", label: "Trading & Support" },
 ];
 
+const ABOUT_CHILDREN = [
+  { href: "/about", label: "About AMS" },
+  { href: "/careers", label: "Career @ AMS" },
+];
+
 const LINKS: NavLink[] = [
   { href: "/", label: "Home" },
-  { href: "/about", label: "About" },
+  { href: "/about", label: "About", children: ABOUT_CHILDREN },
   { href: "/services", label: "Services", children: SERVICE_CHILDREN },
   { href: "/projects", label: "Projects" },
   { href: "/news", label: "News" },
