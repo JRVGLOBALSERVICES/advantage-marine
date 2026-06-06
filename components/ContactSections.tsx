@@ -9,6 +9,7 @@ import { WordReveal } from "@/components/ui/WordReveal";
 import { FanCardDeck, type FanCard } from "@/components/ui/aceternity/FanCardDeck";
 import { StaticTileMap } from "@/components/ui/StaticTileMap";
 import ContactConstellation from "@/components/ContactConstellation";
+import PlatformHero from "@/components/PlatformHero";
 
 /* office shape kept local now that the cards render through the shared news FanCardDeck */
 type OfficeLocation = {
@@ -106,13 +107,11 @@ export default function ContactSections() {
 
   return (
     <main className="bg-[color:var(--color-paper)]">
-      {/* ===================== HERO — 100lvh full-bleed ===================== */}
-      <section className="relative h-[100lvh] min-h-[40rem] w-full overflow-hidden">
-        <img
-          src={HERO_IMG}
-          alt="Advantage Marine Services dive-support operation"
-          className="absolute inset-0 h-full w-full object-cover"
-        />
+      {/* ===================== HERO — 100lvh full-bleed live platform ===================== */}
+      <section className="relative h-[100lvh] min-h-[40rem] w-full overflow-hidden bg-[color:var(--color-ink)]">
+        {/* live offshore-platform ocean scene (falls back to the photo on
+            reduced-motion / no-WebGL) */}
+        <PlatformHero fallback={HERO_IMG} />
         {/* ink scrim — keep type legible, no cream text */}
         <div
           className="absolute inset-0"
