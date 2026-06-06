@@ -6,6 +6,7 @@ import DecryptedText from "@/components/ui/reactbits/DecryptedText";
 import SpotlightCard from "@/components/ui/reactbits/SpotlightCard";
 import { RevealIconButton } from "@/components/ui/uiverse/RevealIconButton";
 import { WordReveal } from "@/components/ui/WordReveal";
+import { MagneticLink } from "@/components/ui/MagneticLink";
 import { FanCardDeck, type FanCard } from "@/components/ui/aceternity/FanCardDeck";
 import { StaticTileMap } from "@/components/ui/StaticTileMap";
 import ContactConstellation from "@/components/ContactConstellation";
@@ -140,17 +141,10 @@ export default function ContactSections() {
           </motion.p>
 
           <h1
-            className="font-display leading-[1.06] text-[color:var(--color-ink)]"
+            className="font-display leading-[1.02] text-[color:var(--color-ink)]"
             style={{ fontSize: "var(--text-display)" }}
           >
-            <motion.span
-              className="block"
-              initial={reduce ? false : { opacity: 0, y: 28 }}
-              animate={reduce ? {} : { opacity: 1, y: 0 }}
-              transition={{ duration: 0.85, ease: EASE, delay: 0.08 }}
-            >
-              Talk to AMS
-            </motion.span>
+            <WordReveal text="Talk to AMS." />
           </h1>
 
           <motion.p
@@ -158,7 +152,7 @@ export default function ContactSections() {
             style={{ ...MUTED, fontSize: "var(--text-lead)" }}
             initial={reduce ? false : { opacity: 0, y: 20 }}
             animate={reduce ? {} : { opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: EASE, delay: 0.18 }}
+            transition={{ duration: 0.8, ease: EASE, delay: 0.35 }}
           >
             Class survey, in-water inspection, NDT or steel renewal — tell us
             what the vessel needs and our team responds promptly from the Johor yard.
@@ -168,12 +162,27 @@ export default function ContactSections() {
             className="mt-[var(--space-lg)] flex flex-wrap items-center gap-[var(--space-md)]"
             initial={reduce ? false : { opacity: 0, y: 18 }}
             animate={reduce ? {} : { opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, ease: EASE, delay: 0.26 }}
+            transition={{ duration: 0.8, ease: EASE, delay: 0.45 }}
           >
-            <a href="#enquiry" className="cta-primary">Request a quote</a>
-            <a href="#offices" className="cta-secondary">Find the yard</a>
+            <MagneticLink href="#enquiry" className="cta-primary">Request a quote</MagneticLink>
+            <MagneticLink href="#offices" className="cta-secondary">Find the yard</MagneticLink>
           </motion.div>
         </div>
+
+        {/* scroll cue */}
+        <motion.div
+          className="absolute bottom-[clamp(1.25rem,3vh,2rem)] left-1/2 z-10 -translate-x-1/2"
+          initial={reduce ? false : { opacity: 0 }}
+          animate={reduce ? {} : { opacity: 1 }}
+          transition={{ duration: 1, delay: 0.8 }}
+          aria-hidden
+        >
+          <motion.div
+            className="h-9 w-[1.5px] origin-top rounded-full bg-[color:color-mix(in_oklch,var(--color-ink)_45%,transparent)]"
+            animate={reduce ? {} : { scaleY: [0.3, 1, 0.3], opacity: [0.3, 1, 0.3] }}
+            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+          />
+        </motion.div>
       </section>
 
       {/* ===================== contact constellation — vessel + 6 contact points =====================
@@ -211,7 +220,7 @@ export default function ContactSections() {
           <p className="eyebrow mb-[var(--space-lg)] text-[color:var(--color-accent)]">Key contacts</p>
           <div className="grid gap-[var(--space-md)]">
             {CONTACTS.map((c) => (
-              <SpotlightCard key={c.name} className="!p-[var(--space-lg)]">
+              <SpotlightCard key={c.name} className="!p-[var(--space-lg)] transition-transform duration-300 hover:-translate-y-1">
                 <p className="font-display text-[color:var(--color-ink)]" style={{ fontSize: "var(--text-h3)" }}>
                   {c.name}
                 </p>
@@ -307,7 +316,7 @@ export default function ContactSections() {
             </div>
           </div>
 
-          <div className="overflow-hidden rounded-[var(--radius-card)] border border-[color:var(--color-rule)]">
+          <div className="overflow-hidden rounded-[var(--radius-card)] border border-[color:var(--color-rule)] shadow-sm transition-transform duration-500 hover:scale-[1.01]">
             <iframe
               title="Advantage Marine Services — Gelang Patah, Johor"
               src="https://www.google.com/maps?q=Taman+Laman+Setia,+81550+Gelang+Patah,+Johor,+Malaysia&output=embed"
