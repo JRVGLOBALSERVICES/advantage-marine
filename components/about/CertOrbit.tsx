@@ -196,10 +196,10 @@ export function CertOrbit({ certs }: { certs: Cert[] }) {
       {/* hub — the AMS node the credentials orbit */}
       <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center">
         <div
-          className="flex flex-col items-center justify-center rounded-full text-center"
+          className="flex flex-col items-center justify-center rounded-full px-2 text-center"
           style={{
-            width: "clamp(4.5rem, 14vw, 7rem)",
-            height: "clamp(4.5rem, 14vw, 7rem)",
+            width: "clamp(5rem, 15vw, 7rem)",
+            height: "clamp(5rem, 15vw, 7rem)",
             background:
               "radial-gradient(circle at 32% 28%, color-mix(in oklch, var(--color-accent) 86%, white) 0%, var(--color-accent) 70%)",
             boxShadow:
@@ -209,7 +209,7 @@ export function CertOrbit({ certs }: { certs: Cert[] }) {
           <span
             className="font-display leading-none"
             style={{
-              fontSize: "clamp(1.25rem, 4vw, 1.9rem)",
+              fontSize: "clamp(1.2rem, 3.6vw, 1.85rem)",
               color: "var(--color-paper)",
               letterSpacing: "0.04em",
             }}
@@ -217,10 +217,10 @@ export function CertOrbit({ certs }: { certs: Cert[] }) {
             AMS
           </span>
           <span
-            className="font-display mt-1"
+            className="font-display mt-0.5 whitespace-nowrap leading-none"
             style={{
-              fontSize: "var(--text-eyebrow)",
-              letterSpacing: "0.18em",
+              fontSize: "clamp(0.5rem, 1.5vw, 0.64rem)",
+              letterSpacing: "0.06em",
               textTransform: "uppercase",
               color: "color-mix(in oklch, var(--color-paper) 82%, transparent)",
             }}
