@@ -60,12 +60,15 @@ export default function FooterVideo() {
         className="absolute inset-0"
         style={{
           background:
-            "linear-gradient(180deg, rgba(15,40,38,0.28) 0%, rgba(15,40,38,0.10) 38%, rgba(15,40,38,0.30) 72%, var(--color-paper-2) 100%)",
+            "linear-gradient(180deg, transparent 0%, transparent 68%, var(--color-paper-2) 100%)",
         }}
       />
 
-      {/* wordmark */}
-      <div className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center">
+      {/* wordmark — its own soft halo carries legibility now the dark wash is gone */}
+      <div
+        className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
+        style={{ textShadow: "0 2px 18px rgba(8,26,24,0.55), 0 1px 3px rgba(8,26,24,0.4)" }}
+      >
         <p
           className="mb-3 font-semibold uppercase text-white/80"
           style={{ fontSize: "clamp(0.62rem,1.4vw,0.74rem)", letterSpacing: "0.34em" }}

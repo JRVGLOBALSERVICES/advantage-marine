@@ -119,14 +119,6 @@ function Card({
               decoding="async"
               className="absolute inset-0 h-full w-full object-cover transition-transform duration-[600ms] ease-[var(--ease-out)] group-hover:scale-[1.04]"
             />
-            <div
-              aria-hidden
-              className="absolute inset-0"
-              style={{
-                background:
-                  "linear-gradient(90deg, var(--color-paper-2) 0%, color-mix(in oklch, var(--color-paper-2) 30%, transparent) 26%, transparent 60%)",
-              }}
-            />
             <span
               aria-hidden
               className="absolute right-4 top-4 font-display text-sm tracking-[0.18em] text-[color:var(--color-accent-ink)] mix-blend-difference"

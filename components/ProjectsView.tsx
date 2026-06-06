@@ -101,7 +101,7 @@ export default function ProjectsView({ projects, images, heroImage }: Props) {
           className="absolute inset-0 -z-10"
           style={{
             background:
-              "linear-gradient(to top, var(--color-paper) 4%, color-mix(in oklch, var(--color-paper) 55%, transparent) 38%, color-mix(in oklch, var(--color-paper) 14%, transparent) 72%, color-mix(in oklch, var(--color-paper) 30%, transparent) 100%)",
+              "linear-gradient(to top, var(--color-paper) 0%, color-mix(in oklch, var(--color-paper) 50%, transparent) 34%, transparent 66%)",
           }}
         />
 

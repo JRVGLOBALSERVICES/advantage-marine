@@ -893,23 +893,13 @@ export default function OsvScrollHero() {
         {/* the live ocean + vessel scene mounts here (canvas appended) */}
         <div ref={mountRef} className="absolute inset-0" />
 
-        {/* cinematic grounding — a soft dark wash at the base + lower-left so the
-           copy sits on depth, while the upper/right of the ocean stays clean and
-           bright with the sun glitter. */}
+        {/* cinematic grounding — one clean wash anchored at the lower-left where
+           the copy sits; the upper/right ocean stays bright with the sun glitter */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to right, oklch(0.12 0.03 235 / 0.66) 0%, oklch(0.12 0.03 235 / 0.34) 30%, transparent 56%), linear-gradient(to top, oklch(0.12 0.03 235 / 0.5) 0%, oklch(0.13 0.03 235 / 0.14) 38%, transparent 64%)",
-          }}
-        />
-        {/* mobile: portrait copy overlaps more of the vessel — run the base wash
-           a touch stronger/taller for contrast. */}
-        <div
-          className="absolute inset-0 pointer-events-none sm:hidden"
-          style={{
-            background:
-              "linear-gradient(to top, oklch(0.14 0.03 235 / 0.5) 0%, oklch(0.15 0.03 235 / 0.22) 30%, transparent 60%)",
+              "radial-gradient(120% 95% at 0% 100%, oklch(0.12 0.03 235 / 0.6) 0%, transparent 58%), linear-gradient(to top, oklch(0.12 0.03 235 / 0.34) 0%, transparent 30%)",
           }}
         />
 
