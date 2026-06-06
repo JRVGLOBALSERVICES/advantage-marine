@@ -268,20 +268,25 @@ export default function OsvScrollHero() {
        vessel cruises across while the copy column stays over open sea on the
        left. dx is clamped to the overflow range so a gap is never revealed
        (dh ≥ cssH and dw ≥ cssW always), and vertical stays centred. */
-    const ZOOM = 1.42;
+    const ZOOM = 1.3; // past cover → pan room (and not as huge as a hard cover-zoom)
+    const START_PUSH = 0.17; // extra right shift at scroll-top; left strip is dark
     const draw = (img: HTMLImageElement) => {
       const iw = img.naturalWidth;
       const ih = img.naturalHeight;
       if (!iw || !ih || !cssW || !cssH) return;
-      ctx.fillStyle = paperFill;
+      // dark sea fill so the left strip behind the copy column reads dark (the
+      // copy sits over it), never cream — and never a bright gap.
+      ctx.fillStyle = "#0f1a22";
       ctx.fillRect(0, 0, cssW, cssH);
       const scale = Math.max(cssW / iw, cssH / ih) * ZOOM;
       const dw = iw * scale;
       const dh = ih * scale;
-      // p=0 → dx=0 (frame's left shown, vessel sits right ~70%);
-      // p=1 → dx=cssW-dw (frame's right shown, vessel cruised to the left).
+      // p=0 → vessel pushed hard RIGHT (left strip clear for the headline);
+      // p=1 → frame's right edge shown, vessel cruised to the LEFT.
       const p = Math.min(Math.max(scrollState.progress, 0), 1);
-      const dx = (cssW - dw) * p;
+      const dxStart = cssW * START_PUSH; // left strip (dark) at the top
+      const dxEnd = cssW - dw; // hard left, no right gap
+      const dx = dxStart + (dxEnd - dxStart) * p;
       const dy = (cssH - dh) / 2;
       ctx.drawImage(img, dx, dy, dw, dh);
     };
