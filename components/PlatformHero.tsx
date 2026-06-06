@@ -167,6 +167,55 @@ export default function PlatformHero({ fallback }: { fallback: string }) {
     };
     if (fine) window.addEventListener("pointermove", onPointerMove);
 
+    // ── tap / click ripples on the water (the main interaction on touch) ──
+    const ringCanvas = document.createElement("canvas");
+    ringCanvas.width = ringCanvas.height = 128;
+    const rc = ringCanvas.getContext("2d")!;
+    const rimg = rc.createImageData(128, 128);
+    for (let y = 0; y < 128; y++)
+      for (let x = 0; x < 128; x++) {
+        const r = Math.hypot((x - 64) / 62, (y - 64) / 62);
+        const a = r < 1 ? Math.max(0, 1 - Math.abs(r - 0.72) / 0.22) : 0;
+        const i = (y * 128 + x) * 4;
+        rimg.data[i] = rimg.data[i + 1] = rimg.data[i + 2] = 255;
+        rimg.data[i + 3] = a * 255;
+      }
+    rc.putImageData(rimg, 0, 0);
+    const ringTex = new THREE.CanvasTexture(ringCanvas);
+    ringTex.colorSpace = THREE.SRGBColorSpace;
+    const ripples: { mesh: THREE.Mesh; t: number; active: boolean }[] = [];
+    for (let i = 0; i < 6; i++) {
+      const m = new THREE.Mesh(
+        new THREE.PlaneGeometry(1, 1),
+        new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, opacity: 0, blending: THREE.AdditiveBlending, color: 0xcfeaff })
+      );
+      m.rotation.x = -Math.PI / 2;
+      m.renderOrder = 3;
+      m.visible = false;
+      scene.add(m);
+      ripples.push({ mesh: m, t: 0, active: false });
+    }
+    let ripIdx = 0;
+    const tapNdc = new THREE.Vector2();
+    const tapRay = new THREE.Raycaster();
+    const tapPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const tapHit = new THREE.Vector3();
+    const onPointerDown = (e: PointerEvent) => {
+      const r = mount.getBoundingClientRect();
+      tapNdc.x = ((e.clientX - r.left) / (r.width || 1)) * 2 - 1;
+      tapNdc.y = -(((e.clientY - r.top) / (r.height || 1)) * 2 - 1);
+      tapRay.setFromCamera(tapNdc, camera);
+      if (tapRay.ray.intersectPlane(tapPlane, tapHit)) {
+        const rp = ripples[ripIdx];
+        ripIdx = (ripIdx + 1) % ripples.length;
+        rp.active = true;
+        rp.t = 0;
+        rp.mesh.visible = true;
+        rp.mesh.position.set(tapHit.x, 0.5, tapHit.z);
+      }
+    };
+    mount.addEventListener("pointerdown", onPointerDown);
+
     // ── render loop (paused offscreen) ──
     const clock = new THREE.Clock();
     let visible = true;
@@ -185,6 +234,20 @@ export default function PlatformHero({ fallback }: { fallback: string }) {
       const cr = Math.cos(elev) * camDist;
       camera.position.set(Math.sin(az) * cr, cy, Math.cos(az) * cr);
       camera.lookAt(0, centerY + radius * 0.12, 0);
+
+      for (const rp of ripples) {
+        if (!rp.active) continue;
+        rp.t += dt;
+        const k = rp.t / 1.15;
+        if (k >= 1) {
+          rp.active = false;
+          rp.mesh.visible = false;
+          continue;
+        }
+        const sc = radius * (0.1 + k * 1.1);
+        rp.mesh.scale.set(sc, sc, 1);
+        (rp.mesh.material as THREE.MeshBasicMaterial).opacity = (1 - k) * 0.6;
+      }
 
       renderer.render(scene, camera);
       raf = requestAnimationFrame(render);
@@ -212,6 +275,8 @@ export default function PlatformHero({ fallback }: { fallback: string }) {
     return () => {
       window.removeEventListener("resize", onResize);
       window.removeEventListener("pointermove", onPointerMove);
+      mount.removeEventListener("pointerdown", onPointerDown);
+      ringTex.dispose();
       cancelAnimationFrame(raf);
       io.disconnect();
       scene.environment = null;

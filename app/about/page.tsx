@@ -10,6 +10,7 @@ import { TextSpotlightReveal } from "@/components/ui/TextSpotlightReveal";
 import { NumberTicker } from "@/components/ui/NumberTicker";
 import DecryptedText from "@/components/ui/reactbits/DecryptedText";
 import { CardContainer, CardBody, CardItem } from "@/components/ui/TiltCard";
+import { ParallaxImage } from "@/components/ui/ParallaxImage";
 import { FanCardsCarousel, type FanCard } from "@/components/ui/aceternity/FanCardsCarousel";
 import {
   ScrollVelocityContainer,
@@ -97,13 +98,11 @@ export default function AboutPage() {
 
       {/* ───────────────────────── HERO — 100lvh, full-bleed real photo ───────────────────────── */}
       <section className="relative h-[100lvh] min-h-[640px] w-full overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <ParallaxImage
           src={heroImage}
           alt="Advantage Marine Services dive and engineering crew at the Johor yard"
-          className="absolute inset-0 h-full w-full object-cover"
-          fetchPriority="high"
-          decoding="async"
+          className="h-full w-full object-cover"
+          priority
         />
         {/* ink scrim — keeps the inscriptional title legible without introducing a dark surface */}
         <div

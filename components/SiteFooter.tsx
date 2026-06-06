@@ -33,6 +33,7 @@ const OFFICES = [
 
 const COMPANY = [
   { href: "/about", label: "About AMS" },
+  { href: "/careers", label: "Career @ AMS" },
   { href: "/projects", label: "Projects" },
   { href: "/news", label: "News" },
   { href: "/contact", label: "Contact" },

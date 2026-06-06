@@ -18,6 +18,7 @@ import { SlideFillButton } from "@/components/ui/uiverse/SlideFillButton";
 import { ExpandIconButton } from "@/components/ui/uiverse/ExpandIconButton";
 import { SelectedWorks } from "@/components/ui/ExpandingCards";
 import { ProjectCard } from "@/components/ProjectCard";
+import { ParallaxImage } from "@/components/ui/ParallaxImage";
 import { parsePeriod, parseYear, reportHref } from "@/lib/projectMeta";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -86,13 +87,14 @@ export default function ProjectsView({ projects, images, heroImage }: Props) {
     <main>
       {/* ───────────────────────── HERO (100lvh, full-bleed real image) ───────────────────────── */}
       <section className="relative isolate flex min-h-[100lvh] items-end overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={heroImage}
-          alt="Advantage Marine divers and steelwork crew on a jack-up rig offshore Malaysia"
-          className="absolute inset-0 -z-10 h-full w-full object-cover"
-          decoding="async"
-        />
+        <div className="absolute inset-0 -z-10">
+          <ParallaxImage
+            src={heroImage}
+            alt="Advantage Marine divers and steelwork crew on a jack-up rig offshore Malaysia"
+            className="h-full w-full object-cover"
+            priority
+          />
+        </div>
         {/* paper grounding scrim — keeps ink type legible, no dark surface introduced */}
         <div
           aria-hidden

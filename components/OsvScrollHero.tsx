@@ -400,6 +400,40 @@ export default function OsvScrollHero() {
     const cursorLight = new THREE.PointLight(0xfff0d0, 0, 220, 2);
     scene.add(cursorLight);
 
+    // tap/click ripples on the water (the primary interaction on touch/mobile)
+    const ringTex = makeTex(128, 128, (d) => {
+      for (let y = 0; y < 128; y++)
+        for (let x = 0; x < 128; x++) {
+          const r = Math.hypot((x - 64) / 62, (y - 64) / 62);
+          const a = r < 1 ? Math.max(0, 1 - Math.abs(r - 0.72) / 0.22) : 0;
+          const i = (y * 128 + x) * 4;
+          d[i] = d[i + 1] = d[i + 2] = 255;
+          d[i + 3] = a * 255;
+        }
+    });
+    type Ripple = { mesh: THREE.Mesh; t: number; active: boolean };
+    const ripples: Ripple[] = [];
+    for (let i = 0; i < 6; i++) {
+      const m = new THREE.Mesh(
+        new THREE.PlaneGeometry(1, 1),
+        new THREE.MeshBasicMaterial({ map: ringTex, transparent: true, depthWrite: false, opacity: 0, blending: THREE.AdditiveBlending, color: 0xcfeaff })
+      );
+      m.rotation.x = -Math.PI / 2;
+      m.renderOrder = 3;
+      m.visible = false;
+      scene.add(m);
+      ripples.push({ mesh: m, t: 0, active: false });
+    }
+    let ripIdx = 0;
+    const spawnRipple = (x: number, z: number) => {
+      const r = ripples[ripIdx];
+      ripIdx = (ripIdx + 1) % ripples.length;
+      r.active = true;
+      r.t = 0;
+      r.mesh.visible = true;
+      r.mesh.position.set(x, 0.5, z);
+    };
+
     // environment (sky reflections on the hull) — rebuilt occasionally as the
     // sky shifts (PMREM per-frame would be far too costly)
     const pmrem = new THREE.PMREMGenerator(renderer);
@@ -684,6 +718,18 @@ export default function OsvScrollHero() {
     const ray = new THREE.Raycaster();
     const seaPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
     const hitPt = new THREE.Vector3();
+
+    // tap / click → ripple on the water (the main interaction on touch devices)
+    const tapNdc = new THREE.Vector2(0, 0);
+    const onPointerDown = (e: PointerEvent) => {
+      const r = mount.getBoundingClientRect();
+      tapNdc.x = ((e.clientX - r.left) / (r.width || 1)) * 2 - 1;
+      tapNdc.y = -(((e.clientY - r.top) / (r.height || 1)) * 2 - 1);
+      ray.setFromCamera(tapNdc, camera);
+      if (ray.ray.intersectPlane(seaPlane, hitPt)) spawnRipple(hitPt.x, hitPt.z);
+    };
+    mount.addEventListener("pointerdown", onPointerDown);
+
     const render = () => {
       const dt = Math.min(clock.getDelta(), 0.05);
       elapsed += dt;
@@ -748,6 +794,21 @@ export default function OsvScrollHero() {
       wlm.color.setHex(n > 0.5 ? 0xbcd0ff : 0xffe6b8);
       cursorLight.color.setHex(n > 0.5 ? 0xbcd0ff : 0xfff0d0);
 
+      // expand + fade tap ripples on the water
+      for (const rp of ripples) {
+        if (!rp.active) continue;
+        rp.t += dt;
+        const k = rp.t / 1.15;
+        if (k >= 1) {
+          rp.active = false;
+          rp.mesh.visible = false;
+          continue;
+        }
+        const sc = 6 + k * 64;
+        rp.mesh.scale.set(sc, sc, 1);
+        (rp.mesh.material as THREE.MeshBasicMaterial).opacity = (1 - k) * 0.6;
+      }
+
       updateBeats(p);
       renderer.render(scene, camera);
       raf = requestAnimationFrame(render);
@@ -784,6 +845,8 @@ export default function OsvScrollHero() {
       window.removeEventListener("pointermove", onPointerMove);
       mount.removeEventListener("pointerenter", onEnter);
       mount.removeEventListener("pointerleave", onLeave);
+      mount.removeEventListener("pointerdown", onPointerDown);
+      ringTex.dispose();
       cancelAnimationFrame(raf);
       io.disconnect();
       st.kill();
