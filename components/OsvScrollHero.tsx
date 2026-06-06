@@ -47,15 +47,6 @@ const POSTER = "/media/home/hero-osv-poster.jpg";
 const REEL_URL =
   "https://res.cloudinary.com/de3gn7o77/video/upload/advantage-marine/deliverables/advantage-osv-reel-16x9-4k.mp4";
 
-/* capability words that pop in around the cursor as you move over the hero */
-const HERO_WORDS: { t: string; x: number; y: number }[] = [
-  { t: "SURVEY", x: -168, y: -78 },
-  { t: "NDT", x: 132, y: -118 },
-  { t: "ROV", x: 184, y: 46 },
-  { t: "DIVE", x: -196, y: 64 },
-  { t: "SALVAGE", x: -8, y: 128 },
-];
-
 /* trapezoid 0→1 visibility window */
 function trap(p: number, a: number, b: number, c: number, d: number) {
   if (p <= a || p >= d) return 0;
@@ -222,12 +213,10 @@ export default function OsvScrollHero() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const mountRef = useRef<HTMLDivElement>(null);
   const beatRefs = useRef<(HTMLDivElement | null)[]>([]);
-  const wordsRef = useRef<HTMLDivElement>(null);
   const shownRef = useRef<boolean[]>(BEATS.map(() => false));
   const [mounted, setMounted] = useState(false);
   const [reduced, setReduced] = useState(false);
   const [active, setActive] = useState<boolean[]>(BEATS.map(() => false));
-  const [wordsOn, setWordsOn] = useState(false);
 
   useEffect(() => {
     const r = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -682,6 +671,7 @@ export default function OsvScrollHero() {
     const ptr = { x: 0, y: 0, tx: 0, ty: 0 };
     const ndc = new THREE.Vector2(0, 0);
     let hovering = false;
+    let hoverAmt = 0; // eased 0→1; drives the slight zoom + bigger waves on hover
     const finePointer = window.matchMedia("(pointer: fine)").matches;
     const onPointerMove = (e: PointerEvent) => {
       const r = mount.getBoundingClientRect();
@@ -691,18 +681,12 @@ export default function OsvScrollHero() {
       ptr.ty = (ny - 0.5) * 2;
       ndc.x = nx * 2 - 1;
       ndc.y = -(ny * 2 - 1);
-      if (wordsRef.current) {
-        wordsRef.current.style.left = `${e.clientX - r.left}px`;
-        wordsRef.current.style.top = `${e.clientY - r.top}px`;
-      }
     };
     const onEnter = () => {
       hovering = true;
-      setWordsOn(true);
     };
     const onLeave = () => {
       hovering = false;
-      setWordsOn(false);
     };
     if (finePointer) {
       window.addEventListener("pointermove", onPointerMove);
@@ -734,11 +718,14 @@ export default function OsvScrollHero() {
       const dt = Math.min(clock.getDelta(), 0.05);
       elapsed += dt;
       const p = Math.min(Math.max(scrollState.progress, 0), 1);
+      hoverAmt += ((hovering ? 1 : 0) - hoverAmt) * 0.06; // ease the hover state
 
       // day → night as the vessel cruises toward the left — reaches full night
       // decisively by ~0.8 and holds it (direct, no fading in and out)
       const n = THREE.MathUtils.smoothstep(p, 0.42, 0.8);
       applySky(n);
+      // hover → bigger, livelier swell (added on top of the day/night base)
+      water.material.uniforms["distortionScale"].value += hoverAmt * 3.4;
       const qs = Math.round(n * 6); // rebuild reflections in ~6 steps, not /frame
       if (qs !== envStep) {
         envStep = qs;
@@ -746,8 +733,8 @@ export default function OsvScrollHero() {
       }
       starMat.size = 2.2 + Math.sin(elapsed * 2.5) * 0.4; // faint twinkle
 
-      // live sea + streaming wake foam
-      water.material.uniforms["time"].value += dt;
+      // live sea + streaming wake foam (waves run faster on hover)
+      water.material.uniforms["time"].value += dt * (1 + hoverAmt * 0.7);
       wakeTex.offset.y = (wakeTex.offset.y - dt * 0.22) % 1;
 
       // cruise: translate the vessel along its bow vector with scroll —
@@ -771,14 +758,16 @@ export default function OsvScrollHero() {
       const fwd = SHIP_LEN * 0.5 - 6;
       bowFoam.position.set(shipX + bowDir.x * fwd, 0.3, shipZ + bowDir.z * fwd);
 
-      // fixed cinematic camera with a faint breathing dolly + pointer parallax
+      // fixed cinematic camera with a faint breathing dolly + pointer parallax,
+      // plus a slight zoom-in toward the scene on hover (water + vessel)
       ptr.x += (ptr.tx - ptr.x) * 0.05;
       ptr.y += (ptr.ty - ptr.y) * 0.05;
       const PAR = 5;
+      const zoom = 1 - hoverAmt * 0.07; // ~7% closer on hover
       camera.position.set(
-        cam.px + ptr.x * PAR,
+        (cam.px + ptr.x * PAR) * zoom,
         cam.py + Math.sin(elapsed * 0.3) * 0.3 - ptr.y * PAR * 0.4,
-        cam.pz
+        cam.pz * zoom
       );
       camera.lookAt(cam.tx + ptr.x * 2.5, cam.ty - ptr.y * 1.5, 0);
 
@@ -903,35 +892,6 @@ export default function OsvScrollHero() {
         />
         {/* the live ocean + vessel scene mounts here (canvas appended) */}
         <div ref={mountRef} className="absolute inset-0" />
-
-        {/* capability words that pop in around the cursor (desktop hover) */}
-        <div
-          ref={wordsRef}
-          className="pointer-events-none absolute left-1/2 top-1/2 z-[2] hidden sm:block"
-          style={{ transition: "left 0.15s ease-out, top 0.15s ease-out" }}
-          aria-hidden
-        >
-          {HERO_WORDS.map((w, i) => (
-            <span
-              key={w.t}
-              className="absolute whitespace-nowrap font-display font-semibold uppercase"
-              style={{
-                left: 0,
-                top: 0,
-                transform: `translate(${w.x}px, ${w.y}px) translate(-50%, -50%) scale(${wordsOn ? 1 : 0.6})`,
-                opacity: wordsOn ? 0.92 : 0,
-                transition: "opacity 0.35s ease-out, transform 0.35s cubic-bezier(0.22,1,0.36,1)",
-                transitionDelay: `${i * 45}ms`,
-                letterSpacing: "0.22em",
-                fontSize: "clamp(0.7rem, 1vw, 0.95rem)",
-                color: "color-mix(in oklch, white 72%, var(--color-accent-2))",
-                textShadow: "0 1px 14px oklch(0.12 0.04 235 / 0.8)",
-              }}
-            >
-              {w.t}
-            </span>
-          ))}
-        </div>
 
         {/* cinematic grounding — a soft dark wash at the base + lower-left so the
            copy sits on depth, while the upper/right of the ocean stays clean and
