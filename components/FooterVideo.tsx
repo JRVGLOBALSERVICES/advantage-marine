@@ -54,16 +54,6 @@ export default function FooterVideo() {
         />
       )}
 
-      {/* legibility + seam: darken slightly for white type, dissolve into cream */}
-      <div
-        aria-hidden
-        className="absolute inset-0"
-        style={{
-          background:
-            "linear-gradient(180deg, transparent 0%, transparent 68%, var(--color-paper-2) 100%)",
-        }}
-      />
-
       {/* wordmark — its own soft halo carries legibility now the dark wash is gone */}
       <div
         className="absolute inset-0 flex flex-col items-center justify-center px-6 text-center"

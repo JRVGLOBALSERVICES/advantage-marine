@@ -47,15 +47,6 @@ export default function NewsHero({
             "linear-gradient(180deg, color-mix(in oklch, var(--color-ink) 30%, transparent) 0%, color-mix(in oklch, var(--color-ink) 16%, transparent) 38%, color-mix(in oklch, var(--color-ink) 58%, transparent) 100%)",
         }}
       />
-      {/* Paper feather at the base so the hero grounds into the page below. */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-1/4"
-        style={{
-          background:
-            "linear-gradient(to top, var(--color-paper) 0%, transparent 100%)",
-        }}
-      />
 
       <div className="absolute inset-0 flex items-end">
         <div className="mx-auto w-full max-w-[min(1200px,92vw)] px-[clamp(1.5rem,4vw,4rem)] pb-[calc(var(--space-2xl)+1rem)]">
