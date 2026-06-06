@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import Reveal from "@/components/Reveal";
+import { ParallaxImage } from "@/components/ui/ParallaxImage";
 import { allServices, serviceBySlug } from "@/lib/services";
 
 /* One static page per service — mirrors the live site's one-URL-per-service
@@ -106,14 +107,7 @@ export default async function ServiceDetailPage({
 
       {/* ───────── full-bleed service hero ───────── */}
       <section className="relative h-[68lvh] min-h-[420px] w-full overflow-hidden">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={svc.hero}
-          alt={svc.alt}
-          className="absolute inset-0 h-full w-full object-cover"
-          fetchPriority="high"
-          decoding="async"
-        />
+        <ParallaxImage src={svc.hero} alt={svc.alt} className="h-full w-full object-cover" priority />
         <div
           aria-hidden
           className="absolute inset-0"
