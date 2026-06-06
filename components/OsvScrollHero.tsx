@@ -352,24 +352,6 @@ export default function OsvScrollHero() {
           d[i + 3] = a * 255;
         }
     });
-    const moonTex = makeTex(128, 128, (d) => {
-      const craters: number[][] = [[44, 52, 9], [82, 66, 12], [60, 86, 7], [92, 44, 6]];
-      for (let y = 0; y < 128; y++)
-        for (let x = 0; x < 128; x++) {
-          const r = Math.hypot((x - 64) / 60, (y - 64) / 60);
-          const a = r < 1 ? 1 - Math.max(0, (r - 0.85) / 0.15) : 0;
-          let sh = 236;
-          for (const [cx, cy, cr] of craters) {
-            const cd = Math.hypot(x - cx, y - cy);
-            if (cd < cr) sh -= (1 - cd / cr) * 34;
-          }
-          const i = (y * 128 + x) * 4;
-          d[i] = sh;
-          d[i + 1] = sh;
-          d[i + 2] = sh * 0.97;
-          d[i + 3] = Math.max(0, Math.min(1, a)) * 255;
-        }
-    });
     const mkSprite = (map: THREE.Texture, color: number, scale: number, additive: boolean) => {
       const s = new THREE.Sprite(
         new THREE.SpriteMaterial({
@@ -387,10 +369,7 @@ export default function OsvScrollHero() {
     };
     const sunGlow = mkSprite(glowTex, 0xffcf8a, 4200, true);
     const sunBody = mkSprite(discTex, 0xfff0cf, 760, true);
-    const moonGlow = mkSprite(glowTex, 0xaec4ff, 3200, true);
-    const moonBody = mkSprite(moonTex, 0xffffff, 760, false);
-    moonBody.position.copy(moonDir).multiplyScalar(12000);
-    moonGlow.position.copy(moonBody.position);
+    // (no moon — moonDir below is just the steady cool key-light direction at night)
 
     // environment (sky reflections on the hull) — rebuilt occasionally as the
     // sky shifts (PMREM per-frame would be far too costly)
@@ -442,11 +421,8 @@ export default function OsvScrollHero() {
       sunBody.material.opacity = sunVis;
       sunGlow.position.copy(sun).multiplyScalar(12000);
       sunBody.position.copy(sun).multiplyScalar(12000);
-      // moon + stars rise into the night
-      const night = THREE.MathUtils.smoothstep(n, 0.4, 0.95);
-      moonBody.material.opacity = night;
-      moonGlow.material.opacity = night * 0.7;
-      starMat.opacity = THREE.MathUtils.smoothstep(n, 0.45, 1.0);
+      // stars rise steadily into the night (no moon)
+      starMat.opacity = THREE.MathUtils.smoothstep(n, 0.5, 0.82);
     };
     applySky(0);
     rebuildEnv();
@@ -658,8 +634,9 @@ export default function OsvScrollHero() {
       elapsed += dt;
       const p = Math.min(Math.max(scrollState.progress, 0), 1);
 
-      // day → night as the vessel cruises toward the left
-      const n = THREE.MathUtils.smoothstep(p, 0.4, 0.96);
+      // day → night as the vessel cruises toward the left — reaches full night
+      // decisively by ~0.8 and holds it (direct, no fading in and out)
+      const n = THREE.MathUtils.smoothstep(p, 0.42, 0.8);
       applySky(n);
       const qs = Math.round(n * 6); // rebuild reflections in ~6 steps, not /frame
       if (qs !== envStep) {
@@ -749,7 +726,6 @@ export default function OsvScrollHero() {
       bowTex.dispose();
       discTex.dispose();
       glowTex.dispose();
-      moonTex.dispose();
       scene.traverse((o) => {
         const mesh = o as THREE.Mesh;
         if (mesh.geometry) mesh.geometry.dispose();
