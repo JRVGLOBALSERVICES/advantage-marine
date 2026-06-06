@@ -106,8 +106,10 @@ function BeatBlock({
       ref={innerRef}
       style={{
         ...(stacked ? { gridArea: "1 / 1" } : {}),
-        // soft dark halo so cream type holds even where it rises over bright sky
-        textShadow: "0 2px 28px oklch(0.12 0.03 235 / 0.55), 0 1px 3px oklch(0.12 0.03 235 / 0.4)",
+        // crisp dark outline + soft halo so cream type holds over BOTH the bright
+        // day ocean (early beats) and the dark night sea (late beats)
+        textShadow:
+          "0 1px 2px oklch(0.10 0.03 235 / 0.78), 0 2px 10px oklch(0.10 0.03 235 / 0.62), 0 0 34px oklch(0.10 0.03 235 / 0.4)",
       }}
       className="max-w-[44rem] will-change-[opacity,transform]"
     >
@@ -125,8 +127,8 @@ function BeatBlock({
         <p
           className="eyebrow !mb-0"
           style={{
-            color: "color-mix(in oklch, white 78%, var(--color-accent-2))",
-            textShadow: "0 1px 14px oklch(0.12 0.04 235 / 0.78)",
+            color: "color-mix(in oklch, white 82%, var(--color-accent-2))",
+            textShadow: "0 1px 2px oklch(0.10 0.04 235 / 0.85), 0 1px 12px oklch(0.10 0.04 235 / 0.7)",
           }}
         >
           {beat.kicker}
@@ -213,6 +215,7 @@ export default function OsvScrollHero() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const mountRef = useRef<HTMLDivElement>(null);
   const beatRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const washRef = useRef<HTMLDivElement>(null);
   const shownRef = useRef<boolean[]>(BEATS.map(() => false));
   const [mounted, setMounted] = useState(false);
   const [reduced, setReduced] = useState(false);
@@ -724,6 +727,8 @@ export default function OsvScrollHero() {
       // decisively by ~0.8 and holds it (direct, no fading in and out)
       const n = THREE.MathUtils.smoothstep(p, 0.42, 0.8);
       applySky(n);
+      // ground the copy more by day (bright sea) and ease off at night
+      if (washRef.current) washRef.current.style.opacity = String(1 - n * 0.22);
       // hover → bigger, livelier swell (added on top of the day/night base)
       water.material.uniforms["distortionScale"].value += hoverAmt * 3.4;
       const qs = Math.round(n * 6); // rebuild reflections in ~6 steps, not /frame
@@ -894,12 +899,14 @@ export default function OsvScrollHero() {
         <div ref={mountRef} className="absolute inset-0" />
 
         {/* cinematic grounding — one clean wash anchored at the lower-left where
-           the copy sits; the upper/right ocean stays bright with the sun glitter */}
+           the copy sits; heavier by day (bright ocean) and eased off at night
+           (dark sea) so the early beats hold and the late beats stay clean */}
         <div
+          ref={washRef}
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "radial-gradient(120% 95% at 0% 100%, oklch(0.12 0.03 235 / 0.6) 0%, transparent 58%), linear-gradient(to top, oklch(0.12 0.03 235 / 0.34) 0%, transparent 30%)",
+              "radial-gradient(120% 95% at 0% 100%, oklch(0.12 0.03 235 / 0.72) 0%, transparent 60%), linear-gradient(to top, oklch(0.12 0.03 235 / 0.36) 0%, transparent 32%)",
           }}
         />
 
