@@ -30,11 +30,15 @@ import ScrollCue from "./ScrollCue";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* Two sequences, same 15.04s reel: a 16:9 set for desktop/tablet and a 9:16
-   set so the vessel fills portrait phones instead of being letter-boxed. The
-   scroll→frame math is shared (both map progress 0→1 across their own count). */
-const DESKTOP = { dir: "/frames/osv", count: 120, pad: 3 };
-const MOBILE = { dir: "/frames/osv-9x16", count: 96, pad: 3 };
+/* ONE sequence, the 15.04s reel at its native 16:9 (the client's concept reel
+   is inherently widescreen — 848×478 source). We deliberately do NOT ship a
+   9:16 "mobile" set: the only way to make this footage fill a portrait phone
+   is to crop it (cuts the outermost exploded modules) or blur-pad it (the
+   Higgsfield reframe bakes a blurred zoom of the frame into the top/bottom
+   mats — that was the "blurry on mobile" defect). Instead we contain-fit the
+   sharp 16:9 frame on every viewport and letterbox the gap with the page
+   paper: full vessel, no crop, no blur, identical source everywhere. */
+const FRAMES = { dir: "/frames/osv", count: 120, pad: 3 };
 const POSTER = "/media/home/hero-osv-poster.jpg";
 /* The reel as durable, indexable content for the VideoObject schema. */
 const REEL_URL =
@@ -189,11 +193,12 @@ export default function OsvScrollHero() {
   useEffect(() => {
     if (!mounted || reduced || !sectionRef.current || !canvasRef.current) return;
 
-    /* Pick the sequence by ORIENTATION, not a width breakpoint: portrait
-       phones AND portrait tablets (iPad) get the 9:16 set so the vessel fits
-       the tall frame; landscape gets 16:9. (A width breakpoint sent iPad
-       portrait into the 16:9 set and cover-cropped ~60% of the width.) */
-    const seq = window.matchMedia("(orientation: portrait)").matches ? MOBILE : DESKTOP;
+    /* Single sharp 16:9 sequence on every viewport. Orientation only decides
+       VERTICAL ALIGNMENT of the contained band: on portrait we anchor it to
+       the top so the copy stacks cleanly beneath it on the paper; on landscape
+       we centre it. No per-orientation frame set, so no crop and no blur-pad. */
+    const portrait = window.matchMedia("(orientation: portrait)").matches;
+    const seq = FRAMES;
     const { count } = seq;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d", { alpha: false });
@@ -231,7 +236,9 @@ export default function OsvScrollHero() {
     };
 
     /* CONTAIN-fit (min scale) — never crop the exploded vessel; fill the
-       letterbox gap with paper so nothing is cut off on any viewport. */
+       letterbox gap with paper so nothing is cut off on any viewport. On
+       portrait the band is anchored to the upper area (so the headline +
+       stat read directly beneath it); landscape centres it. */
     const drawContain = (img: HTMLImageElement) => {
       const iw = img.naturalWidth;
       const ih = img.naturalHeight;
@@ -241,7 +248,9 @@ export default function OsvScrollHero() {
       const scale = Math.min(cssW / iw, cssH / ih);
       const dw = iw * scale;
       const dh = ih * scale;
-      ctx.drawImage(img, (cssW - dw) / 2, (cssH - dh) / 2, dw, dh);
+      const dx = (cssW - dw) / 2;
+      const dy = portrait ? cssH * 0.08 : (cssH - dh) / 2;
+      ctx.drawImage(img, dx, dy, dw, dh);
     };
 
     let curTarget = 0;
