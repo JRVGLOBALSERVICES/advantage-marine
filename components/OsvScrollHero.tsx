@@ -120,15 +120,16 @@ function BeatBlock({
     <div
       ref={innerRef}
       style={stacked ? { gridArea: "1 / 1" } : undefined}
-      className="w-[min(34rem,92vw)] will-change-[opacity,transform]"
+      className="w-[min(25rem,84vw)] will-change-[opacity,transform]"
     >
       {/* frosted-glass card — guaranteed legibility over ANY frame (sky or dark
-          sea), with a cyan accent edge. The blur + dark tint give light type a
-          stable ground; the ship reads straight through the rest of the frame. */}
+          sea), with a cyan accent edge. Compact info panel (C-style), NOT the
+          full-bleed billboard type — so the vessel stays the hero, the card sits
+          lower-left without covering it. */}
       <div
-        className="relative overflow-hidden rounded-[1.25rem]"
+        className="relative overflow-hidden rounded-[1.1rem]"
         style={{
-          padding: "clamp(1.25rem, 2.6vw, 2.25rem)",
+          padding: "clamp(1rem, 1.6vw, 1.5rem)",
           background: "color-mix(in oklch, var(--color-ink) 52%, transparent)",
           backdropFilter: "blur(18px) saturate(1.18)",
           WebkitBackdropFilter: "blur(18px) saturate(1.18)",
@@ -143,32 +144,32 @@ function BeatBlock({
           className="absolute left-0 top-0 h-full w-[3px]"
           style={{ background: "var(--color-accent)", boxShadow: "0 0 22px 1px var(--color-accent)" }}
         />
-        <p className="eyebrow mb-[var(--space-sm)] text-[color:var(--color-accent)]">{beat.kicker}</p>
-        <div className="mb-[var(--space-sm)]" style={{ fontSize: "var(--text-display)" }}>
+        <p className="eyebrow mb-[var(--space-xs)] text-[color:var(--color-accent)]">{beat.kicker}</p>
+        <div className="mb-[var(--space-xs)]" style={{ fontSize: "clamp(1.5rem, 2.2vw, 2.25rem)" }}>
           <BlurText
             text={beat.head[0]}
             inView={active}
             animateBy="words"
-            className="font-display font-bold leading-[1.06] tracking-[-0.01em] text-[color:var(--color-paper)]"
+            className="font-display font-bold leading-[1.08] tracking-[-0.01em] text-[color:var(--color-paper)]"
           />
           <BlurText
             text={beat.head[1]}
             inView={active}
             delay={140}
             animateBy="words"
-            className="font-display font-light leading-[1.06] tracking-[-0.01em] text-[color:color-mix(in_oklch,var(--color-paper)_72%,transparent)]"
+            className="font-display font-light leading-[1.08] tracking-[-0.01em] text-[color:color-mix(in_oklch,var(--color-paper)_72%,transparent)]"
           />
         </div>
         <p
-          className="max-w-[32rem] leading-[1.5]"
-          style={{ fontSize: "var(--text-lead)", color: "color-mix(in oklch, var(--color-paper) 82%, transparent)" }}
+          className="leading-[1.5]"
+          style={{ fontSize: "clamp(0.92rem, 1vw, 1.05rem)", color: "color-mix(in oklch, var(--color-paper) 82%, transparent)" }}
         >
           {beat.lead}
         </p>
-        <div className="mt-[var(--space-md)] flex items-end gap-[var(--space-md)] flex-wrap">
+        <div className="mt-[var(--space-sm)] flex items-end gap-[var(--space-sm)] flex-wrap">
           <span
             className="font-display font-bold leading-none text-[color:var(--color-accent)] flex items-baseline"
-            style={{ fontSize: "var(--text-stat)" }}
+            style={{ fontSize: "clamp(1.7rem, 2.2vw, 2.4rem)" }}
           >
             <NumberTicker
               value={beat.stat.value}
