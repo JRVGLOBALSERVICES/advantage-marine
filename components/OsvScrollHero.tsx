@@ -1,29 +1,38 @@
 "use client";
 
 /* ──────────────────────────────────────────────────────────────────────────
-   OSV SCROLL-FRAME HERO
-   A Blender-authored ADVANTAGE offshore support vessel cruising open water
-   (gunmetal hull, white superstructure, deck crane, helideck) — the vessel
-   rides the swell frame-by-frame as you scroll. Rendered in Cycles from the
-   brand-recoloured model (see /blender), exported as an image sequence.
+   OSV LIVE-OCEAN HERO
+   A real-time WebGL scene: the brand-recoloured ADVANTAGE offshore support
+   vessel (gunmetal hull, white superstructure, deck crane, helideck) riding a
+   live reflective ocean. The sea is the classic three.js `Water` shader (moving
+   normals + sun glitter) under a physical `Sky` with a low golden sun — the
+   "ocean effect" reference. The vessel is the actual Blender model exported to
+   glTF (/public/models/osv.glb, brand gunmetal atlas baked in), seated at its
+   waterline and gently heaving/pitching/rolling on the swell.
 
-   HOW THE SCRUB IS DONE (matches altida / seagull references):
-   The reel is pre-exploded into an IMAGE SEQUENCE and painted to a <canvas>,
-   indexed by scroll progress. We do NOT seek video.currentTime on scroll —
-   that's the pattern that FREEZES on iOS Safari (programmatic frame-seeks are
-   throttled/blocked on iPhone & iPad). Drawing a decoded image to canvas is
-   plain raster work, so the scrub is frame-accurate and identical on iOS,
-   iPadOS and macOS. This is the Apple-keynote / altida technique.
+   WHY VANILLA three (not R3F): the project ships `three` only — no
+   @react-three/fiber — so the scene is a plain WebGLRenderer driven by a rAF
+   loop. GSAP ScrollTrigger writes scrollState.progress; the loop reads it to
+   orbit the camera, drift the cruise and cross-fade the copy beats. No React
+   re-renders per frame.
 
-   iOS-safe pinning: CSS `position: sticky` (NOT ScrollTrigger pin — pin
-   re-measures on the iOS URL-bar dvh change and feels stuck). Reduced-motion /
-   no-JS falls back to the poster frame + stacked copy.
+   MOBILE = SAME SCENE: portrait reframes the camera (taller fov, pulled back,
+   vessel centred) but renders the identical live ocean + model — not a poster.
+
+   iOS-safe pinning: CSS `position: sticky` (NOT ScrollTrigger pin). The render
+   loop pauses when the hero scrolls out of view (IntersectionObserver) and the
+   pixel ratio is capped for battery. Reduced-motion / no-JS falls back to the
+   poster frame + stacked copy.
    ────────────────────────────────────────────────────────────────────────── */
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
+import * as THREE from "three";
+import { Water } from "three/examples/jsm/objects/Water.js";
+import { Sky } from "three/examples/jsm/objects/Sky.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { scrollState, motionState } from "@/lib/scroll";
 import BlurText from "./ui/BlurText";
 import { NumberTicker } from "./ui/NumberTicker";
@@ -31,36 +40,12 @@ import ScrollCue from "./ScrollCue";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* Per-orientation frame sets — each a REAL edge-to-edge render of the Blender
-   cruise for its aspect, not a crop or blur-pad of one master. The portrait sets
-   are re-rendered from the same scene with a taller (width-locked) camera so they
-   carry more sea + sky, so every viewport gets a frame whose aspect already
-   matches it: no side-crop of the vessel, no blurred zoom-pad. */
-type FrameSet = { dir: string; count: number; pad: number; fit: "cover" };
-const FRAME_SETS: Record<"portraitNarrow" | "portraitWide" | "landscape", FrameSet> = {
-  // COVER on every set: the frame fills the viewport edge-to-edge, any aspect
-  // overshoot trims only sky/sea. No contain/letterbox → no cream margins. The
-  // portrait sets are already composed to ~match phone/tablet aspect, so cover
-  // crops almost nothing there; landscape cover removes the desktop letterbox.
-  portraitNarrow: { dir: "/frames/osv-9x16", count: 120, pad: 3, fit: "cover" }, // phones (≈9:16 and taller)
-  portraitWide: { dir: "/frames/osv-3x4", count: 120, pad: 3, fit: "cover" }, // tablets in portrait (≈3:4)
-  landscape: { dir: "/frames/osv", count: 120, pad: 3, fit: "cover" }, // desktop / landscape (16:9)
-};
-/* Pick by live viewport: landscape → 16:9; portrait phones (narrow) → 9:16;
-   portrait tablets (wider, ~0.66–0.9) → 3:4. */
-const pickFrameSet = (): FrameSet => {
-  if (typeof window === "undefined") return FRAME_SETS.landscape;
-  const w = window.innerWidth;
-  const h = window.innerHeight;
-  if (w > h) return FRAME_SETS.landscape;
-  return w / h < 0.66 ? FRAME_SETS.portraitNarrow : FRAME_SETS.portraitWide;
-};
+const MODEL_URL = "/models/osv.glb";
+const WATER_NORMALS_URL = "/textures/waternormals.jpg";
 const POSTER = "/media/home/hero-osv-poster.jpg";
-/* The reel as durable, indexable content for the VideoObject schema. */
+/* The cinematic reel kept as durable, indexable content for VideoObject schema. */
 const REEL_URL =
   "https://res.cloudinary.com/de3gn7o77/video/upload/advantage-marine/deliverables/advantage-osv-reel-16x9-4k.mp4";
-const framePath = (dir: string, i: number, pad: number) =>
-  `${dir}/f-${String(i + 1).padStart(pad, "0")}.webp`;
 
 /* trapezoid 0→1 visibility window */
 function trap(p: number, a: number, b: number, c: number, d: number) {
@@ -210,7 +195,7 @@ function StaticHero() {
 
 export default function OsvScrollHero() {
   const sectionRef = useRef<HTMLDivElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const mountRef = useRef<HTMLDivElement>(null);
   const beatRefs = useRef<(HTMLDivElement | null)[]>([]);
   const shownRef = useRef<boolean[]>(BEATS.map(() => false));
   const [mounted, setMounted] = useState(false);
@@ -225,148 +210,258 @@ export default function OsvScrollHero() {
   }, []);
 
   useEffect(() => {
-    if (!mounted || reduced || !sectionRef.current || !canvasRef.current) return;
+    if (!mounted || reduced || !sectionRef.current || !mountRef.current) return;
+    const mount = mountRef.current;
 
-    /* Per-orientation frame set — each is a REAL Blender render for its aspect
-       (the portrait sets re-rendered with a taller width-locked camera), so the
-       chosen sequence already matches the live viewport. COVER fills the canvas
-       edge-to-edge; any aspect overshoot trims only sky/sea, never the vessel. */
-    let seq = pickFrameSet();
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext("2d", { alpha: false });
-    if (!ctx) return;
+    // ── renderer ──────────────────────────────────────────────────────────
+    let renderer: THREE.WebGLRenderer;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+    } catch {
+      // no WebGL → poster underlay already covers it; just signal ready
+      window.dispatchEvent(new Event("am:scene-ready"));
+      return;
+    }
+    const isPortrait = () => mount.clientWidth < mount.clientHeight;
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, isPortrait() ? 1.75 : 2));
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 0.52;
+    renderer.domElement.className = "absolute inset-0 h-full w-full";
+    renderer.domElement.setAttribute("aria-hidden", "true");
+    mount.appendChild(renderer.domElement);
 
-    /* Letterbox fill — alpha:false canvas clears to BLACK, so any fit gap must
-       be painted with the page paper. Resolve the container's already computed
-       background to an rgb() string (works on every browser, unlike a raw oklch
-       var in canvas fillStyle). */
-    const paperFill =
-      getComputedStyle(canvas.parentElement as HTMLElement).backgroundColor || "#ffffff";
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(46, 1, 1, 20000);
 
-    /* ── decode state (re-allocated when the orientation flips the set) ────── */
-    let imgs: HTMLImageElement[] = [];
-    let loaded: boolean[] = [];
-    let firstReady = false;
-    let curTarget = 0;
-    let curDrawn = -1;
-
-    /* ── canvas sizing (cap DPR at 2) ─────────────────────────────────────── */
-    let cssW = 0;
-    let cssH = 0;
-    const sizeCanvas = () => {
-      const rect = canvas.getBoundingClientRect();
-      const dpr = Math.min(window.devicePixelRatio || 1, 2);
-      cssW = rect.width;
-      cssH = rect.height;
-      canvas.width = Math.round(cssW * dpr);
-      canvas.height = Math.round(cssH * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
-
-    /* COVER + SCROLL PAN: scale past cover (ZOOM) so there's horizontal slack,
-       then slide the frame from RIGHT (scroll-top) to LEFT as you scroll — the
-       vessel cruises across while the copy column stays over open sea on the
-       left. dx is clamped to the overflow range so a gap is never revealed
-       (dh ≥ cssH and dw ≥ cssW always), and vertical stays centred. */
-    const ZOOM = 1.3; // past cover → pan room (and not as huge as a hard cover-zoom)
-    const START_PUSH = 0.17; // extra right shift at scroll-top; left strip is dark
-    const draw = (img: HTMLImageElement) => {
-      const iw = img.naturalWidth;
-      const ih = img.naturalHeight;
-      if (!iw || !ih || !cssW || !cssH) return;
-      // dark sea fill so the left strip behind the copy column reads dark (the
-      // copy sits over it), never cream — and never a bright gap.
-      ctx.fillStyle = "#0f1a22";
-      ctx.fillRect(0, 0, cssW, cssH);
-      const scale = Math.max(cssW / iw, cssH / ih) * ZOOM;
-      const dw = iw * scale;
-      const dh = ih * scale;
-      // p=0 → vessel pushed hard RIGHT (left strip clear for the headline);
-      // p=1 → frame's right edge shown, vessel cruised to the LEFT.
-      const p = Math.min(Math.max(scrollState.progress, 0), 1);
-      const dxStart = cssW * START_PUSH; // left strip (dark) at the top
-      const dxEnd = cssW - dw; // hard left, no right gap
-      const dx = dxStart + (dxEnd - dxStart) * p;
-      const dy = (cssH - dh) / 2;
-      ctx.drawImage(img, dx, dy, dw, dh);
-    };
-
-    const nearestLoaded = (t: number) => {
-      if (loaded[t]) return t;
-      for (let r = 1; r < seq.count; r++) {
-        if (t - r >= 0 && loaded[t - r]) return t - r;
-        if (t + r < seq.count && loaded[t + r]) return t + r;
-      }
-      return -1;
-    };
-    // redraw when the FRAME changes OR the scroll position moves (the pan tracks
-    // scroll, so a paint is needed every scroll step even on the same frame).
-    let lastPaintP = -1;
-    const paint = () => {
-      const idx = nearestLoaded(curTarget);
-      if (idx < 0) return;
-      const p = scrollState.progress;
-      if (idx === curDrawn && Math.abs(p - lastPaintP) < 0.0015) return;
-      draw(imgs[idx]);
-      curDrawn = idx;
-      lastPaintP = p;
-    };
-
-    /* Decode the current set, coarse-stride first (0,6,12 … then fill) so a fast
-       early flick always lands near the target while the rest stream in. */
-    const loadSeq = () => {
-      imgs = new Array(seq.count);
-      loaded = new Array(seq.count).fill(false);
-      curDrawn = -1;
-      const order: number[] = [];
-      const stride = 6;
-      for (let s = 0; s < stride; s++) for (let i = s; i < seq.count; i += stride) order.push(i);
-      order.forEach((i) => {
-        const img = new window.Image();
-        img.decoding = "async";
-        img.onload = () => {
-          loaded[i] = true;
-          if (!firstReady) {
-            firstReady = true;
-            window.dispatchEvent(new Event("am:scene-ready"));
-          }
-          paint();
-        };
-        img.src = framePath(seq.dir, i, seq.pad);
-        imgs[i] = img;
-      });
-    };
-
-    sizeCanvas();
-    loadSeq();
-
-    // poster is already up; signal the loader even if decode is slow
-    const readyTimer = window.setTimeout(() => window.dispatchEvent(new Event("am:scene-ready")), 600);
-
-    /* ── scroll → frame index ─────────────────────────────────────────────── */
-    const st = ScrollTrigger.create({
-      trigger: sectionRef.current,
-      start: "top top",
-      end: "bottom bottom",
-      scrub: true,
-      onUpdate: (self) => {
-        scrollState.progress = self.progress;
-      },
+    // ── ocean (live Water shader) ───────────────────────────────────────────
+    const sun = new THREE.Vector3();
+    const waterNormals = new THREE.TextureLoader().load(WATER_NORMALS_URL, (t) => {
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
     });
+    const water = new Water(new THREE.PlaneGeometry(20000, 20000), {
+      textureWidth: 512,
+      textureHeight: 512,
+      waterNormals,
+      sunDirection: new THREE.Vector3(),
+      sunColor: 0xffffff,
+      waterColor: 0x103a4a, // deep brand teal sea
+      distortionScale: 3.4,
+      fog: false,
+    });
+    water.rotation.x = -Math.PI / 2;
+    scene.add(water);
 
-    // Beat windows spread evenly across the continuous cruise (no single hold
-    // moment): underway → read the steel → cleared by class.
+    // ── sky (physical, low golden sun) ──────────────────────────────────────
+    const sky = new Sky();
+    sky.scale.setScalar(20000);
+    scene.add(sky);
+    const skyU = sky.material.uniforms;
+    skyU["turbidity"].value = 8;
+    skyU["rayleigh"].value = 1.6;
+    skyU["mieCoefficient"].value = 0.006;
+    skyU["mieDirectionalG"].value = 0.86;
+
+    const SUN_ELEVATION = 3.2; // degrees above horizon → long glitter path
+    const SUN_AZIMUTH = 178; // sun roughly behind the vessel toward the horizon
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    const sceneEnv = new THREE.Scene();
+    let envRT: THREE.WebGLRenderTarget | null = null;
+    const updateSun = () => {
+      const phi = THREE.MathUtils.degToRad(90 - SUN_ELEVATION);
+      const theta = THREE.MathUtils.degToRad(SUN_AZIMUTH);
+      sun.setFromSphericalCoords(1, phi, theta);
+      skyU["sunPosition"].value.copy(sun);
+      water.material.uniforms["sunDirection"].value.copy(sun).normalize();
+      if (envRT) envRT.dispose();
+      sceneEnv.add(sky); // pmrem captures only the sky
+      envRT = pmrem.fromScene(sceneEnv);
+      scene.add(sky);
+      scene.environment = envRT.texture;
+    };
+    updateSun();
+
+    // ── lights (sun key + sky/sea fill) ─────────────────────────────────────
+    const key = new THREE.DirectionalLight(0xffe9cf, 2.4);
+    key.position.copy(sun).multiplyScalar(200);
+    scene.add(key);
+    scene.add(new THREE.HemisphereLight(0xbfe0f2, 0x0c2a36, 0.55));
+
+    // ── the vessel ──────────────────────────────────────────────────────────
+    // Bow is at the model's +Z (helideck/bridge forward, open cargo deck aft).
+    // Heading angles the hull so the bow points screen-LEFT and slightly toward
+    // camera → the cinematic front-starboard ¾ of the concept. The vessel cruises
+    // ALONG this bow vector with scroll: ¾ off-screen right → off to the left.
+    const HEADING = THREE.MathUtils.degToRad(-60);
+    const bowDir = new THREE.Vector3(Math.sin(HEADING), 0, Math.cos(HEADING)); // unit, XZ
+    const SHIP_LEN = 100;
+    const CRUISE_START = -92; // travel @ p=0 → ¾ off-screen RIGHT (bow entering)
+    const CRUISE_END = 98; //   travel @ p=1 → ¾ off-screen LEFT (stern exiting)
+
+    const ship = new THREE.Group();
+    ship.rotation.y = HEADING; // constant heading; bob uses x/z below
+    scene.add(ship);
+    const shipBaseY = 0;
+
+    // ── wake / water-trail ───────────────────────────────────────────────────
+    // A foam ribbon laid flat on the sea, trailing astern along -bowDir, plus a
+    // bright bow-spray crescent. Procedural CanvasTextures (no extra asset): a
+    // widening Kelvin churn for the wake, a soft crescent for the bow. The wake
+    // texture scrolls each frame so the foam streams backward.
+    const makeTex = (w: number, h: number, paint: (d: Uint8ClampedArray) => void) => {
+      const cv = document.createElement("canvas");
+      cv.width = w;
+      cv.height = h;
+      const c = cv.getContext("2d")!;
+      const img = c.createImageData(w, h);
+      paint(img.data);
+      c.putImageData(img, 0, 0);
+      const tex = new THREE.CanvasTexture(cv);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.wrapS = THREE.ClampToEdgeWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      return tex;
+    };
+    const WAKE_W = 72;
+    const WAKE_L = 240;
+    const WAKE_TW = 160;
+    const WAKE_TH = 640;
+    const wakeTex = makeTex(WAKE_TW, WAKE_TH, (d) => {
+      // canvas top (v→1 after flipY) = near stern (strong); bottom = far (fades)
+      for (let y = 0; y < WAKE_TH; y++) {
+        const t = y / WAKE_TH; // 0 near-stern → 1 far astern
+        const env = Math.pow(1 - t, 1.35);
+        const halfCore = 5 + t * 50; // churn widens with distance
+        const lineX = t * WAKE_TW * 0.4; // diverging Kelvin foam lines (~19°)
+        for (let x = 0; x < WAKE_TW; x++) {
+          const dx = Math.abs(x - WAKE_TW / 2);
+          let a = dx < halfCore ? env * (1 - dx / halfCore) * 0.85 : 0;
+          const dL = Math.abs(dx - lineX);
+          if (dL < 11) a = Math.max(a, env * (1 - dL / 11) * 0.8);
+          a *= 0.65 + Math.random() * 0.7; // foam speckle
+          const i = (y * WAKE_TW + x) * 4;
+          d[i] = d[i + 1] = d[i + 2] = 255;
+          d[i + 3] = Math.min(255, a * 255);
+        }
+      }
+    });
+    const wake = new THREE.Mesh(
+      new THREE.PlaneGeometry(WAKE_W, WAKE_L),
+      new THREE.MeshBasicMaterial({
+        map: wakeTex,
+        transparent: true,
+        depthWrite: false,
+        opacity: 0.92,
+        blending: THREE.NormalBlending,
+      })
+    );
+    // lie flat (normal up) with the plane's +Y axis toward the bow → near edge
+    // sits at the stern, length runs astern
+    {
+      const up = new THREE.Vector3(0, 1, 0);
+      const mx = new THREE.Vector3().crossVectors(up, bowDir).normalize();
+      wake.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(mx, bowDir, up));
+    }
+    wake.renderOrder = 1;
+    scene.add(wake);
+
+    const bowTex = makeTex(128, 128, (d) => {
+      for (let y = 0; y < 128; y++)
+        for (let x = 0; x < 128; x++) {
+          const dx = (x - 64) / 64;
+          const dy = (y - 78) / 64;
+          const r = Math.sqrt(dx * dx + dy * dy * 1.7);
+          let a = r < 1 ? Math.pow(1 - r, 1.6) : 0;
+          a *= 0.6 + Math.random() * 0.8;
+          const i = (y * 128 + x) * 4;
+          d[i] = d[i + 1] = d[i + 2] = 255;
+          d[i + 3] = Math.min(255, a * 255);
+        }
+    });
+    const bowFoam = new THREE.Mesh(
+      new THREE.PlaneGeometry(34, 26),
+      new THREE.MeshBasicMaterial({ map: bowTex, transparent: true, depthWrite: false, opacity: 0.85 })
+    );
+    bowFoam.rotation.x = -Math.PI / 2;
+    bowFoam.rotation.z = -HEADING;
+    bowFoam.renderOrder = 1;
+    scene.add(bowFoam);
+
+    let ready = false;
+    const signalReady = () => {
+      if (ready) return;
+      ready = true;
+      window.dispatchEvent(new Event("am:scene-ready"));
+    };
+
+    new GLTFLoader().load(
+      MODEL_URL,
+      (gltf) => {
+        const model = gltf.scene;
+        const box = new THREE.Box3().setFromObject(model);
+        const size = new THREE.Vector3();
+        const center = new THREE.Vector3();
+        box.getSize(size);
+        box.getCenter(center);
+        const s = SHIP_LEN / size.z; // world units along the hull
+        model.scale.setScalar(s);
+        // centre on X/Z; seat the keel below the y=0 waterline by DRAFT
+        const DRAFT = 8.5;
+        model.position.x = -center.x * s;
+        model.position.z = -center.z * s;
+        model.position.y = -box.min.y * s - DRAFT;
+        model.traverse((o) => {
+          const mesh = o as THREE.Mesh;
+          if (mesh.isMesh && mesh.material) {
+            const mat = mesh.material as THREE.MeshStandardMaterial;
+            if ("envMapIntensity" in mat) mat.envMapIntensity = 1.05;
+          }
+        });
+        ship.add(model);
+        signalReady();
+      },
+      undefined,
+      () => signalReady() // model failed → poster underlay stays, don't hang the loader
+    );
+
+    // ── camera framing (fixed cinematic pose, re-derived per aspect) ─────────
+    // Low and close, looking just left of centre over the water — the vessel
+    // cruises across this fixed frame. Portrait keeps the SAME scene, pulled
+    // back / wider fov so the hull still reads above the bottom copy column.
+    const cam = { px: 12, py: 8.5, pz: 78, tx: -4, ty: 8 };
+    const frame = () => {
+      const w = mount.clientWidth || 1;
+      const h = mount.clientHeight || 1;
+      renderer.setSize(w, h, false);
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, w < h ? 1.75 : 2));
+      camera.aspect = w / h;
+      if (w < h) {
+        // portrait / mobile — SAME cruise, camera pulled back (three.js fov is
+        // vertical, so a tall frame needs distance) so the hull still reads
+        camera.fov = 44;
+        cam.px = 12;
+        cam.py = 18;
+        cam.pz = 210;
+        cam.tx = -2;
+        cam.ty = 12;
+      } else {
+        camera.fov = 46;
+        cam.px = 12;
+        cam.py = 8.5;
+        cam.pz = 78;
+        cam.tx = -4;
+        cam.ty = 8;
+      }
+      camera.updateProjectionMatrix();
+    };
+    frame();
+
+    // ── beats: opacity / rise windows across the cruise ──────────────────────
     const windows: [number, number, number, number][] = [
       [-0.1, -0.05, 0.16, 0.28],
       [0.36, 0.45, 0.56, 0.66],
       [0.74, 0.84, 0.99, 1.06],
     ];
-
-    const tick = () => {
-      const p = scrollState.progress;
-      curTarget = Math.round(p * (seq.count - 1));
-      paint();
-      // ── beat opacity / rise ──
+    const updateBeats = (p: number) => {
       let changed = false;
       beatRefs.current.forEach((el, i) => {
         if (!el) return;
@@ -380,31 +475,108 @@ export default function OsvScrollHero() {
       });
       if (changed) setActive([...shownRef.current]);
     };
-    gsap.ticker.add(tick);
-    tick();
 
-    const onResize = () => {
-      sizeCanvas();
-      const next = pickFrameSet();
-      if (next.dir !== seq.dir) {
-        // orientation flipped into a different aspect → swap to its real set
-        seq = next;
-        loadSeq();
-      } else {
-        curDrawn = -1;
-      }
-      paint();
+    // ── scroll → progress ────────────────────────────────────────────────────
+    const st = ScrollTrigger.create({
+      trigger: sectionRef.current,
+      start: "top top",
+      end: "bottom bottom",
+      scrub: true,
+      onUpdate: (self) => {
+        scrollState.progress = self.progress;
+      },
+    });
+
+    // ── render loop (paused offscreen) ───────────────────────────────────────
+    const clock = new THREE.Clock();
+    let elapsed = 0;
+    let visible = true;
+    let raf = 0;
+    const render = () => {
+      const dt = Math.min(clock.getDelta(), 0.05);
+      elapsed += dt;
+      const p = Math.min(Math.max(scrollState.progress, 0), 1);
+
+      // live sea + streaming wake foam
+      water.material.uniforms["time"].value += dt;
+      wakeTex.offset.y = (wakeTex.offset.y - dt * 0.22) % 1;
+
+      // cruise: translate the vessel along its bow vector with scroll —
+      // ¾ off-screen right (p=0) → off to the left (p=1)
+      const travel = CRUISE_START + (CRUISE_END - CRUISE_START) * p;
+      const shipX = bowDir.x * travel;
+      const shipZ = bowDir.z * travel;
+
+      // swell — heave / pitch / roll layered on the constant heading
+      ship.position.set(
+        shipX,
+        shipBaseY + Math.sin(elapsed * 0.7) * 0.7 + Math.sin(elapsed * 1.9 + 1) * 0.18,
+        shipZ
+      );
+      ship.rotation.x = Math.sin(elapsed * 0.55) * 0.018; // pitch
+      ship.rotation.z = Math.sin(elapsed * 0.42 + 0.6) * 0.022; // roll
+
+      // wake trails astern of the stern; bow spray sits at the bow waterline
+      const back = SHIP_LEN * 0.5 + WAKE_L * 0.5 - 14;
+      wake.position.set(shipX - bowDir.x * back, 0.25, shipZ - bowDir.z * back);
+      const fwd = SHIP_LEN * 0.5 - 6;
+      bowFoam.position.set(shipX + bowDir.x * fwd, 0.3, shipZ + bowDir.z * fwd);
+
+      // fixed cinematic camera with a faint breathing dolly
+      camera.position.set(cam.px, cam.py + Math.sin(elapsed * 0.3) * 0.3, cam.pz);
+      camera.lookAt(cam.tx, cam.ty, 0);
+
+      updateBeats(p);
+      renderer.render(scene, camera);
+      raf = requestAnimationFrame(render);
     };
+    raf = requestAnimationFrame(render);
+
+    // pause the loop when the hero is fully scrolled away
+    const io = new IntersectionObserver(
+      ([entry]) => {
+        const nowVisible = entry.isIntersecting;
+        if (nowVisible && !visible) {
+          visible = true;
+          clock.getDelta(); // drop the idle gap so the sea doesn't jump
+          raf = requestAnimationFrame(render);
+        } else if (!nowVisible && visible) {
+          visible = false;
+          cancelAnimationFrame(raf);
+        }
+      },
+      { threshold: 0 }
+    );
+    io.observe(mount);
+
+    // poster is already painted under the canvas — release the loader even if
+    // the model decode is slow
+    const readyTimer = window.setTimeout(signalReady, 1200);
+
+    const onResize = () => frame();
     window.addEventListener("resize", onResize);
 
     return () => {
       window.clearTimeout(readyTimer);
       window.removeEventListener("resize", onResize);
-      gsap.ticker.remove(tick);
+      cancelAnimationFrame(raf);
+      io.disconnect();
       st.kill();
-      imgs.forEach((img) => {
-        if (img) img.onload = null;
+      scene.environment = null;
+      if (envRT) envRT.dispose();
+      pmrem.dispose();
+      waterNormals.dispose();
+      wakeTex.dispose();
+      bowTex.dispose();
+      scene.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (mesh.geometry) mesh.geometry.dispose();
+        const mat = mesh.material as THREE.Material | THREE.Material[] | undefined;
+        if (Array.isArray(mat)) mat.forEach((m) => m.dispose());
+        else if (mat) mat.dispose();
       });
+      renderer.dispose();
+      if (renderer.domElement.parentElement === mount) mount.removeChild(renderer.domElement);
     };
   }, [mounted, reduced]);
 
@@ -430,7 +602,7 @@ export default function OsvScrollHero() {
         }}
       />
       <div className="sticky top-0 h-[100lvh] overflow-hidden bg-[color:var(--color-paper)]">
-        {/* poster underlay — instant paint before the first frame decodes */}
+        {/* poster underlay — instant paint before the WebGL scene hydrates */}
         <Image
           src={POSTER}
           alt="Advantage Marine offshore support vessel"
@@ -439,12 +611,12 @@ export default function OsvScrollHero() {
           sizes="100vw"
           className="object-cover"
         />
-        {/* the reel, scrubbed frame-by-frame on a canvas (iOS-safe) */}
-        <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
+        {/* the live ocean + vessel scene mounts here (canvas appended) */}
+        <div ref={mountRef} className="absolute inset-0" />
 
         {/* cinematic grounding — a soft dark wash at the base + lower-left so the
-           glass card sits on depth (the A+C look), while the upper/right of the
-           cruise stays clean and bright. NOT a cream sheet over the ship. */}
+           copy sits on depth, while the upper/right of the ocean stays clean and
+           bright with the sun glitter. */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
