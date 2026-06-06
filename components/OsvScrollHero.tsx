@@ -31,17 +31,20 @@ import ScrollCue from "./ScrollCue";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* Per-orientation frame sets — each a REAL edge-to-edge render of the cruise for
-   its aspect, not a crop or blur-pad of the 16:9 master. The portrait sets are
-   re-rendered from the same Blender scene with a taller camera framing (more sea
-   + sky), so every viewport gets a frame whose aspect already matches it: no
-   side-crop of the vessel, no blurred zoom-pad. Fit-to-width keeps the full
-   vessel width on screen; any vertical overshoot trims only sky/sea. */
-type FrameSet = { dir: string; count: number; pad: number; fit: "width" | "contain" };
+/* Per-orientation frame sets — each a REAL edge-to-edge render of the Blender
+   cruise for its aspect, not a crop or blur-pad of one master. The portrait sets
+   are re-rendered from the same scene with a taller (width-locked) camera so they
+   carry more sea + sky, so every viewport gets a frame whose aspect already
+   matches it: no side-crop of the vessel, no blurred zoom-pad. */
+type FrameSet = { dir: string; count: number; pad: number; fit: "cover" };
 const FRAME_SETS: Record<"portraitNarrow" | "portraitWide" | "landscape", FrameSet> = {
-  portraitNarrow: { dir: "/frames/osv-9x16", count: 120, pad: 3, fit: "width" }, // phones (≈9:16 and taller)
-  portraitWide: { dir: "/frames/osv-3x4", count: 120, pad: 3, fit: "width" }, // tablets in portrait (≈3:4)
-  landscape: { dir: "/frames/osv", count: 120, pad: 3, fit: "contain" }, // desktop / landscape (16:9)
+  // COVER on every set: the frame fills the viewport edge-to-edge, any aspect
+  // overshoot trims only sky/sea. No contain/letterbox → no cream margins. The
+  // portrait sets are already composed to ~match phone/tablet aspect, so cover
+  // crops almost nothing there; landscape cover removes the desktop letterbox.
+  portraitNarrow: { dir: "/frames/osv-9x16", count: 120, pad: 3, fit: "cover" }, // phones (≈9:16 and taller)
+  portraitWide: { dir: "/frames/osv-3x4", count: 120, pad: 3, fit: "cover" }, // tablets in portrait (≈3:4)
+  landscape: { dir: "/frames/osv", count: 120, pad: 3, fit: "cover" }, // desktop / landscape (16:9)
 };
 /* Pick by live viewport: landscape → 16:9; portrait phones (narrow) → 9:16;
    portrait tablets (wider, ~0.66–0.9) → 3:4. */
@@ -118,7 +121,14 @@ function BeatBlock({
   return (
     <div
       ref={innerRef}
-      style={stacked ? { gridArea: "1 / 1" } : undefined}
+      style={{
+        ...(stacked ? { gridArea: "1 / 1" } : {}),
+        /* tight paper halo so dark ink type separates from the reel on ANY
+           frame (dark sea / hull = dark-on-dark without it). Invisible over
+           bright sky; lets the scrim below stay light, not a cream sheet. */
+        textShadow:
+          "0 1px 16px oklch(0.943 0.024 82 / 0.82), 0 0 3px oklch(0.943 0.024 82 / 0.7)",
+      }}
       className="max-w-[42rem] will-change-[opacity,transform]"
     >
       <p className="eyebrow mb-[var(--space-md)]">{beat.kicker}</p>
@@ -206,11 +216,10 @@ export default function OsvScrollHero() {
   useEffect(() => {
     if (!mounted || reduced || !sectionRef.current || !canvasRef.current) return;
 
-    /* Per-orientation frame set — each is a REAL composition for its aspect (a
-       Higgsfield generative reframe of the 4K master for the portrait sets), so
-       the chosen sequence already matches the live viewport. Fit-to-WIDTH keeps
-       the full vessel width on screen on portrait (no side-crop of the exploded
-       modules) with only a thin paper margin top/bottom; landscape contains. */
+    /* Per-orientation frame set — each is a REAL Blender render for its aspect
+       (the portrait sets re-rendered with a taller width-locked camera), so the
+       chosen sequence already matches the live viewport. COVER fills the canvas
+       edge-to-edge; any aspect overshoot trims only sky/sea, never the vessel. */
     let seq = pickFrameSet();
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d", { alpha: false });
@@ -243,17 +252,17 @@ export default function OsvScrollHero() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    /* Fit-to-WIDTH (portrait sets) fills the screen width and centres the band —
-       only a thin sky/sea margin is letterboxed with paper, the full vessel is
-       always shown. CONTAIN (landscape) never crops either. Both fill any gap
-       with the page paper so nothing is ever black or cut off. */
+    /* COVER: scale so the frame fills BOTH axes (Math.max), centred, overflow
+       cropped. The vessel always reaches every edge — no cream/black margin on
+       any viewport. The paper pre-fill stays only as a 1-frame guard before the
+       first decode; cover leaves no visible gap. */
     const draw = (img: HTMLImageElement) => {
       const iw = img.naturalWidth;
       const ih = img.naturalHeight;
       if (!iw || !ih || !cssW || !cssH) return;
       ctx.fillStyle = paperFill;
       ctx.fillRect(0, 0, cssW, cssH);
-      const scale = seq.fit === "contain" ? Math.min(cssW / iw, cssH / ih) : cssW / iw;
+      const scale = Math.max(cssW / iw, cssH / ih);
       const dw = iw * scale;
       const dh = ih * scale;
       const dx = (cssW - dw) / 2;
@@ -406,20 +415,26 @@ export default function OsvScrollHero() {
         {/* the reel, scrubbed frame-by-frame on a canvas (iOS-safe) */}
         <canvas ref={canvasRef} className="absolute inset-0 h-full w-full" aria-hidden="true" />
 
-        {/* readability wash — cream, anchored bottom-left for the copy */}
+        {/* readability scrim — a RAMPED paper gradient: strong at the baseline
+           where the type sits, easing to transparent by ~64% so the whole copy
+           block (kicker → headline → lead → stat) reads, while the upper third+
+           of the reel stays clean. Bottom-anchored grounding, NOT the old flat
+           full-frame cream sheet that washed the video. */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
             background:
-              "linear-gradient(to top, color-mix(in oklch, var(--color-paper) 82%, transparent) 0%, transparent 52%)",
+              "linear-gradient(to top, color-mix(in oklch, var(--color-paper) 88%, transparent) 0%, color-mix(in oklch, var(--color-paper) 64%, transparent) 20%, color-mix(in oklch, var(--color-paper) 28%, transparent) 44%, transparent 64%)",
           }}
         />
-        {/* mobile: stronger scrim — portrait fills the frame and copy overlaps the vessel */}
+        {/* mobile: portrait copy overlaps more of the vessel, so the ramp runs a
+           touch stronger and taller (transparent by ~72%) — still a bottom-up
+           ramp, not a sheet over the reel. */}
         <div
           className="absolute inset-0 pointer-events-none sm:hidden"
           style={{
             background:
-              "linear-gradient(to top, color-mix(in oklch, var(--color-paper) 94%, transparent) 0%, color-mix(in oklch, var(--color-paper) 64%, transparent) 40%, transparent 72%)",
+              "linear-gradient(to top, color-mix(in oklch, var(--color-paper) 92%, transparent) 0%, color-mix(in oklch, var(--color-paper) 72%, transparent) 24%, color-mix(in oklch, var(--color-paper) 38%, transparent) 50%, transparent 72%)",
           }}
         />
 
