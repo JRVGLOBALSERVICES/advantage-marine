@@ -47,6 +47,15 @@ const POSTER = "/media/home/hero-osv-poster.jpg";
 const REEL_URL =
   "https://res.cloudinary.com/de3gn7o77/video/upload/advantage-marine/deliverables/advantage-osv-reel-16x9-4k.mp4";
 
+/* capability words that pop in around the cursor as you move over the hero */
+const HERO_WORDS: { t: string; x: number; y: number }[] = [
+  { t: "SURVEY", x: -168, y: -78 },
+  { t: "NDT", x: 132, y: -118 },
+  { t: "ROV", x: 184, y: 46 },
+  { t: "DIVE", x: -196, y: 64 },
+  { t: "SALVAGE", x: -8, y: 128 },
+];
+
 /* trapezoid 0→1 visibility window */
 function trap(p: number, a: number, b: number, c: number, d: number) {
   if (p <= a || p >= d) return 0;
@@ -213,10 +222,12 @@ export default function OsvScrollHero() {
   const sectionRef = useRef<HTMLDivElement>(null);
   const mountRef = useRef<HTMLDivElement>(null);
   const beatRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const wordsRef = useRef<HTMLDivElement>(null);
   const shownRef = useRef<boolean[]>(BEATS.map(() => false));
   const [mounted, setMounted] = useState(false);
   const [reduced, setReduced] = useState(false);
   const [active, setActive] = useState<boolean[]>(BEATS.map(() => false));
+  const [wordsOn, setWordsOn] = useState(false);
 
   useEffect(() => {
     const r = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -352,24 +363,6 @@ export default function OsvScrollHero() {
           d[i + 3] = a * 255;
         }
     });
-    const moonTex = makeTex(128, 128, (d) => {
-      const craters: number[][] = [[44, 52, 9], [82, 66, 12], [60, 86, 7], [92, 44, 6]];
-      for (let y = 0; y < 128; y++)
-        for (let x = 0; x < 128; x++) {
-          const r = Math.hypot((x - 64) / 60, (y - 64) / 60);
-          const a = r < 1 ? 1 - Math.max(0, (r - 0.85) / 0.15) : 0;
-          let sh = 236;
-          for (const [cx, cy, cr] of craters) {
-            const cd = Math.hypot(x - cx, y - cy);
-            if (cd < cr) sh -= (1 - cd / cr) * 34;
-          }
-          const i = (y * 128 + x) * 4;
-          d[i] = sh;
-          d[i + 1] = sh;
-          d[i + 2] = sh * 0.97;
-          d[i + 3] = Math.max(0, Math.min(1, a)) * 255;
-        }
-    });
     const mkSprite = (map: THREE.Texture, color: number, scale: number, additive: boolean) => {
       const s = new THREE.Sprite(
         new THREE.SpriteMaterial({
@@ -387,10 +380,25 @@ export default function OsvScrollHero() {
     };
     const sunGlow = mkSprite(glowTex, 0xffcf8a, 4200, true);
     const sunBody = mkSprite(discTex, 0xfff0cf, 760, true);
-    const moonGlow = mkSprite(glowTex, 0xaec4ff, 3200, true);
-    const moonBody = mkSprite(moonTex, 0xffffff, 760, false);
-    moonBody.position.copy(moonDir).multiplyScalar(12000);
-    moonGlow.position.copy(moonBody.position);
+    // (no moon — moonDir below is just the steady cool key-light direction at night)
+
+    // cursor light — a soft glow pool on the water that follows the pointer
+    const waterLight = new THREE.Mesh(
+      new THREE.PlaneGeometry(90, 90),
+      new THREE.MeshBasicMaterial({
+        map: glowTex,
+        transparent: true,
+        depthWrite: false,
+        opacity: 0,
+        blending: THREE.AdditiveBlending,
+        color: 0xffe6b8,
+      })
+    );
+    waterLight.rotation.x = -Math.PI / 2;
+    waterLight.renderOrder = 2;
+    scene.add(waterLight);
+    const cursorLight = new THREE.PointLight(0xfff0d0, 0, 220, 2);
+    scene.add(cursorLight);
 
     // environment (sky reflections on the hull) — rebuilt occasionally as the
     // sky shifts (PMREM per-frame would be far too costly)
@@ -442,11 +450,8 @@ export default function OsvScrollHero() {
       sunBody.material.opacity = sunVis;
       sunGlow.position.copy(sun).multiplyScalar(12000);
       sunBody.position.copy(sun).multiplyScalar(12000);
-      // moon + stars rise into the night
-      const night = THREE.MathUtils.smoothstep(n, 0.4, 0.95);
-      moonBody.material.opacity = night;
-      moonGlow.material.opacity = night * 0.7;
-      starMat.opacity = THREE.MathUtils.smoothstep(n, 0.45, 1.0);
+      // stars rise steadily into the night (no moon)
+      starMat.opacity = THREE.MathUtils.smoothstep(n, 0.5, 0.82);
     };
     applySky(0);
     rebuildEnv();
@@ -639,27 +644,54 @@ export default function OsvScrollHero() {
       },
     });
 
-    // ── pointer parallax (desktop hover effect) ──────────────────────────────
+    // ── pointer: parallax + cursor water-light + floating words (desktop) ─────
     const ptr = { x: 0, y: 0, tx: 0, ty: 0 };
+    const ndc = new THREE.Vector2(0, 0);
+    let hovering = false;
     const finePointer = window.matchMedia("(pointer: fine)").matches;
     const onPointerMove = (e: PointerEvent) => {
-      ptr.tx = (e.clientX / (mount.clientWidth || 1) - 0.5) * 2;
-      ptr.ty = (e.clientY / (mount.clientHeight || 1) - 0.5) * 2;
+      const r = mount.getBoundingClientRect();
+      const nx = (e.clientX - r.left) / (r.width || 1);
+      const ny = (e.clientY - r.top) / (r.height || 1);
+      ptr.tx = (nx - 0.5) * 2;
+      ptr.ty = (ny - 0.5) * 2;
+      ndc.x = nx * 2 - 1;
+      ndc.y = -(ny * 2 - 1);
+      if (wordsRef.current) {
+        wordsRef.current.style.left = `${e.clientX - r.left}px`;
+        wordsRef.current.style.top = `${e.clientY - r.top}px`;
+      }
     };
-    if (finePointer) window.addEventListener("pointermove", onPointerMove);
+    const onEnter = () => {
+      hovering = true;
+      setWordsOn(true);
+    };
+    const onLeave = () => {
+      hovering = false;
+      setWordsOn(false);
+    };
+    if (finePointer) {
+      window.addEventListener("pointermove", onPointerMove);
+      mount.addEventListener("pointerenter", onEnter);
+      mount.addEventListener("pointerleave", onLeave);
+    }
 
     // ── render loop (paused offscreen) ───────────────────────────────────────
     const clock = new THREE.Clock();
     let elapsed = 0;
     let visible = true;
     let raf = 0;
+    const ray = new THREE.Raycaster();
+    const seaPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+    const hitPt = new THREE.Vector3();
     const render = () => {
       const dt = Math.min(clock.getDelta(), 0.05);
       elapsed += dt;
       const p = Math.min(Math.max(scrollState.progress, 0), 1);
 
-      // day → night as the vessel cruises toward the left
-      const n = THREE.MathUtils.smoothstep(p, 0.4, 0.96);
+      // day → night as the vessel cruises toward the left — reaches full night
+      // decisively by ~0.8 and holds it (direct, no fading in and out)
+      const n = THREE.MathUtils.smoothstep(p, 0.42, 0.8);
       applySky(n);
       const qs = Math.round(n * 6); // rebuild reflections in ~6 steps, not /frame
       if (qs !== envStep) {
@@ -704,6 +736,18 @@ export default function OsvScrollHero() {
       );
       camera.lookAt(cam.tx + ptr.x * 2.5, cam.ty - ptr.y * 1.5, 0);
 
+      // cursor light pool on the water, following the pointer (cool at night)
+      ray.setFromCamera(ndc, camera);
+      if (ray.ray.intersectPlane(seaPlane, hitPt)) {
+        waterLight.position.set(hitPt.x, 0.4, hitPt.z);
+        cursorLight.position.set(hitPt.x, 18, hitPt.z);
+      }
+      const wlm = waterLight.material as THREE.MeshBasicMaterial;
+      wlm.opacity += ((hovering ? 0.55 : 0) - wlm.opacity) * 0.08;
+      cursorLight.intensity += ((hovering ? 90 : 0) - cursorLight.intensity) * 0.08;
+      wlm.color.setHex(n > 0.5 ? 0xbcd0ff : 0xffe6b8);
+      cursorLight.color.setHex(n > 0.5 ? 0xbcd0ff : 0xfff0d0);
+
       updateBeats(p);
       renderer.render(scene, camera);
       raf = requestAnimationFrame(render);
@@ -738,6 +782,8 @@ export default function OsvScrollHero() {
       window.clearTimeout(readyTimer);
       window.removeEventListener("resize", onResize);
       window.removeEventListener("pointermove", onPointerMove);
+      mount.removeEventListener("pointerenter", onEnter);
+      mount.removeEventListener("pointerleave", onLeave);
       cancelAnimationFrame(raf);
       io.disconnect();
       st.kill();
@@ -749,7 +795,6 @@ export default function OsvScrollHero() {
       bowTex.dispose();
       discTex.dispose();
       glowTex.dispose();
-      moonTex.dispose();
       scene.traverse((o) => {
         const mesh = o as THREE.Mesh;
         if (mesh.geometry) mesh.geometry.dispose();
@@ -795,6 +840,35 @@ export default function OsvScrollHero() {
         />
         {/* the live ocean + vessel scene mounts here (canvas appended) */}
         <div ref={mountRef} className="absolute inset-0" />
+
+        {/* capability words that pop in around the cursor (desktop hover) */}
+        <div
+          ref={wordsRef}
+          className="pointer-events-none absolute left-1/2 top-1/2 z-[2] hidden sm:block"
+          style={{ transition: "left 0.15s ease-out, top 0.15s ease-out" }}
+          aria-hidden
+        >
+          {HERO_WORDS.map((w, i) => (
+            <span
+              key={w.t}
+              className="absolute whitespace-nowrap font-display font-semibold uppercase"
+              style={{
+                left: 0,
+                top: 0,
+                transform: `translate(${w.x}px, ${w.y}px) translate(-50%, -50%) scale(${wordsOn ? 1 : 0.6})`,
+                opacity: wordsOn ? 0.92 : 0,
+                transition: "opacity 0.35s ease-out, transform 0.35s cubic-bezier(0.22,1,0.36,1)",
+                transitionDelay: `${i * 45}ms`,
+                letterSpacing: "0.22em",
+                fontSize: "clamp(0.7rem, 1vw, 0.95rem)",
+                color: "color-mix(in oklch, white 72%, var(--color-accent-2))",
+                textShadow: "0 1px 14px oklch(0.12 0.04 235 / 0.8)",
+              }}
+            >
+              {w.t}
+            </span>
+          ))}
+        </div>
 
         {/* cinematic grounding — a soft dark wash at the base + lower-left so the
            copy sits on depth, while the upper/right of the ocean stays clean and
