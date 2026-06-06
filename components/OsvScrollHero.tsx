@@ -30,15 +30,29 @@ import ScrollCue from "./ScrollCue";
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* ONE sequence, the 15.04s reel at its native 16:9 (the client's concept reel
-   is inherently widescreen — 848×478 source). We deliberately do NOT ship a
-   9:16 "mobile" set: the only way to make this footage fill a portrait phone
-   is to crop it (cuts the outermost exploded modules) or blur-pad it (the
-   Higgsfield reframe bakes a blurred zoom of the frame into the top/bottom
-   mats — that was the "blurry on mobile" defect). Instead we contain-fit the
-   sharp 16:9 frame on every viewport and letterbox the gap with the page
-   paper: full vessel, no crop, no blur, identical source everywhere. */
-const FRAMES = { dir: "/frames/osv", count: 120, pad: 3 };
+/* Per-orientation frame sets — each a REAL edge-to-edge composition of the same
+   15.04s reel, not a crop or blur-pad of the 16:9 master. The portrait sets come
+   from a Higgsfield GENERATIVE REFRAME of the 4K master that outpaints the canvas
+   vertically with real sea + sky (the iPad 3:4 set is cropped from that same clean
+   9:16 render). So every viewport gets a frame whose aspect already matches it:
+   no side-crop of the exploded modules (the earlier "cropped on mobile" defect),
+   no blurred zoom-pad (the earlier "blurry on mobile" defect). Fit-to-width keeps
+   the full vessel width on screen; any vertical overshoot trims only sky/sea. */
+type FrameSet = { dir: string; count: number; pad: number; fit: "width" | "contain" };
+const FRAME_SETS: Record<"portraitNarrow" | "portraitWide" | "landscape", FrameSet> = {
+  portraitNarrow: { dir: "/frames/osv-9x16", count: 120, pad: 3, fit: "width" }, // phones (≈9:16 and taller)
+  portraitWide: { dir: "/frames/osv-3x4", count: 120, pad: 3, fit: "width" }, // tablets in portrait (≈3:4)
+  landscape: { dir: "/frames/osv", count: 120, pad: 3, fit: "contain" }, // desktop / landscape (16:9)
+};
+/* Pick by live viewport: landscape → 16:9; portrait phones (narrow) → 9:16;
+   portrait tablets (wider, ~0.66–0.9) → 3:4. */
+const pickFrameSet = (): FrameSet => {
+  if (typeof window === "undefined") return FRAME_SETS.landscape;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  if (w > h) return FRAME_SETS.landscape;
+  return w / h < 0.66 ? FRAME_SETS.portraitNarrow : FRAME_SETS.portraitWide;
+};
 const POSTER = "/media/home/hero-osv-poster.jpg";
 /* The reel as durable, indexable content for the VideoObject schema. */
 const REEL_URL =
@@ -193,36 +207,31 @@ export default function OsvScrollHero() {
   useEffect(() => {
     if (!mounted || reduced || !sectionRef.current || !canvasRef.current) return;
 
-    /* Single sharp 16:9 sequence on every viewport. Orientation only decides
-       VERTICAL ALIGNMENT of the contained band: on portrait we anchor it to
-       the top so the copy stacks cleanly beneath it on the paper; on landscape
-       we centre it. No per-orientation frame set, so no crop and no blur-pad. */
-    const portrait = window.matchMedia("(orientation: portrait)").matches;
-    const seq = FRAMES;
-    const { count } = seq;
+    /* Per-orientation frame set — each is a REAL composition for its aspect (a
+       Higgsfield generative reframe of the 4K master for the portrait sets), so
+       the chosen sequence already matches the live viewport. Fit-to-WIDTH keeps
+       the full vessel width on screen on portrait (no side-crop of the exploded
+       modules) with only a thin paper margin top/bottom; landscape contains. */
+    let seq = pickFrameSet();
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d", { alpha: false });
     if (!ctx) return;
 
-    /* Letterbox fill — alpha:false canvas clears to BLACK, so any contain-fit
-       gap must be painted with the page paper. Resolve the container's already
-       computed background to an rgb() string (works on every browser, unlike a
-       raw oklch var in canvas fillStyle). */
+    /* Letterbox fill — alpha:false canvas clears to BLACK, so any fit gap must
+       be painted with the page paper. Resolve the container's already computed
+       background to an rgb() string (works on every browser, unlike a raw oklch
+       var in canvas fillStyle). */
     const paperFill =
       getComputedStyle(canvas.parentElement as HTMLElement).backgroundColor || "#ffffff";
 
-    /* ── decode the image sequence ─────────────────────────────────────────
-       Coarse-stride order first (0,6,12 … then fill) so a fast early flick
-       always lands on a frame near the target while the rest stream in. */
-    const imgs: HTMLImageElement[] = new Array(count);
-    const loaded: boolean[] = new Array(count).fill(false);
+    /* ── decode state (re-allocated when the orientation flips the set) ────── */
+    let imgs: HTMLImageElement[] = [];
+    let loaded: boolean[] = [];
     let firstReady = false;
+    let curTarget = 0;
+    let curDrawn = -1;
 
-    const order: number[] = [];
-    const stride = 6;
-    for (let s = 0; s < stride; s++) for (let i = s; i < count; i += stride) order.push(i);
-
-    /* ── canvas sizing (cap DPR at 2) + cover-fit draw ────────────────────── */
+    /* ── canvas sizing (cap DPR at 2) ─────────────────────────────────────── */
     let cssW = 0;
     let cssH = 0;
     const sizeCanvas = () => {
@@ -235,58 +244,66 @@ export default function OsvScrollHero() {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
 
-    /* CONTAIN-fit (min scale) — never crop the exploded vessel; fill the
-       letterbox gap with paper so nothing is cut off on any viewport. On
-       portrait the band is anchored to the upper area (so the headline +
-       stat read directly beneath it); landscape centres it. */
-    const drawContain = (img: HTMLImageElement) => {
+    /* Fit-to-WIDTH (portrait sets) fills the screen width and centres the band —
+       only a thin sky/sea margin is letterboxed with paper, the full vessel is
+       always shown. CONTAIN (landscape) never crops either. Both fill any gap
+       with the page paper so nothing is ever black or cut off. */
+    const draw = (img: HTMLImageElement) => {
       const iw = img.naturalWidth;
       const ih = img.naturalHeight;
       if (!iw || !ih || !cssW || !cssH) return;
       ctx.fillStyle = paperFill;
       ctx.fillRect(0, 0, cssW, cssH);
-      const scale = Math.min(cssW / iw, cssH / ih);
+      const scale = seq.fit === "contain" ? Math.min(cssW / iw, cssH / ih) : cssW / iw;
       const dw = iw * scale;
       const dh = ih * scale;
       const dx = (cssW - dw) / 2;
-      const dy = portrait ? cssH * 0.08 : (cssH - dh) / 2;
+      const dy = (cssH - dh) / 2;
       ctx.drawImage(img, dx, dy, dw, dh);
     };
 
-    let curTarget = 0;
-    let curDrawn = -1;
     const nearestLoaded = (t: number) => {
       if (loaded[t]) return t;
-      for (let r = 1; r < count; r++) {
+      for (let r = 1; r < seq.count; r++) {
         if (t - r >= 0 && loaded[t - r]) return t - r;
-        if (t + r < count && loaded[t + r]) return t + r;
+        if (t + r < seq.count && loaded[t + r]) return t + r;
       }
       return -1;
     };
     const paint = () => {
       const idx = nearestLoaded(curTarget);
       if (idx < 0 || idx === curDrawn) return;
-      drawContain(imgs[idx]);
+      draw(imgs[idx]);
       curDrawn = idx;
     };
 
-    sizeCanvas();
+    /* Decode the current set, coarse-stride first (0,6,12 … then fill) so a fast
+       early flick always lands near the target while the rest stream in. */
+    const loadSeq = () => {
+      imgs = new Array(seq.count);
+      loaded = new Array(seq.count).fill(false);
+      curDrawn = -1;
+      const order: number[] = [];
+      const stride = 6;
+      for (let s = 0; s < stride; s++) for (let i = s; i < seq.count; i += stride) order.push(i);
+      order.forEach((i) => {
+        const img = new window.Image();
+        img.decoding = "async";
+        img.onload = () => {
+          loaded[i] = true;
+          if (!firstReady) {
+            firstReady = true;
+            window.dispatchEvent(new Event("am:scene-ready"));
+          }
+          paint();
+        };
+        img.src = framePath(seq.dir, i, seq.pad);
+        imgs[i] = img;
+      });
+    };
 
-    order.forEach((i) => {
-      const img = new window.Image();
-      img.decoding = "async";
-      img.onload = () => {
-        loaded[i] = true;
-        if (!firstReady) {
-          firstReady = true;
-          window.dispatchEvent(new Event("am:scene-ready"));
-        }
-        // redraw if this fills the frame we currently want
-        paint();
-      };
-      img.src = framePath(seq.dir, i, seq.pad);
-      imgs[i] = img;
-    });
+    sizeCanvas();
+    loadSeq();
 
     // poster is already up; signal the loader even if decode is slow
     const readyTimer = window.setTimeout(() => window.dispatchEvent(new Event("am:scene-ready")), 600);
@@ -312,7 +329,7 @@ export default function OsvScrollHero() {
 
     const tick = () => {
       const p = scrollState.progress;
-      curTarget = Math.round(p * (count - 1));
+      curTarget = Math.round(p * (seq.count - 1));
       paint();
       // ── beat opacity / rise ──
       let changed = false;
@@ -333,7 +350,14 @@ export default function OsvScrollHero() {
 
     const onResize = () => {
       sizeCanvas();
-      curDrawn = -1;
+      const next = pickFrameSet();
+      if (next.dir !== seq.dir) {
+        // orientation flipped into a different aspect → swap to its real set
+        seq = next;
+        loadSeq();
+      } else {
+        curDrawn = -1;
+      }
       paint();
     };
     window.addEventListener("resize", onResize);
